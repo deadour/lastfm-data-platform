@@ -48,5 +48,6 @@ def test_api_error_is_raised():
 
 def test_http_error_is_raised():
     session = FakeSession(FakeResponse({}, requests.Timeout("timed out")))
-    with pytest.raises(LastFMHTTPError, match="timed out"):
+    with pytest.raises(LastFMHTTPError, match="Timeout") as error:
         LastFMClient("key", "user", session=session).get_recent_tracks()
+    assert "key" not in str(error.value)

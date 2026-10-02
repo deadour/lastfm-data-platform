@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .bronze_storage import latest_completed_timestamp, save_page
 from .config import load_settings
-from .lastfm_client import LastFMClient
+from .lastfm_client import LastFMClient, LastFMError
 
 LOGGER = logging.getLogger("lastfm_ingestion")
 
@@ -54,7 +54,11 @@ def main() -> None:
     if args.max_pages is not None and args.max_pages < 1:
         parser.error("--max-pages must be positive")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    ingest(backfill=args.backfill, max_pages=args.max_pages)
+    try:
+        ingest(backfill=args.backfill, max_pages=args.max_pages)
+    except LastFMError as exc:
+        LOGGER.error("Ingestion failed: %s", exc)
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

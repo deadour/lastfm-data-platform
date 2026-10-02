@@ -45,7 +45,8 @@ class LastFMClient:
             response = self.session.get(self.endpoint, params=params, timeout=self.timeout)
             response.raise_for_status()
         except requests.RequestException as exc:
-            raise LastFMHTTPError(f"Last.fm request failed: {exc}") from exc
+            # Requests may include the full URL, including the API key, in its exception text.
+            raise LastFMHTTPError(f"Last.fm request failed ({type(exc).__name__})") from None
         try:
             payload = response.json()
         except ValueError as exc:
