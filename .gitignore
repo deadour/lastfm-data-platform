@@ -138,6 +138,8 @@ __pycache__/
 
 data/bronze/**
 !data/bronze/.gitkeep
+data/silver/**
+!data/silver/.gitkeep
 env/
 venv/
 ENV/
