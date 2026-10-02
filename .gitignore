@@ -49,6 +49,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.pytest-tmp/
 cover/
 
 # Translations
@@ -129,7 +130,14 @@ celerybeat.pid
 
 # Environments
 .env
+pasos.md
 .venv
+venv/
+__pycache__/
+*.pyc
+
+data/bronze/**
+!data/bronze/.gitkeep
 env/
 venv/
 ENV/
