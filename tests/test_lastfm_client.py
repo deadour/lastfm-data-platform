@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 import requests
 
@@ -24,9 +26,11 @@ class FakeResponse:
 class FakeSession:
     def __init__(self, response):
         self.response = response
+        self.endpoint = None
         self.params = None
 
     def get(self, endpoint, params, timeout):
+        self.endpoint = endpoint
         self.params = params
         return self.response
 
@@ -42,6 +46,34 @@ def test_get_recent_tracks_builds_request():
     assert session.params["page"] == 2
     assert session.params["limit"] == 50
     assert session.params["from"] == 10
+
+
+def test_request_uses_public_recent_tracks_contract():
+    session = FakeSession(FakeResponse(valid_payload()))
+    LastFMClient("sentinel", "eduramirez87", session=session).get_recent_tracks()
+    assert session.endpoint == "https://ws.audioscrobbler.com/2.0/"
+    assert session.params == {
+        "method": "user.getRecentTracks",
+        "user": "eduramirez87",
+        "api_key": "sentinel",
+        "format": "json",
+        "page": 1,
+        "limit": 200,
+    }
+    assert not {"sk", "api_sig", "session", "session_key"}.intersection(session.params)
+
+
+def test_debug_request_parameters_redact_api_key(caplog):
+    session = FakeSession(FakeResponse(valid_payload()))
+    with caplog.at_level(logging.DEBUG, logger="src.ingestion.lastfm_client"):
+        LastFMClient("sentinel", "eduramirez87", session=session).get_recent_tracks()
+    message = caplog.records[-1].message
+    assert "method=user.getRecentTracks" in message
+    assert "user=eduramirez87" in message
+    assert "format=json" in message
+    assert "api_key=[REDACTED]" in message
+    assert "sentinel" not in message
+    assert "https://" not in message
 
 
 def test_api_error_is_raised():

@@ -1,10 +1,14 @@
 """Small HTTP client for the official Last.fm API."""
 
-from typing import Any
 import json
+import logging
 import re
+from typing import Any
 
 import requests
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class LastFMError(RuntimeError):
@@ -54,6 +58,15 @@ def _safe_http_detail(response: Any, api_key: str) -> str:
     return _redact_sensitive(detail, api_key)
 
 
+def _safe_request_parameters(params: dict[str, Any]) -> str:
+    """Format request parameters without exposing authentication material."""
+    sensitive_names = {"api_key", "shared_secret", "api_sig", "sk", "password", "token"}
+    return " ".join(
+        f"{name}={'[REDACTED]' if name.lower() in sensitive_names else value}"
+        for name, value in params.items()
+    )
+
+
 class LastFMClient:
     endpoint = "https://ws.audioscrobbler.com/2.0/"
 
@@ -73,6 +86,7 @@ class LastFMClient:
             params["from"] = from_timestamp
         if to_timestamp is not None:
             params["to"] = to_timestamp
+        LOGGER.debug("Last.fm request parameters: %s", _safe_request_parameters(params))
 
         try:
             response = self.session.get(self.endpoint, params=params, timeout=self.timeout)
