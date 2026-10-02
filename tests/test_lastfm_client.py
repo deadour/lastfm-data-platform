@@ -35,6 +35,17 @@ class FakeSession:
         return self.response
 
 
+class SequenceSession:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = 0
+
+    def get(self, endpoint, params, timeout):
+        self.calls += 1
+        response = self.responses.pop(0)
+        return response
+
+
 def valid_payload():
     return {"recenttracks": {"track": [], "@attr": {"page": "1", "totalPages": "1"}}}
 
@@ -116,3 +127,46 @@ def test_http_error_redacts_credential_like_body_values():
     message = str(error.value)
     assert "sentinel" not in message
     assert "not-a-secret" not in message
+
+
+def test_transient_http_500_retries_then_succeeds():
+    failures = [FakeResponse({"message": "temporary"}, requests.HTTPError(), status_code=500)]
+    sleeps = []
+    session = SequenceSession(failures + [FakeResponse(valid_payload())])
+    result = LastFMClient("sentinel", "user", session=session, sleep=sleeps.append).get_recent_tracks()
+    assert result == valid_payload()
+    assert session.calls == 2
+    assert sleeps == [1.0]
+
+
+def test_transient_api_error_8_retries_then_succeeds():
+    sleeps = []
+    session = SequenceSession([
+        FakeResponse({"error": 8, "message": "temporary backend failure"}),
+        FakeResponse(valid_payload()),
+    ])
+    result = LastFMClient("sentinel", "user", session=session, sleep=sleeps.append).get_recent_tracks()
+    assert result == valid_payload()
+    assert sleeps == [1.0]
+
+
+def test_retry_exhaustion_raises_last_error():
+    sleeps = []
+    session = SequenceSession([
+        FakeResponse({"message": "temporary"}, requests.HTTPError(), status_code=503)
+        for _ in range(6)
+    ])
+    with pytest.raises(LastFMHTTPError, match="HTTP status 503"):
+        LastFMClient("sentinel", "user", session=session, sleep=sleeps.append).get_recent_tracks()
+    assert session.calls == 6
+    assert sleeps == [1.0, 2.0, 4.0, 8.0, 16.0]
+
+
+def test_non_retryable_http_error_does_not_retry():
+    sleeps = []
+    session = SequenceSession([FakeResponse({"error": 10, "message": "Invalid API key"},
+                                             requests.HTTPError(), status_code=403)])
+    with pytest.raises(LastFMHTTPError, match="HTTP status 403"):
+        LastFMClient("sentinel", "user", session=session, sleep=sleeps.append).get_recent_tracks()
+    assert session.calls == 1
+    assert sleeps == []

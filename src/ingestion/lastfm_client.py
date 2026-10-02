@@ -3,7 +3,9 @@
 import json
 import logging
 import re
+import time
 from typing import Any
+from collections.abc import Callable
 
 import requests
 
@@ -70,11 +72,16 @@ def _safe_request_parameters(params: dict[str, Any]) -> str:
 class LastFMClient:
     endpoint = "https://ws.audioscrobbler.com/2.0/"
 
-    def __init__(self, api_key: str, username: str, timeout: float = 30, session: requests.Session | None = None):
+    def __init__(self, api_key: str, username: str, timeout: float = 30,
+                 session: requests.Session | None = None, max_attempts: int = 6,
+                 backoff_seconds: float = 1.0, sleep: Callable[[float], None] = time.sleep):
         self.api_key = api_key
         self.username = username
         self.timeout = timeout
         self.session = session or requests.Session()
+        self.max_attempts = max_attempts
+        self.backoff_seconds = backoff_seconds
+        self.sleep = sleep
 
     def get_recent_tracks(self, page: int = 1, limit: int = 200, from_timestamp: int | None = None,
                           to_timestamp: int | None = None) -> dict[str, Any]:
@@ -88,28 +95,44 @@ class LastFMClient:
             params["to"] = to_timestamp
         LOGGER.debug("Last.fm request parameters: %s", _safe_request_parameters(params))
 
-        try:
-            response = self.session.get(self.endpoint, params=params, timeout=self.timeout)
-            response.raise_for_status()
-        except requests.HTTPError as exc:
-            response = getattr(exc, "response", None)
-            status = getattr(response, "status_code", "unknown")
-            detail = _safe_http_detail(response, self.api_key)
-            suffix = f": {detail}" if detail else ""
-            raise LastFMHTTPError(f"Last.fm request failed with HTTP status {status}{suffix}") from None
-        except requests.RequestException as exc:
-            # Requests may include the full URL, including the API key, in its exception text.
-            raise LastFMHTTPError(f"Last.fm request failed ({type(exc).__name__})") from None
-        try:
-            payload = response.json()
-        except ValueError as exc:
-            raise LastFMResponseError("Last.fm returned invalid JSON") from exc
-        if not isinstance(payload, dict):
-            raise LastFMResponseError("Last.fm returned a non-object JSON response")
-        if "error" in payload:
-            message = _redact_sensitive(str(payload.get("message", "unknown error")), self.api_key)
-            raise LastFMAPIError(f"Last.fm API error {payload.get('error')}: {message}")
-        recent_tracks = payload.get("recenttracks")
-        if not isinstance(recent_tracks, dict) or not isinstance(recent_tracks.get("track", []), list):
-            raise LastFMResponseError("Last.fm response is missing recenttracks.track")
-        return payload
+        transient_statuses = {429, 500, 502, 503, 504}
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                response = self.session.get(self.endpoint, params=params, timeout=self.timeout)
+                response.raise_for_status()
+            except requests.HTTPError as exc:
+                response = getattr(exc, "response", None)
+                status = getattr(response, "status_code", "unknown")
+                if status in transient_statuses and self._retry(attempt, f"HTTP {status}"):
+                    continue
+                detail = _safe_http_detail(response, self.api_key)
+                suffix = f": {detail}" if detail else ""
+                raise LastFMHTTPError(f"Last.fm request failed with HTTP status {status}{suffix}") from None
+            except requests.RequestException as exc:
+                # Requests may include the full URL, including the API key, in its exception text.
+                raise LastFMHTTPError(f"Last.fm request failed ({type(exc).__name__})") from None
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise LastFMResponseError("Last.fm returned invalid JSON") from exc
+            if not isinstance(payload, dict):
+                raise LastFMResponseError("Last.fm returned a non-object JSON response")
+            if "error" in payload:
+                message = _redact_sensitive(str(payload.get("message", "unknown error")), self.api_key)
+                if str(payload.get("error")) == "8" and self._retry(attempt, "Last.fm API error 8"):
+                    continue
+                raise LastFMAPIError(f"Last.fm API error {payload.get('error')}: {message}")
+            recent_tracks = payload.get("recenttracks")
+            if not isinstance(recent_tracks, dict) or not isinstance(recent_tracks.get("track", []), list):
+                raise LastFMResponseError("Last.fm response is missing recenttracks.track")
+            return payload
+        raise LastFMError("Last.fm request retry limit reached")
+
+    def _retry(self, attempt: int, reason: str) -> bool:
+        if attempt >= self.max_attempts:
+            return False
+        delay = self.backoff_seconds * (2 ** (attempt - 1))
+        LOGGER.warning("Last.fm request failed with %s; retrying in %ss (attempt %s/%s)",
+                       reason, delay, attempt + 1, self.max_attempts)
+        self.sleep(delay)
+        return True

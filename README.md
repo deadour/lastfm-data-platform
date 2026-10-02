@@ -55,6 +55,14 @@ Run the complete historical backfill:
 python -m src.ingestion.ingest_scrobbles --backfill
 ```
 
+If a backfill stops after a transient failure, resume the latest incomplete metadata-backed run:
+
+```bash
+python -m src.ingestion.ingest_scrobbles --backfill --resume
+```
+
+Each execution has one run ID shared by all of its pages and writes `run_metadata.json` with `running`, `failed`, or `completed` state. Older Bronze directories created before run metadata was introduced are preserved and are not automatically migrated or resumed.
+
 Run incremental ingestion using the latest completed scrobble found in Bronze as its watermark:
 
 ```bash
