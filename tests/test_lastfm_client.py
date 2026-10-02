@@ -5,12 +5,16 @@ from src.ingestion.lastfm_client import LastFMAPIError, LastFMClient, LastFMHTTP
 
 
 class FakeResponse:
-    def __init__(self, body, error=None):
+    def __init__(self, body, error=None, status_code=200, text=""):
         self.body = body
         self.error = error
+        self.status_code = status_code
+        self.text = text
 
     def raise_for_status(self):
         if self.error:
+            if isinstance(self.error, requests.HTTPError):
+                self.error.response = self
             raise self.error
 
     def json(self):
@@ -33,7 +37,7 @@ def valid_payload():
 
 def test_get_recent_tracks_builds_request():
     session = FakeSession(FakeResponse(valid_payload()))
-    result = LastFMClient("key", "user", session=session).get_recent_tracks(page=2, limit=50, from_timestamp=10)
+    result = LastFMClient("sentinel", "user", session=session).get_recent_tracks(page=2, limit=50, from_timestamp=10)
     assert result == valid_payload()
     assert session.params["page"] == 2
     assert session.params["limit"] == 50
@@ -49,5 +53,34 @@ def test_api_error_is_raised():
 def test_http_error_is_raised():
     session = FakeSession(FakeResponse({}, requests.Timeout("timed out")))
     with pytest.raises(LastFMHTTPError, match="Timeout") as error:
-        LastFMClient("key", "user", session=session).get_recent_tracks()
-    assert "key" not in str(error.value)
+        LastFMClient("sentinel", "user", session=session).get_recent_tracks()
+    assert "sentinel" not in str(error.value)
+
+
+def test_http_error_reports_status_and_safe_lastfm_message():
+    response = FakeResponse(
+        {"error": 10, "message": "Invalid API key"},
+        requests.HTTPError("request URL must not leak"),
+        status_code=403,
+    )
+    with pytest.raises(LastFMHTTPError) as error:
+        LastFMClient("sentinel", "user", session=FakeSession(response)).get_recent_tracks()
+    message = str(error.value)
+    assert "HTTP status 403" in message
+    assert "Last.fm error 10: Invalid API key" in message
+    assert "sentinel" not in message
+    assert "request URL" not in message
+
+
+def test_http_error_redacts_credential_like_body_values():
+    response = FakeResponse(
+        None,
+        requests.HTTPError(),
+        status_code=403,
+        text="api_key=sentinel&shared_secret=not-a-secret",
+    )
+    with pytest.raises(LastFMHTTPError) as error:
+        LastFMClient("sentinel", "user", session=FakeSession(response)).get_recent_tracks()
+    message = str(error.value)
+    assert "sentinel" not in message
+    assert "not-a-secret" not in message
