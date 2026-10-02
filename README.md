@@ -2,7 +2,7 @@
 
 Personal data engineering project for collecting my Last.fm listening history.
 
-Current status: Phase 2 — Silver transformation
+Current status: Phase 3 — Gold analytical marts
 
 ## Architecture
 
@@ -16,9 +16,13 @@ Bronze / Raw JSON
 Silver transformation
      ↓
 Silver / Typed Parquet
+     ↓
+Gold analytical marts
 ```
 
-Bronze stores immutable, auditable `user.getRecentTracks` responses. Silver extracts completed scrobbles, normalizes optional fields, converts timestamps to UTC, deduplicates overlapping events, preserves Bronze lineage, and writes typed Parquet. Gold analytics are not implemented.
+Bronze stores immutable, auditable `user.getRecentTracks` responses. Silver extracts completed scrobbles, normalizes optional fields, converts timestamps to UTC, deduplicates overlapping events, preserves Bronze lineage, and writes typed Parquet. Gold builds local analytical marts for activity, artists, tracks, discovery, temporal patterns, streaks, concentration, and diversity.
+
+The available history begins in 2016, although tracking was intermittent before 2020. Consistent Last.fm usage begins approximately in 2020. Low or absent pre-2020 scrobble counts must not be interpreted as low music consumption.
 
 ## Setup
 
@@ -80,6 +84,14 @@ python -m src.transformation.transform_scrobbles
 ```
 
 Silver output is local and ignored by Git. See [`docs/phase2-decisions.md`](docs/phase2-decisions.md) for the event identity, run selection, timestamp, null handling, storage, and incremental processing decisions.
+
+Build Gold analytical marts from Silver:
+
+```bash
+python -m src.analytics.build_gold --full
+```
+
+The Gold build is a deterministic full rebuild because the local Silver dataset is small enough for inexpensive aggregation. Outputs remain local under `data/gold/` and are ignored by Git. See [`docs/phase3-decisions.md`](docs/phase3-decisions.md) for grains, coverage eras, UTC handling, discovery definitions, streaks, concentration, and limitations.
 
 Run incremental ingestion using the latest completed scrobble found in Bronze as its watermark:
 
