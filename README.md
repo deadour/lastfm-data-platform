@@ -2,7 +2,7 @@
 
 Personal data engineering project for collecting my Last.fm listening history.
 
-Current status: Phase 1 — Bronze ingestion
+Current status: Phase 2 — Silver transformation
 
 ## Architecture
 
@@ -12,9 +12,13 @@ Last.fm API
 Python ingestion
      ↓
 Bronze / Raw JSON
+     ↓
+Silver transformation
+     ↓
+Silver / Typed Parquet
 ```
 
-The current phase retrieves `user.getRecentTracks` responses and stores them as immutable, auditable JSON files. It does not build analytics or transformed datasets yet.
+Bronze stores immutable, auditable `user.getRecentTracks` responses. Silver extracts completed scrobbles, normalizes optional fields, converts timestamps to UTC, deduplicates overlapping events, preserves Bronze lineage, and writes typed Parquet. Gold analytics are not implemented.
 
 ## Setup
 
@@ -63,6 +67,20 @@ python -m src.ingestion.ingest_scrobbles --backfill --resume
 
 Each execution has one run ID shared by all of its pages and writes `run_metadata.json` with `running`, `failed`, or `completed` state. Older Bronze directories created before run metadata was introduced are preserved and are not automatically migrated or resumed.
 
+Transform all completed metadata-backed Bronze runs into Silver:
+
+```bash
+python -m src.transformation.transform_scrobbles --full
+```
+
+Process only completed Bronze runs not already recorded in the Silver manifest:
+
+```bash
+python -m src.transformation.transform_scrobbles
+```
+
+Silver output is local and ignored by Git. See [`docs/phase2-decisions.md`](docs/phase2-decisions.md) for the event identity, run selection, timestamp, null handling, storage, and incremental processing decisions.
+
 Run incremental ingestion using the latest completed scrobble found in Bronze as its watermark:
 
 ```bash
@@ -82,7 +100,7 @@ pytest
 ## Roadmap
 
 - Phase 1 — Bronze ingestion
-- Phase 2 — Silver normalization and dimensional modeling
+- Phase 2 — Silver normalization, data quality and incremental processing
 - Phase 3 — Gold analytical marts
 - Phase 4 — Microsoft Fabric / PySpark
 - Phase 5 — Orchestration, observability and data quality
