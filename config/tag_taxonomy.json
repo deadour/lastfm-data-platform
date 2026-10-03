@@ -1,0 +1,37 @@
+{
+  "max_tags_per_artist": 5,
+  "weighting": "inverse_rank_normalized",
+  "noise": [
+    "all",
+    "favorites",
+    "favorite",
+    "seen live",
+    "music",
+    "awesome",
+    "love",
+    "good"
+  ],
+  "genre_family": {
+    "rock": ["rock", "alternative rock", "classic rock", "hard rock", "indie rock", "blues rock", "garage rock", "progressive rock", "psychedelic rock", "punk rock", "rock argentino", "rock argento", "rock nacional", "rock en espanol", "rock en español", "soft rock", "folk rock", "southern rock", "post-rock", "math rock", "stoner rock", "glam rock", "art rock", "experimental rock", "britpop", "british rock", "new wave"],
+    "pop": ["pop", "indie pop", "synthpop", "electropop", "dance-pop", "dream pop", "power pop", "k-pop", "j-pop", "pop rock"],
+    "hip-hop": ["hip hop", "hip-hop", "rap", "trap", "gangsta rap", "underground hip hop", "alternative hip-hop", "boom bap", "old school hip hop", "argentine hip hop"],
+    "electronic": ["electronic", "house", "techno", "ambient", "dubstep", "trance", "drum and bass", "idm", "downtempo", "electronica", "electro", "trip-hop", "deep house", "minimal", "synthwave"],
+    "metal": ["metal", "heavy metal", "death metal", "black metal", "thrash metal", "doom metal", "nu metal", "metalcore", "alternative metal", "progressive metal"],
+    "punk": ["punk", "post-punk", "hardcore", "hardcore punk", "pop punk", "emo", "screamo", "skate punk"],
+    "folk": ["folk", "indie folk", "singer-songwriter", "acoustic", "folk music", "americana", "freak folk"],
+    "jazz": ["jazz", "smooth jazz", "nu jazz", "jazz fusion", "free jazz", "vocal jazz"],
+    "classical": ["classical", "modern classical", "neoclassical", "baroque", "opera"],
+    "latin": ["latin", "latin pop", "reggaeton", "salsa", "cumbia", "bachata", "tango", "tropical", "merengue", "bossa nova", "flamenco"],
+    "reggae": ["reggae", "dancehall", "dub", "roots reggae", "ska", "rocksteady"],
+    "r&b": ["rnb", "r&b", "rnb/soul", "neo-soul", "soul", "motown", "funk", "funky", "quiet storm"],
+    "country": ["country", "alt-country", "country rock", "outlaw country", "bluegrass"],
+    "blues": ["blues", "delta blues", "chicago blues"]
+  },
+  "geography": [
+    "argentina", "argentinian", "american", "usa", "united states", "british", "uk", "england", "spanish", "spain", "latin american", "puerto rico", "mexican", "mexico", "brazilian", "brazil", "french", "france", "canadian", "canada", "australian", "australia", "jamaican", "japan", "japanese", "german", "germany", "colombian", "colombia", "chilean", "chile", "uruguayan", "uruguay"
+  ],
+  "era": ["60s", "70s", "80s", "90s", "00s", "2000s", "2010s", "2020s", "oldies", "classic"],
+  "descriptor": [
+    "female vocalists", "male vocalists", "instrumental", "experimental", "psychedelic", "indie", "alternative", "underground", "melancholic", "sad", "happy", "chill", "energetic", "beautiful", "dark", "sexy", "party", "romantic"
+  ]
+}

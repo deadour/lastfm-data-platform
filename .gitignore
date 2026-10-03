@@ -144,6 +144,10 @@ data/gold/**
 !data/gold/.gitkeep
 data/enrichment/**
 !data/enrichment/.gitkeep
+data/gold_enriched/**
+!data/gold_enriched/.gitkeep
+reports/**
+!reports/.gitkeep
 env/
 venv/
 ENV/
