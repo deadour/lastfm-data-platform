@@ -1,8 +1,13 @@
 # Last.fm Personal Data Platform
 
+Current implemented scope: Phase 4 — artist metadata enrichment. The repository
+contains a local Bronze → Silver → Gold pipeline plus separate MusicBrainz and
+Last.fm artist enrichment. See [`docs/PROJECT_WALKTHROUGH.md`](docs/PROJECT_WALKTHROUGH.md)
+for the technical walkthrough.
+
 Personal data engineering project for collecting my Last.fm listening history.
 
-Current status: Phase 3 — Gold analytical marts
+Current status: Phase 4 — Artist metadata enrichment
 
 ## Architecture
 
@@ -18,6 +23,8 @@ Silver transformation
 Silver / Typed Parquet
      ↓
 Gold analytical marts
+     ↘
+      Separate artist enrichment: MusicBrainz + Last.fm tags
 ```
 
 Bronze stores immutable, auditable `user.getRecentTracks` responses. Silver extracts completed scrobbles, normalizes optional fields, converts timestamps to UTC, deduplicates overlapping events, preserves Bronze lineage, and writes typed Parquet. Gold builds local analytical marts for activity, artists, tracks, discovery, temporal patterns, streaks, concentration, and diversity.
@@ -111,12 +118,27 @@ pytest
 
 ## Roadmap
 
+Phase 4 artist enrichment is implemented separately from Bronze and Silver:
+
+```bash
+python -m src.enrichment.enrich --profile --resume
+python -m src.enrichment.enrich --from-cache --profile --resume
+```
+
+The second command rebuilds normalized outputs from the local raw cache without
+network calls. The real local snapshot contains 116,871 Silver events and 4,956
+artist entities. Tracking before 2020 is incomplete, and calendar year 2026 is
+incomplete; recorded counts must not be interpreted as complete consumption.
+
+See [`docs/phase4-decisions.md`](docs/phase4-decisions.md) and the [project
+walkthrough](docs/PROJECT_WALKTHROUGH.md) for grains, coverage and limitations.
+
 Phase 4 artist metadata enrichment is implemented separately from Bronze and
 Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags.
 
 - Phase 1 — Bronze ingestion
 - Phase 2 — Silver normalization, data quality and incremental processing
 - Phase 3 — Gold analytical marts
-- Phase 4 — Microsoft Fabric / PySpark
+- Phase 4 — Artist metadata enrichment
 - Phase 5 — Orchestration, observability and data quality
 - Phase 6 — Mood/context analytics
