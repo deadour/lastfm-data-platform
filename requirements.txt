@@ -3,3 +3,4 @@ python-dotenv
 pytest
 pandas
 pyarrow
+streamlit
