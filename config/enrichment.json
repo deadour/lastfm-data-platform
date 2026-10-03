@@ -1,0 +1,6 @@
+{
+  "musicbrainz_user_agent": "lastfm-data-platform/0.1 (local enrichment)",
+  "musicbrainz_interval_seconds": 1.0,
+  "lastfm_interval_seconds": 0.5,
+  "lastfm_artist_tag_limit": 20
+}

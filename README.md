@@ -111,6 +111,9 @@ pytest
 
 ## Roadmap
 
+Phase 4 artist metadata enrichment is implemented separately from Bronze and
+Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags.
+
 - Phase 1 — Bronze ingestion
 - Phase 2 — Silver normalization, data quality and incremental processing
 - Phase 3 — Gold analytical marts

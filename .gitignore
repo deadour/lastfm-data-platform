@@ -142,6 +142,8 @@ data/silver/**
 !data/silver/.gitkeep
 data/gold/**
 !data/gold/.gitkeep
+data/enrichment/**
+!data/enrichment/.gitkeep
 env/
 venv/
 ENV/
