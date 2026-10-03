@@ -108,6 +108,20 @@ python -m src.ingestion.ingest_scrobbles
 
 Each execution writes to a unique run directory under `data/bronze/lastfm/recent_tracks/`. Overlapping raw responses between runs are intentional; event-level deduplication belongs in a future Silver layer. Now-playing tracks are preserved in raw payloads but are excluded from watermark calculation.
 
+Build the Phase 5 enriched analytical product from local Silver and Phase 4 outputs:
+
+```bash
+python -m src.analytics.build_enriched --profile
+streamlit run dashboard/app.py
+```
+
+Phase 5 writes ignored local outputs under `data/gold_enriched/` and consumes
+them in a Streamlit dashboard without reading raw personal data. It validates
+the artist bridge, keeps tags as a one-to-many association, profiles genre,
+geography, lifecycle, diversity, concentration and discovery, and labels the
+incomplete 2026 calendar year. See [`docs/phase5-decisions.md`](docs/phase5-decisions.md)
+for the actual grains, weighting policy, coverage and findings.
+
 ## Tests
 
 Tests use mocked HTTP responses and never call Last.fm:
@@ -140,5 +154,5 @@ Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags
 - Phase 2 — Silver normalization, data quality and incremental processing
 - Phase 3 — Gold analytical marts
 - Phase 4 — Artist metadata enrichment
-- Phase 5 — Orchestration, observability and data quality
-- Phase 6 — Mood/context analytics
+- Phase 5 — Enriched analytics and local portfolio dashboard
+- Phase 6 — Future architecture and productionization (not implemented)
