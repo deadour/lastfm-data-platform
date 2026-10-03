@@ -1,0 +1,37 @@
+{
+  "boundary_policy": "local_midnight_instants",
+  "boundary_note": "Exact flight times are unknown. Boundaries use the start of the stated local calendar day in the timezone named by each boundary.",
+  "boundaries": {
+    "france_start": {
+      "local_datetime": "2026-01-28T00:00:00",
+      "timezone": "Europe/Paris"
+    },
+    "argentina_return": {
+      "local_datetime": "2026-06-25T00:00:00",
+      "timezone": "Europe/Paris"
+    }
+  },
+  "periods": [
+    {
+      "period": "argentina_before_france",
+      "location": "Argentina",
+      "timezone": "America/Argentina/Cordoba",
+      "start_boundary": null,
+      "end_boundary": "france_start"
+    },
+    {
+      "period": "france_stay",
+      "location": "France",
+      "timezone": "Europe/Paris",
+      "start_boundary": "france_start",
+      "end_boundary": "argentina_return"
+    },
+    {
+      "period": "argentina_after_france",
+      "location": "Argentina",
+      "timezone": "America/Argentina/Cordoba",
+      "start_boundary": "argentina_return",
+      "end_boundary": null
+    }
+  ]
+}

@@ -119,7 +119,9 @@ Phase 5 writes ignored local outputs under `data/gold_enriched/` and consumes
 them in a Streamlit dashboard without reading raw personal data. It validates
 the artist bridge, keeps tags as a one-to-many association, profiles genre,
 geography, lifecycle, diversity, concentration and discovery, and labels the
-incomplete 2026 calendar year. See [`docs/phase5-decisions.md`](docs/phase5-decisions.md)
+incomplete 2026 calendar year. Gold Enriched also derives historical local-time
+analytics from explicit IANA timezone periods while retaining UTC as canonical.
+See [`docs/phase5-decisions.md`](docs/phase5-decisions.md)
 for the actual grains, weighting policy, coverage and findings.
 
 ## Tests

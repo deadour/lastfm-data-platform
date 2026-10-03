@@ -90,9 +90,16 @@ with discovery_tab:
     st.dataframe(evolution["lifecycle"].value_counts().rename_axis("lifecycle").reset_index(name="artist_year_rows"), hide_index=True, width="stretch")
 
 with patterns_tab:
-    st.subheader("UTC listening patterns")
-    st.plotly_chart(px.density_heatmap(patterns, x="hour", y="weekday", z="scrobbles", facet_col="tracking_era"), width="stretch")
-    st.caption("Weekday and hour are UTC because the pipeline does not infer historical local time.")
+    st.subheader("Local-time listening patterns")
+    consistent_patterns = patterns[patterns["tracking_era"] == "consistent_tracking"]
+    heatmap = consistent_patterns.groupby(["local_weekday", "local_hour"], as_index=False)["scrobbles"].sum()
+    weekday_labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    heatmap["weekday"] = heatmap["local_weekday"].map(dict(enumerate(weekday_labels)))
+    heatmap["local_hour"] = heatmap["local_hour"].astype(int)
+    st.plotly_chart(px.density_heatmap(heatmap, x="local_hour", y="weekday", z="scrobbles", category_orders={"local_hour": list(range(24)), "weekday": weekday_labels}, labels={"local_hour": "Local hour", "weekday": "Local weekday", "scrobbles": "Scrobbles"}), width="stretch")
+    st.caption("Local time is reconstructed using known historical timezone periods. UTC remains the canonical event timestamp.")
+    location = consistent_patterns.groupby("location", as_index=False)["scrobbles"].sum()
+    st.plotly_chart(px.bar(location, x="location", y="scrobbles", title="Consistent-tracking events by known location"), width="stretch")
     st.subheader("Artist countries where metadata is available")
     country = geography[geography["country"] != "unknown"].groupby("country", as_index=False).agg(scrobbles=("scrobbles", "sum"), unique_artists=("unique_artists", "sum"))
     st.caption(f"Country metadata covers {quality['geographic_event_coverage_pct']:.1f}% of recorded events. Provider country codes are not interpreted as nationality.")

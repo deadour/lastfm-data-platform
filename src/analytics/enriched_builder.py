@@ -14,6 +14,7 @@ from typing import Any
 import pandas as pd
 
 from src.enrichment.enrich import artist_key
+from .historical_time import add_historical_local_time
 
 
 TRACKING_ERAS = {"partial_tracking", "consistent_tracking"}
@@ -207,9 +208,9 @@ def build_geography(events: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_time_patterns(events: pd.DataFrame) -> pd.DataFrame:
-    return events.groupby(["year", "month", "tracking_era", "weekday", "hour"], as_index=False).agg(
+    return events.groupby(["local_year", "local_month", "tracking_era", "timezone_period", "location", "timezone_name", "local_weekday", "local_hour"], as_index=False).agg(
         scrobbles=("scrobble_id", "size"), unique_artists=("artist_key", "nunique")
-    ).sort_values(["year", "month", "weekday", "hour"]).reset_index(drop=True)
+    ).sort_values(["local_year", "local_month", "local_weekday", "local_hour"]).reset_index(drop=True)
 
 
 def build_era_comparison(events: pd.DataFrame, current_year: int | None = None) -> pd.DataFrame:
@@ -241,8 +242,10 @@ def build_enriched(silver_path: str | Path = "data/silver/scrobbles/scrobbles.pa
                    artists_path: str | Path = "data/enrichment/normalized/artists.parquet",
                    tags_path: str | Path = "data/enrichment/normalized/artist_tags.parquet",
                    output_root: str | Path = "data/gold_enriched",
-                   taxonomy_path: str | Path = "config/tag_taxonomy.json") -> dict[str, Any]:
+                   taxonomy_path: str | Path = "config/tag_taxonomy.json",
+                   timezone_path: str | Path = "config/timezone_periods.json") -> dict[str, Any]:
     silver, events, tags, taxonomy = prepare_inputs(silver_path, artists_path, tags_path, taxonomy_path)
+    events = add_historical_local_time(events, timezone_path)
     marts = {
         "artist_profile": build_artist_profile(events, tags),
         "genre_evolution": build_genre_evolution(events, tags),
@@ -272,6 +275,7 @@ def build_enriched(silver_path: str | Path = "data/silver/scrobbles/scrobbles.pa
     metadata = {"generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "schema_version": 1, "source_silver_rows": len(silver),
                 "source_enrichment_artists": len(pd.read_parquet(artists_path)), "source_enrichment_tags": len(pd.read_parquet(tags_path)),
                 "taxonomy": {"max_tags_per_artist": taxonomy["max_tags_per_artist"], "weighting": taxonomy["weighting"]},
+                "timezone_config": str(timezone_path),
                 "quality": quality, "profile": profile, "marts": {name: {"rows": len(frame)} for name, frame in marts.items()}}
     metadata["insights"] = build_insights(marts, quality, profile)["findings"]
     output_root = Path(output_root)

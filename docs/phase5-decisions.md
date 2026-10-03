@@ -67,12 +67,40 @@ prevents ten tags from becoming ten complete scrobbles.
 | `diversity` | year + tracking era | 8 | unique entities and entities per 100 scrobbles |
 | `discovery_enriched` | year + tracking era | 8 | new artists/tracks and share from new artists |
 | `geography_evolution` | year + tracking era + provider country | 355 | event volume and share where country metadata exists |
-| `time_patterns` | year + month + era + UTC weekday + UTC hour | 8,862 | prepared dashboard time data |
+| `time_patterns` | local year + month + era + timezone period + location + local weekday + local hour | 8,914 | prepared dashboard time data |
 | `era_comparison` | year + tracking era | 8 | annual rates, year-over-year context and completeness flag |
 
 Existing Phase 3 marts remain the source for base listening calculations;
 Phase 5 adds only metrics that combine events with enrichment or extend those
 metrics for consumption.
+
+## Historical local-time interpretation
+
+`scrobbled_at` remains the canonical UTC event timestamp. Phase 5 derives local
+wall-clock fields only in Gold Enriched using the versioned
+`config/timezone_periods.json`; Bronze and Silver are not rewritten. The known
+periods use the real IANA zones `America/Argentina/Cordoba` and `Europe/Paris`:
+
+- Argentina before the France stay;
+- France from 2026-01-28 through 2026-06-24 inclusive;
+- Argentina from 2026-06-25 onward.
+
+The boundaries are local-midnight instants. The start of 2026-01-28 is midnight
+in Paris (`2026-01-27T23:00:00Z`). The start of 2026-06-25 is midnight in
+Paris (`2026-06-24T22:00:00Z`), so the complete stated France calendar day of
+June 24 remains France. Exact flight or transition times are unavailable, so
+events around those instants have a small unavoidable ambiguity; this is a
+documented interpretation, not physical-location ground truth.
+
+The derived `scrobbled_at_local` is a local wall-clock value paired with
+`timezone_name`; the mixed IANA zones cannot be represented as one uniform
+timezone-aware pandas column. `local_date`, `local_year`, `local_month`,
+`local_day`, `local_hour` and `local_weekday` are derived from that local value.
+The `time_patterns` mart uses these local fields and retains the tracking era,
+location and timezone period. Its real rebuild conserved all 116,871 Silver
+events. The dashboard's main heatmap filters to consistent tracking (2020+),
+uses 24 local hours and readable weekday names, and keeps UTC as the traceable
+canonical timestamp.
 
 ## Lifecycle definitions
 
@@ -153,7 +181,8 @@ pipeline or require raw Bronze/Silver/cache files. The views are:
 - Taste evolution: weighted genre families and artist evolution;
 - Discovery & loyalty: new artists/tracks, concentration, diversity and
   lifecycle rows;
-- Patterns & geography: UTC time heatmap and provider-country coverage;
+- Patterns & geography: local-time heatmap, known-location breakdown and
+  provider-country coverage;
 - Methodology: source, weighting, tracking and interpretation caveats.
 
 Run locally with:

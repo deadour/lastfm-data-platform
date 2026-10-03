@@ -513,6 +513,16 @@ would add orchestration, object storage, secret management, monitoring and
 possibly distributed processing only if measured scale justified them; none of
 those claims apply to this local implementation.
 
+Phase 5 adds a separate Gold Enriched product and local Streamlit consumer. Its
+canonical event timestamp remains UTC, while `time_patterns` derives local
+calendar fields from the explicit historical periods in
+`config/timezone_periods.json`: Argentina uses `America/Argentina/Cordoba`,
+France uses `Europe/Paris`, and the France period is interpreted as
+2026-01-28 through 2026-06-24 inclusive. Exact travel times are unknown, so
+this is a documented historical interpretation rather than a claim of exact
+physical location. The main dashboard temporal view uses consistent tracking
+from 2020 onward and a 24-hour local-time heatmap.
+
 ## 11. Interview questions and grounded answers
 
 1. **Why preserve Bronze?** It preserves source evidence and enables repeatable
@@ -584,7 +594,8 @@ those claims apply to this local implementation.
 - There is no production orchestrator, scheduler, alerting system or cloud
   deployment.
 - The transformations are pandas-based and not distributed.
-- Temporal analysis is UTC-based, not historical local time.
+- Gold Phase 3 calendar marts remain UTC-based; Gold Enriched additionally
+  derives historical local-time fields from the versioned timezone periods.
 - Tracking before 2020 is intermittent; 2017–2019 absence is not zero
   consumption.
 - Calendar year 2026 is incomplete in the current local snapshot.
@@ -592,7 +603,8 @@ those claims apply to this local implementation.
   not-found and persistent-error states.
 - Last.fm tags are community-generated and should not be treated as an
   authoritative taxonomy.
-- There is no dashboard or final visualization layer in the current repository.
+- The dashboard is a local Streamlit consumer, not a deployed production BI
+  layer.
 
 ## 13. Future architecture (not implemented)
 
