@@ -10,6 +10,7 @@ import pytest
 
 from src.analytics.gold_builder import build_gold
 from src.artwork import enrich
+from src.artwork import artist_photos
 from src.jobs import export_stats as job
 from src.storage import checkpoint
 from src.transformation.transform_scrobbles import transform
@@ -39,8 +40,23 @@ def lake(tmp_path):
     return store
 
 
+class FakeDeezer:
+    """Offline stand-in: tests never reach the network."""
+
+    def __init__(self, results=None):
+        self.calls = []
+        self.results = results if results is not None else [{
+            "id": 1, "name": "Fictional Artist", "link": "https://www.deezer.com/artist/1",
+            "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/abc123/1000x1000-000000-80-0-0.jpg"}]
+
+    def search_artists(self, name, limit=10):
+        self.calls.append(name)
+        return self.results
+
+
 def export(lake, tmp_path, **kwargs):
     out = tmp_path / "public/stats.json"
+    kwargs.setdefault("deezer", FakeDeezer())
     summary = job.run_export(lake, tmp_path / "work", out, **kwargs)
     return summary, json.loads(out.read_text(encoding="utf-8"))
 
@@ -53,7 +69,12 @@ def test_exports_real_gold_without_local_inputs_or_remote_writes(lake, tmp_path)
     assert document["totals"]["scrobbles"] == 1
     assert len(document["rhythm"]) == 168
     assert lake.blobs == before
-    assert list((tmp_path / "public").iterdir()) == [tmp_path / "public/stats.json"]
+    public = tmp_path / "public"
+    assert sorted(p.name for p in public.iterdir()) == ["artists", "insights.json", "stats.json"]
+    assert [p.name for p in (public / "artists").iterdir()] == ["fictional-artist.json"]
+    for extra in (public / "insights.json", public / "artists/fictional-artist.json"):
+        for private in ("fictional-user", "scrobble_id", "snapshot=", "watermark", str(tmp_path), "blob.core.windows.net"):
+            assert private not in extra.read_text(encoding="utf-8")
     text = json.dumps(document)
     for private in ("fictional-user", "scrobble_id", "snapshot=", "watermark", str(tmp_path), "blob.core.windows.net"):
         assert private not in text
@@ -72,7 +93,7 @@ def test_only_artwork_catalog_is_updated_and_checkpoint_stays_identical(lake, tm
     before, etags = dict(lake.blobs), dict(lake.etags)
     _, document = export(lake, tmp_path, enrich_fn=resolved_catalog)
     assert document["top_albums"][0]["cover"]["url"].startswith("https://")
-    assert set(lake.blobs) - set(before) == {job.CATALOG_BLOB}
+    assert set(lake.blobs) - set(before) == {job.CATALOG_BLOB, artist_photos.CATALOG_BLOB}
     assert all(lake.blobs[key] == value and lake.etags[key] == etags[key] for key, value in before.items())
     assert not lake.lease_held
 
@@ -194,3 +215,41 @@ def test_missing_consistency_timestamp_is_rejected(lake, tmp_path):
     lake.blobs[checkpoint.CHECKPOINT_BLOB] = json.dumps(cp).encode()
     with pytest.raises(job.ExportRejected, match="same dataset"):
         export(lake, tmp_path, refresh_artwork=False)
+
+
+def test_artist_photos_are_cached_and_only_exact_matches_are_shown(lake, tmp_path):
+    deezer = FakeDeezer()
+    export(lake, tmp_path / "first", deezer=deezer)
+    assert deezer.calls == ["Fictional Artist"]
+    page = json.loads((tmp_path / "first/public/artists/fictional-artist.json").read_text(encoding="utf-8"))
+    assert page["photo"]["url"].startswith("https://e-cdns-images.dzcdn.net/")
+    again = FakeDeezer()
+    export(lake, tmp_path / "second", deezer=again)
+    assert again.calls == []  # resolved artists are not queried again
+
+
+def test_a_clearly_dominant_namesake_is_accepted():
+    results = [{"id": 7, "name": "Fictional Artist", "nb_fan": 12, "link": "https://www.deezer.com/artist/7",
+                "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/small/1.jpg"},
+               {"id": 1, "name": "Fictional Artist", "nb_fan": 500000, "link": "https://www.deezer.com/artist/1",
+                "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/big/1.jpg"}]
+    chosen = artist_photos.match("Fictional Artist", results)
+    assert chosen["status"] == "resolved" and chosen["source_url"].endswith("/artist/1")
+    results[0]["nb_fan"] = 100000  # only 5x: too close to call
+    assert artist_photos.match("Fictional Artist", results)["status"] == "needs_review"
+
+
+@pytest.mark.parametrize("results,status", [
+    ([], "not_found"),
+    ([{"id": 1, "name": "Fictional Artist", "link": "https://www.deezer.com/artist/1",
+       "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist//1000x1000-000000-80-0-0.jpg"}], "not_found"),
+    ([{"id": 1, "name": "Fictional Artist", "link": "https://www.deezer.com/artist/1", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/a/1.jpg"},
+      {"id": 2, "name": "fictional artist", "link": "https://www.deezer.com/artist/2", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/b/1.jpg"}], "needs_review"),
+    ([{"id": 3, "name": "Fictional Artists Band", "link": "https://www.deezer.com/artist/3", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/c/1.jpg"}], "not_found"),
+])
+def test_ambiguous_or_placeholder_photos_are_never_shown(lake, tmp_path, results, status):
+    export(lake, tmp_path, deezer=FakeDeezer(results))
+    catalog = json.loads(lake.blobs[artist_photos.CATALOG_BLOB])
+    assert catalog[0]["status"] == status
+    page = json.loads((tmp_path / "public/artists/fictional-artist.json").read_text(encoding="utf-8"))
+    assert page["photo"] is None

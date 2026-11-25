@@ -14,8 +14,10 @@ import tempfile
 import pandas as pd
 import pyarrow.parquet as pq
 
-from src.artwork import enrich
+from src.artwork import artist_photos, enrich
+from src.artwork.clients import Deezer
 from src.artwork.export_frontend import build, write
+from src.artwork.export_insights import build_insights, top_artist_names, write_all
 from src.storage import checkpoint
 from src.storage.azure import AzureStorage, load_settings, sha256_file
 
@@ -74,7 +76,7 @@ def restore_catalog(storage, directory: Path) -> str | None:
 
 
 def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
-               top: int = 20, refresh_artwork: bool = True, enrich_fn=None) -> dict:
+               top: int = 20, refresh_artwork: bool = True, enrich_fn=None, deezer=None) -> dict:
     if not 1 <= top <= 100 or not 1 <= artwork_limit <= 500:
         raise ExportRejected("top must be 1–100 and artwork_limit must be 1–500")
     current = checkpoint.read(storage)
@@ -109,10 +111,27 @@ def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
         if counts.get("stopped"):
             LOGGER.warning("Artwork provider unavailable; exporting with confirmed covers collected so far")
 
-    document = build(gold, silver_path, enrich.read_catalog(catalog_dir), top)
+    found = storage.read_bytes(artist_photos.CATALOG_BLOB)
+    photo_etag = found[1] if found else None
+    try:
+        photos = artist_photos.load(found[0] if found else None)
+    except ValueError as exc:
+        raise ExportRejected(str(exc)) from None
+    if refresh_artwork:
+        config = json.loads((Path(__file__).resolve().parents[2] / "config/enrichment.json").read_text(encoding="utf-8"))
+        client = deezer or Deezer(config["musicbrainz_user_agent"])
+        if artist_photos.refresh(photos, top_artist_names(silver_path), client):
+            # Same rule as the album catalog: a lost ETag race fails the export.
+            storage.write_bytes_conditional(artist_photos.CATALOG_BLOB, artist_photos.dump(photos), etag=photo_etag)
+
+    catalog = enrich.read_catalog(catalog_dir)
+    document = build(gold, silver_path, catalog, top)
+    insights, pages = build_insights(silver_path, catalog, {y["year"] for y in document["years"] if y["partial"]},
+                                     photos=lambda name: artist_photos.photo(photos, name))
     write(document, out)
+    write_all(insights, pages, out.parent)
     return {"scrobbles": document["totals"]["scrobbles"], "data_as_of": document["data_as_of"],
-            "bytes": out.stat().st_size}
+            "bytes": out.stat().st_size, "artist_pages": len(pages)}
 
 
 def main(argv: list[str] | None = None) -> int:

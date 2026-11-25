@@ -133,6 +133,13 @@ class Deezer(_Paced):
     def _quota_error(body: Any) -> bool:
         return isinstance(body, dict) and (body.get("error") or {}).get("code") == 4
 
+    def search_artists(self, name: str, limit: int = 10) -> list[dict[str, Any]]:
+        # /search/artist ignores advanced syntax (artist:"…" returns nothing); exact matching happens later
+        body = self.get_json(f"{self.endpoint}/search/artist", {"q": name, "limit": limit})
+        if body and body.get("error"):
+            raise ArtworkError(f"Deezer error {body['error'].get('code')}")
+        return [item for item in (body or {}).get("data", []) if isinstance(item, dict)]
+
     def search_albums(self, artist: str, album: str, limit: int = 10) -> list[dict[str, Any]]:
         query = f'artist:"{artist}" album:"{album}"'
         body = self.get_json(f"{self.endpoint}/search/album", {"q": query, "limit": limit})
