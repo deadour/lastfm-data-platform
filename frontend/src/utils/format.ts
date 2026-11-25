@@ -45,3 +45,16 @@ export function hash(text: string): number {
   }
   return h >>> 0;
 }
+
+export const pct = (share: number, digits = 0) =>
+  `${(share * 100).toLocaleString("es-AR", { maximumFractionDigits: digits, minimumFractionDigits: digits })}%`;
+
+export function hourLabel(hour: number): string {
+  return `${hour} h`;
+}
+
+export function days(count: number): string {
+  if (count >= 730) return `${(count / 365).toLocaleString("es-AR", { maximumFractionDigits: 1 })} años`;
+  if (count >= 60) return `${Math.round(count / 30)} meses`;
+  return `${count} días`;
+}

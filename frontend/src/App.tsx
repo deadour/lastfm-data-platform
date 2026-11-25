@@ -1,128 +1,89 @@
 import { useEffect, useState } from "react";
-import { Albums } from "./components/Albums";
-import { Artists } from "./components/Artists";
-import { Months } from "./components/Months";
+import { LastfmIcon, Sources } from "./components/Icons";
 import { NowPlayingHero } from "./components/NowPlayingHero";
-import { Rhythm } from "./components/Rhythm";
-import { Section } from "./components/Section";
-import { Tracks } from "./components/Tracks";
-import { Years } from "./components/Years";
+import { loadInsights } from "./data/insights";
 import { loadStats, type Loaded } from "./data/load";
-import { n, shortDate } from "./utils/format";
+import type { InsightsFile } from "./data/types";
+import { About } from "./pages/About";
+import { Artist } from "./pages/Artist";
+import { Artists } from "./pages/Artists";
+import { Home } from "./pages/Home";
+import { shortDate } from "./utils/format";
+import { Link, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
 
 const nav = [
-  ["discos", "#discos"],
-  ["años", "#anos"],
-  ["artistas", "#artistas"],
-  ["canciones", "#canciones"],
-  ["ritmo", "#ritmo"],
+  ["lecturas", "/#lecturas"],
+  ["años", "/#anos"],
+  ["artistas", "/artistas"],
+  ["cómo está hecho", "/como-esta-hecho"],
 ] as const;
 
 export function App() {
+  const route = useRoute();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [insights, setInsights] = useState<InsightsFile | null>(null);
   const nowPlaying = useNowPlaying();
 
   useEffect(() => {
     void loadStats().then(setLoaded);
+    void loadInsights().then(setInsights);
   }, []);
 
   const stats = loaded?.stats ?? null;
-  const liveTrack = nowPlaying?.source === "lastfm" ? nowPlaying : null;
+  const liveTrack = nowPlaying?.source === "lastfm" && nowPlaying.track ? nowPlaying : null;
 
   return (
-    <div className="archive-shell mx-auto max-w-[1440px] px-5 md:px-10 lg:px-16">
+    <div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
       <header className="archive-topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-6">
-        <a href="/" className="archive-wordmark" aria-label="fm, inicio">fm<span className="archive-wordmark-dot">.</span></a>
-        <nav aria-label="archivo" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
+        <Link href="/" className="archive-wordmark" aria-label="fm, inicio">fm<span className="archive-wordmark-dot">.</span></Link>
+        <nav aria-label="secciones" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
           {nav.map(([label, href]) => (
-            <a key={href} href={href} className="archive-nav-link">{label}</a>
+            <Link key={href} href={href} className="archive-nav-link">{label}</Link>
           ))}
         </nav>
-        <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer" className="archive-external text-xs">
-          last.fm ↗
-        </a>
       </header>
 
       <main>
-        <section className="archive-masthead" aria-labelledby="archive-title">
-          <div className="archive-masthead-meta">
-            <span>eduramirez87 / archivo personal</span>
-            <span>música escuchada, no recomendada.</span>
-          </div>
-          <div className="archive-masthead-row">
-            <h1 id="archive-title" className="archive-main-title">lo que<br /><em>escucho.</em></h1>
-            <figure className="archive-masthead-photo">
-              <img src="/img/diego.jpg" width={720} height={621} alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
-              <figcaption>el diez, poniendo un disco.</figcaption>
-            </figure>
-          </div>
-          <div className="archive-masthead-bottom">
-            <p>un registro de lo que escuché. artistas, discos y épocas que fueron quedando.</p>
-            <span>↘ explorá el archivo</span>
-          </div>
-        </section>
-
-        {liveTrack?.track && (
-          <section className="archive-live">
-            <div className="archive-section-flag"><span>en este momento</span><span>señal en vivo</span></div>
-            <NowPlayingHero data={liveTrack} />
-          </section>
-        )}
-
-        {!loaded && (
-          <div role="status" className="archive-empty">
-            <span className="archive-kicker">archivo / cargando</span>
-            <p>buscando los registros…</p>
-          </div>
-        )}
-
-        {loaded && !stats && (
-          <section className="archive-empty" aria-labelledby="archive-unavailable">
-            <span className="archive-kicker">archivo / sin publicar</span>
-            <h2 id="archive-unavailable">los datos todavía no están acá.</h2>
-            <p>la web ya está online. falta publicar la primera exportación del historial.</p>
-            <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer">mientras tanto, mi last.fm ↗</a>
-          </section>
-        )}
-
-        {stats && (
+        {route.page === "home" && (
           <>
-            <div className="archive-ledger" aria-label="resumen del archivo">
-              <div><span>escuchas registradas</span><strong>{n(stats.totals.scrobbles)}</strong></div>
-              <div><span>artistas</span><strong>{n(stats.totals.artists)}</strong></div>
-              <div><span>canciones</span><strong>{n(stats.totals.tracks)}</strong></div>
-              <div><span>desde</span><strong>{shortDate(stats.range.first)}</strong></div>
-            </div>
-
-            {stats.top_albums && stats.top_albums.length > 0 && (
-              <Section id="discos" title="discos" note="los que siempre vuelven.">
-                <Albums albums={stats.top_albums} />
-              </Section>
+            <section className="archive-masthead" aria-labelledby="archive-title">
+              <div className="archive-masthead-row">
+                <h1 id="archive-title" className="archive-main-title">lo que<br /><em>escucho</em></h1>
+                <img className="archive-masthead-photo" src="/img/diego.jpg" width={720} height={621}
+                  alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
+              </div>
+            </section>
+            {liveTrack && <NowPlayingHero data={liveTrack} />}
+            {!loaded && <p role="status" className="py-24 text-sm text-muted">cargando…</p>}
+            {loaded && !stats && (
+              <section className="archive-empty">
+                <h2>todavía no hay datos publicados.</h2>
+                <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer">mi last.fm ↗</a>
+              </section>
             )}
-            <Section id="anos" title="el paso de los años" note="cada año tiene su propia banda sonora.">
-              <Years years={stats.years} />
-            </Section>
-            <Section id="meses" title="mes a mes">
-              <Months months={stats.months} />
-            </Section>
-            <Section id="artistas" title="los de siempre">
-              <Artists artists={stats.top_artists} />
-            </Section>
-            <Section id="canciones" title="en repetición">
-              <Tracks tracks={stats.top_tracks} />
-            </Section>
-            <Section id="ritmo" title="a qué hora suena" note="distribución de escuchas registradas, en utc.">
-              <Rhythm cells={stats.rhythm} />
-            </Section>
+            {stats && <Home stats={stats} insights={insights} />}
           </>
         )}
+        {route.page === "artists" && <Artists insights={insights} />}
+        {route.page === "artist" && <Artist slug={route.slug} insights={insights} />}
+        {route.page === "about" && <About stats={stats} insights={insights} />}
       </main>
 
       <footer className="archive-footer">
-        <span>fm. / eduramirez87</span>
-        <span>{stats ? `archivo actualizado: ${shortDate(stats.data_as_of ?? stats.generated_at)}` : "un archivo en construcción"}</span>
-        <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">cómo está hecho ↗</a>
+        <div className="flex flex-col gap-2">
+          <span className="flex items-center gap-3">fm. / eduramirez87 <Sources /></span>
+          {stats && <span>actualizado {shortDate(stats.data_as_of ?? stats.generated_at)}</span>}
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <Link href="/como-esta-hecho">cómo está hecho</Link>
+          <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5"><LastfmIcon size={13} /> last.fm ↗</a>
+          <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">github ↗</a>
+        </div>
+        <a href="https://eduramirez.dev" className="archive-portfolio">
+          <span>más cosas mías</span>
+          <strong>eduramirez.dev ↗</strong>
+        </a>
       </footer>
     </div>
   );
