@@ -8,6 +8,7 @@ import re
 import tempfile
 from typing import Iterator
 
+from azure.core.exceptions import ResourceNotFoundError
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import ContainerClient, ContentSettings
 from dotenv import load_dotenv
@@ -54,6 +55,15 @@ def load_settings(env_file: str | Path | None = None, *, account: str | None = N
     )
 
 
+DATA_SUFFIXES = (".parquet", ".json", ".jsonl")
+
+
+def is_directory_entry(blob) -> bool:
+    """HNS directories can be listed as zero-byte BlockBlobs marked hdi_isfolder."""
+    metadata = {key.lower(): str(value).lower() for key, value in (getattr(blob, "metadata", None) or {}).items()}
+    return metadata.get("hdi_isfolder") == "true" or (getattr(blob, "size", None) == 0 and "." not in blob.name.rsplit("/", 1)[-1])
+
+
 def sha256_file(path: str | Path) -> str:
     with Path(path).open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
@@ -97,15 +107,31 @@ class AzureStorage:
     def __exit__(self, *exc):
         self.close()
 
-    def upload_file(self, local_path: str | Path, blob_name: str, *, overwrite: bool = False) -> None:
+    def upload_file(self, local_path: str | Path, blob_name: str, *, overwrite: bool = False,
+                    metadata: dict[str, str] | None = None) -> None:
         name = normalize_blob_name(blob_name)
         content_type = "application/json" if Path(local_path).suffix.lower() == ".json" else "application/octet-stream"
+        options = {"metadata": metadata} if metadata else {}
         # Open before constructing a client: local errors must not cause requests.
         with Path(local_path).open("rb") as stream:
             self.client.upload_blob(
                 name=name, data=stream, overwrite=overwrite,
-                content_settings=ContentSettings(content_type=content_type),
+                content_settings=ContentSettings(content_type=content_type), **options,
             )
+
+    def blob_properties(self, blob_name: str):
+        """Return blob properties, or None when the blob does not exist."""
+        try:
+            return self.client.get_blob_client(normalize_blob_name(blob_name)).get_blob_properties()
+        except ResourceNotFoundError:
+            return None
+
+    def remote_sha256(self, blob_name: str) -> str:
+        """Hash remote bytes while streaming; nothing is written to disk."""
+        digest = hashlib.sha256()
+        for chunk in self.client.download_blob(normalize_blob_name(blob_name)).chunks():
+            digest.update(chunk)
+        return digest.hexdigest()
 
     def download_file(self, blob_name: str, local_path: str | Path, *, overwrite: bool = False) -> Path:
         name = normalize_blob_name(blob_name)
@@ -136,6 +162,14 @@ class AzureStorage:
         directory = normalize_blob_name(prefix if prefix is not None else self.settings.prefix)
         for blob in self.client.list_blobs(name_starts_with=directory + "/"):
             yield blob.name
+
+    def list_files(self, prefix: str, suffixes: tuple[str, ...] = DATA_SUFFIXES) -> Iterator[tuple[str, int]]:
+        """Yield (name, size) for data files only, skipping ADLS Gen2 directory entries."""
+        directory = normalize_blob_name(prefix)
+        for blob in self.client.list_blobs(name_starts_with=directory + "/", include=["metadata"]):
+            if is_directory_entry(blob) or not blob.name.lower().endswith(suffixes):
+                continue
+            yield blob.name, blob.size
 
     def verify_file(self, local_path: str | Path, blob_name: str) -> str:
         original = sha256_file(local_path)

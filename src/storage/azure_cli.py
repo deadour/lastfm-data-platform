@@ -1,4 +1,4 @@
-"""Explicit Azure operations for existing local Bronze files."""
+"""Explicit Azure operations for existing local Bronze, Silver/Gold and state files."""
 
 import argparse
 from pathlib import Path
@@ -7,9 +7,11 @@ import sys
 from azure.core.exceptions import AzureError, ClientAuthenticationError, HttpResponseError, ResourceExistsError
 
 from .azure import AzureStorage, load_settings, normalize_blob_name
+from .publish import LAYERS, build_state_snapshot, discover_artifacts, publish, upload_state_snapshot
 
 
 BRONZE_ROOT = Path(__file__).resolve().parents[2] / "data" / "bronze"
+LISTABLE_ROOTS = ("bronze", "silver", "gold", "gold_enriched", "metadata/state_backups")
 
 
 def bronze_source(value: str) -> tuple[Path, Path]:
@@ -43,6 +45,49 @@ def error_hint(exc: AzureError) -> str:
     return "Azure request failed. Check connectivity and service availability before retrying."
 
 
+def extended_command(args) -> int:
+    """Silver/Gold publication and state backup; names are derived, never free-form."""
+    if args.command == "publish-layer":
+        artifacts = discover_artifacts(args.layer, args.path)
+        if args.dry_run:
+            for item in artifacts:
+                print(f"Dry run: {item.source} ({item.size} bytes) -> {item.blob_name}")
+            print(f"{len(artifacts)} files, {sum(item.size for item in artifacts)} bytes. "
+                  f"Overwrite: {args.overwrite}. No Azure connection or writes performed.")
+            return 0
+    elif args.command == "backup-state":
+        snapshot = build_state_snapshot()
+        for item in snapshot.artifacts:
+            print(f"{'Dry run: ' if args.dry_run else ''}{item.source.name} ({item.size} bytes) -> {item.blob_name}")
+        for item in snapshot.manifest["skipped"]:
+            print(f"Skipped unreadable: {item['path']} ({item['reason']})")
+        print(f"Completed runs: {snapshot.manifest['completed_runs']}; "
+              f"completed watermark: {snapshot.manifest['completed_watermark_uts']}")
+        if args.dry_run:
+            print("No Azure connection or writes performed; local state unchanged.")
+            return 0
+        if not args.confirm:
+            raise ValueError("backup-state uploads personal listening metadata; review the dry run and pass --confirm")
+    else:
+        prefix = normalize_blob_name(args.path_prefix)
+        if not any(prefix == root or prefix.startswith(root + "/") for root in LISTABLE_ROOTS):
+            raise ValueError(f"--path-prefix must be beneath one of: {', '.join(LISTABLE_ROOTS)}")
+    settings = load_settings(account=args.account, container=args.container, prefix=args.prefix)
+    with AzureStorage(settings) as storage:
+        if args.command == "publish-layer":
+            outcomes = [publish(storage, item, overwrite=args.overwrite, verify=args.verify) for item in artifacts]
+            print(f"Done: {len(outcomes)} files; " + ", ".join(f"{name}={outcomes.count(name)}" for name in sorted(set(outcomes))))
+        elif args.command == "backup-state":
+            print(f"State backup manifest: {upload_state_snapshot(storage, snapshot, verify=args.verify)}")
+        else:
+            count = total = 0
+            for name, size in storage.list_files(prefix):
+                print(f"{size:>12}  {name}")
+                count, total = count + 1, total + size
+            print(f"{count} data files, {total} bytes (directory entries excluded)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Transfer existing Bronze files to Azure; local ingestion remains independent")
     parser.add_argument("--account", help="Override AZURE_STORAGE_ACCOUNT")
@@ -65,9 +110,24 @@ def main(argv: list[str] | None = None) -> int:
     verify = commands.add_parser("verify", help="Compare an existing Bronze file with an existing blob")
     verify.add_argument("--file", required=True)
     verify.add_argument("--blob-name", help="Default: prefix plus the file path relative to data/bronze")
+    layer = commands.add_parser("publish-layer", help="Upload a local Silver or Gold snapshot without overwriting")
+    layer.add_argument("--layer", required=True, choices=sorted(LAYERS))
+    layer.add_argument("--path", help="One file or subdirectory inside the layer (default: whole layer)")
+    layer.add_argument("--dry-run", action="store_true")
+    layer.add_argument("--overwrite", action="store_true", help="Replace remote objects whose bytes differ")
+    layer.add_argument("--verify", action="store_true", help="Stream remote bytes and compare SHA-256")
+    files = commands.add_parser("list-files", help="List data files (no directory entries) with sizes")
+    files.add_argument("--path-prefix", required=True, help=f"Beneath one of: {', '.join(LISTABLE_ROOTS)}")
+    state = commands.add_parser("backup-state", help="Upload an immutable, non-authoritative state snapshot")
+    state.add_argument("--dry-run", action="store_true")
+    state.add_argument("--verify", action="store_true")
+    state.add_argument("--confirm", action="store_true",
+                       help="Required for upload: run metadata describes personal listening activity")
     args = parser.parse_args(argv)
 
     try:
+        if args.command in {"publish-layer", "list-files", "backup-state"}:
+            return extended_command(args)
         settings = load_settings(account=args.account, container=args.container, prefix=args.prefix)
 
         if args.command in {"upload-bronze", "verify"}:
