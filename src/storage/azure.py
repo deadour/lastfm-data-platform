@@ -8,6 +8,7 @@ import re
 import tempfile
 from typing import Iterator
 
+from azure.core import MatchConditions
 from azure.core.exceptions import ResourceNotFoundError
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import ContainerClient, ContentSettings
@@ -132,6 +133,34 @@ class AzureStorage:
         for chunk in self.client.download_blob(normalize_blob_name(blob_name)).chunks():
             digest.update(chunk)
         return digest.hexdigest()
+
+    def read_bytes(self, blob_name: str) -> tuple[bytes, str] | None:
+        """Return (content, etag) of a small blob, or None when absent."""
+        try:
+            downloader = self.client.download_blob(normalize_blob_name(blob_name))
+        except ResourceNotFoundError:
+            return None
+        return downloader.readall(), downloader.properties.etag
+
+    def write_bytes_conditional(self, blob_name: str, data: bytes, *, etag: str | None) -> str:
+        """Create (etag=None) or replace only if unchanged since read; returns new etag.
+
+        Raises ResourceExistsError / ResourceModifiedError on a lost race.
+        """
+        options = {}
+        if etag is None:
+            options["if_none_match"] = "*"
+        else:
+            options.update(etag=etag, match_condition=MatchConditions.IfNotModified)
+        # BlobClient.upload_blob returns the response properties (ContainerClient's returns a client).
+        result = self.client.get_blob_client(normalize_blob_name(blob_name)).upload_blob(
+            data, overwrite=etag is not None,
+            content_settings=ContentSettings(content_type="application/json"), **options)
+        return result["etag"]
+
+    def acquire_lease(self, blob_name: str, seconds: int = 60):
+        """Take an exclusive blob lease; the lock blob must already exist."""
+        return self.client.get_blob_client(normalize_blob_name(blob_name)).acquire_lease(lease_duration=seconds)
 
     def download_file(self, blob_name: str, local_path: str | Path, *, overwrite: bool = False) -> Path:
         name = normalize_blob_name(blob_name)
