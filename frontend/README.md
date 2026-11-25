@@ -5,7 +5,7 @@ Function for "now playing". It lives next to the Python pipeline but does not
 import it or touch its state.
 
 ```text
-gold parquet ──(src/exports/frontend_stats.py, by hand)──▶ public/data/stats.json ──▶ static site
+gold parquet ──(gold → json export, run by hand)──▶ public/data/stats.json ──▶ static site
 last.fm api ◀──(functions/api/now-playing.ts, 30 s edge cache)── browser polls /api/now-playing
 ```
 
@@ -23,11 +23,9 @@ npm run build      # typecheck + production build into dist/
 ```
 
 Without `public/data/stats.json` the site shows invented data and a visible
-"datos de ejemplo (mock)" notice. To use real numbers, export them from Gold:
-
-```bash
-python -m src.exports.frontend_stats --gold-root data/gold --out frontend/public/data/stats.json
-```
+"datos de ejemplo (mock)" notice. Real numbers come from the Gold → JSON
+export, which is developed separately (with album artwork) and writes
+`public/data/stats.json`.
 
 The file is git-ignored on purpose. It holds only aggregates (yearly counts,
 top 20 artists and tracks, a weekday × hour grid). It is still your listening
@@ -39,9 +37,9 @@ To try the real function locally, put the secrets in `frontend/.dev.vars`
 
 ## Stats contract
 
-`src/data/types.ts` (`StatsFile`, `schema_version: 1`) is the source of truth.
-`tests/test_frontend_stats.py` checks that the exporter writes exactly those
-keys. The loader rejects other versions and falls back to the mock. Image
+`src/data/types.ts` (`StatsFile`, `schema_version: 1`) is the frontend side of
+the contract. It will be aligned with the exporter's final field names. The
+loader rejects other versions and falls back to the mock. Image
 fields are optional: Gold has no artwork URLs yet, so covers use a gradient
 generated from the name.
 
@@ -84,7 +82,7 @@ Nothing here has been created yet. These steps are for the owner.
 **Direct upload instead of git builds** (keeps `stats.json` out of git):
 
 ```bash
-python -m src.exports.frontend_stats --out frontend/public/data/stats.json
+# after writing frontend/public/data/stats.json with the gold export
 cd frontend && npm run build && npx wrangler pages deploy dist --project-name fm-eduramirez-dev
 ```
 

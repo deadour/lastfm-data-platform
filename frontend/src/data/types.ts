@@ -1,4 +1,4 @@
-// contract for public/data/stats.json, written by src/exports/frontend_stats.py.
+// contract for public/data/stats.json, written by the gold -> json export.
 // bump schema_version on breaking changes; the loader rejects unknown versions.
 
 export type Source = "gold" | "mock";
