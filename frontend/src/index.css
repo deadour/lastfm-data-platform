@@ -308,3 +308,54 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .listening-board *, .reading-card *, .year-selector * { animation: none !important; }
 }
+
+/* the story belongs on its own page, not in an endless list of tech buzzwords */
+.about-header { padding: clamp(3rem, 9vw, 8rem) 0 clamp(2.7rem, 7vw, 6rem); border-bottom: 1px solid var(--color-line); }
+.about-kicker { color: #e2a27b; font-size: .78rem; letter-spacing: .1em; }
+.about-header h1 { font: 400 clamp(4.3rem, 12vw, 11rem)/.83 var(--font-serif); letter-spacing: -.08em; margin: 1.8rem 0; }
+.about-header h1 em { color: #c55d45; font-style: normal; margin-left: .3em; }
+.about-header > p { font-size: clamp(1rem, 2.2vw, 1.55rem); max-width: 38rem; line-height: 1.45; color: #d0c5b8; }
+.about-header-meta { display: block; color: var(--color-muted); font-size: .76rem; margin-top: 2rem; }
+.about-story { display: grid; grid-template-columns: minmax(180px,.6fr) minmax(0,1.4fr); gap: 2rem; padding: clamp(3rem,7vw,6rem) 0; border-bottom: 1px solid var(--color-line); }
+.about-story-label, .about-section-label { display: flex; gap: 1rem; justify-content: space-between; align-items: flex-start; color: #b9aea0; font-size: .7rem; letter-spacing: .065em; }
+.about-story-label { flex-direction: column; justify-content: flex-start; }
+.about-stamp { font: 400 clamp(1.3rem, 2vw, 2rem)/1 var(--font-serif); color: #b95e47; }
+.about-story h2, .about-medallion h2, .about-pipeline h2 { font: 400 clamp(2rem, 5vw, 4.6rem)/1.02 var(--font-serif); letter-spacing: -.05em; margin-bottom: 2rem; }
+.about-story p { color: #cdc2b7; font-size: clamp(.95rem, 1.4vw, 1.07rem); line-height: 1.72; max-width: 42rem; margin: 0 0 1.1rem; }
+.about-github { display: inline-flex; margin-top: 1rem; border-bottom: 1px solid #b95e47; font-size: .9rem; padding-bottom: .3rem; }
+.about-medallion { margin: 3.5rem 0; padding: clamp(1.5rem, 5vw, 4rem); background: #e7dcc9; color: #251d19; }
+.about-medallion .about-section-label { color: #6b594f; margin-bottom: clamp(2rem, 4vw, 4rem); }
+.about-medallion h2 { color: #251d19; }
+.about-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .75rem; border-top: 1px solid #ac9c8a; padding-top: 1.5rem; }
+.about-step { display: flex; flex-direction: column; gap: .4rem; padding-right: 1rem; }
+.about-step small { color: #a04a37; font: .75rem var(--font-serif); }
+.about-step strong { font: 400 clamp(1.2rem,2.2vw,2.1rem)/1.1 var(--font-serif); }
+.about-step p { font-size: .76rem; line-height: 1.5; color: #6b594f; max-width: 13rem; }
+.about-medallion-chart { overflow-x: auto; padding: 1.5rem 0 0; margin-top: 2rem; border-top: 1px solid #ac9c8a; }
+.about-medallion-chart svg { max-width: 100%; }
+.about-pipeline { padding: clamp(3rem,7vw,6rem) 0; border-bottom: 1px solid var(--color-line); }
+.about-pipeline .about-section-label { margin-bottom: 2rem; }
+.about-pipeline > p { color: #b8afa5; margin-bottom: 2rem; font-size: .9rem; }
+.about-pipeline-graphic { overflow-x: auto; padding: 2rem 0; }
+.about-extra { border-top: 1px solid var(--color-line); }
+.about-extra summary { cursor: pointer; display: flex; justify-content: space-between; gap: 1rem; align-items: center; list-style: none; padding: 1.5rem 0; font: 400 clamp(1rem,2vw,1.5rem) var(--font-serif); }
+.about-extra summary::-webkit-details-marker { display: none; }
+.about-extra summary span { color: #c55d45; }
+.about-extra[open] > summary span { transform: rotate(45deg); }
+.about-extra-body { overflow-x: auto; padding: 1.5rem 0 2.5rem; }
+.about-extra-info { margin: 0 0 3rem; }
+.about-notes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2rem 3rem; padding: 1rem 0 3rem; }
+.about-notes div { border-top: 1px solid var(--color-line); padding-top: 1rem; }
+.about-notes dt { font: 400 1.05rem var(--font-serif); }
+.about-notes dd { margin-top: .6rem; color: var(--color-muted); font-size: .8rem; line-height: 1.55; }
+.about-stack { margin: 3rem 0 1rem; padding: 2rem; background: #292521; display: grid; gap: .9rem; }
+.about-stack > span { font: 400 1.3rem var(--font-serif); }
+.about-stack p { color: #b9aea0; font-size: .84rem; line-height: 1.8; }
+.about-stack a { width: max-content; border-bottom: 1px solid #c55d45; padding-bottom: .2rem; font-size: .8rem; }
+@media (max-width: 700px) {
+  .about-story { grid-template-columns: 1fr; }
+  .about-story-label { flex-direction: row; }
+  .about-steps { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.8rem .8rem; }
+  .about-notes { grid-template-columns: 1fr; }
+  .about-medallion { margin-left: -1.25rem; margin-right: -1.25rem; }
+}
