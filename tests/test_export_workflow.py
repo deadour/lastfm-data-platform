@@ -27,7 +27,9 @@ def test_exporter_uses_oidc_without_ingestion_secrets_or_checkpoint_commands():
 
 
 def test_only_the_allowlisted_public_json_is_uploaded_as_an_artifact():
-    assert "path: output/stats.json" in ACTIVE
+    allowlist = ("path: |\n            output/stats.json\n            output/insights.json\n"
+                 "            output/artists/*.json\n")
+    assert allowlist in ACTIVE
     assert "retention-days: 1" in ACTIVE
     assert "path: site/frontend/public/data" in ACTIVE
     for forbidden in ("path: data/", "path: output/\n", "path: .", "path: /tmp", "path: ${{ runner.temp }}"):
@@ -53,3 +55,8 @@ def test_both_jobs_pin_the_same_reviewed_revision_and_gate_deployment_ownership(
     assert "python -m src.jobs.verify_publication" in ACTIVE
     assert ACTIVE.index("python -m src.jobs.check_pages") < ACTIVE.index("pages deploy dist")
     assert ACTIVE.index("pages deploy dist") < ACTIVE.index("python -m src.jobs.verify_publication")
+
+
+def test_insights_are_validated_before_upload_and_before_build():
+    assert ACTIVE.count("check-insights.ts") == 2
+    assert "cmp public/data/insights.json dist/data/insights.json" in ACTIVE

@@ -3,7 +3,7 @@ dist/
 .wrangler/
 .dev.vars
 # real stats come from the gold export; publish them deliberately
-public/data/stats.json
+public/data/
 
 # typescript incremental build artifacts
 *.tsbuildinfo

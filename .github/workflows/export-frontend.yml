@@ -83,13 +83,19 @@ jobs:
           node-version: "22"
 
       - name: Validate the public artifact with the React contract
-        run: node --experimental-strip-types frontend/scripts/check-stats.ts output/stats.json
+        run: |
+          node --experimental-strip-types frontend/scripts/check-stats.ts output/stats.json
+          node --experimental-strip-types frontend/scripts/check-insights.ts output
 
       - name: Save public statistics only
         uses: actions/upload-artifact@v4
         with:
           name: frontend-stats
-          path: output/stats.json
+          # explicit allowlist; the artifact keeps the artists/ folder under output/
+          path: |
+            output/stats.json
+            output/insights.json
+            output/artists/*.json
           if-no-files-found: error
           retention-days: 1
 
@@ -138,10 +144,12 @@ jobs:
           npm test
           npm run check:functions
           node --experimental-strip-types scripts/check-stats.ts public/data/stats.json
+          node --experimental-strip-types scripts/check-insights.ts public/data
           npm run build
           node --experimental-strip-types scripts/check-stats.ts dist/data/stats.json
           test -s dist/index.html
           cmp public/data/stats.json dist/data/stats.json
+          cmp public/data/insights.json dist/data/insights.json
 
       - name: Deploy to the existing Cloudflare Pages project
         uses: cloudflare/wrangler-action@v3
