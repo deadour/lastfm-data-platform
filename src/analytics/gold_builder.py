@@ -6,7 +6,6 @@ import logging
 import os
 from pathlib import Path
 import shutil
-import tempfile
 from typing import Any
 
 import pandas as pd
@@ -228,6 +227,24 @@ def validate_marts(marts: dict[str, pd.DataFrame], silver_rows: int) -> dict[str
             "yearly_count": len(yearly), "silver_conservation": True}
 
 
+def make_staging_dir(parent: Path, prefix: str) -> Path:
+    """Create a unique staging directory that inherits the parent's permissions.
+
+    tempfile.mkdtemp applies an owner-only ACL on Windows (Python >= 3.12.4).
+    Files built inside it keep that ACL after os.replace, so outputs written by
+    one Windows account become unreadable to another (observed in data/gold).
+    """
+    parent.mkdir(parents=True, exist_ok=True)
+    for _ in range(100):
+        candidate = parent / f"{prefix}{os.urandom(6).hex()}"
+        try:
+            candidate.mkdir()
+            return candidate
+        except FileExistsError:
+            continue
+    raise FileExistsError(f"Could not create a staging directory in {parent}")
+
+
 def _write_staged_parquet(dataframe: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     dataframe.to_parquet(path, engine="pyarrow", index=False)
@@ -241,7 +258,7 @@ def build_gold(silver_path: str | Path = "data/silver/scrobbles/scrobbles.parque
     marts, profile = build_marts(silver, config["boundary"])
     quality = validate_marts(marts, len(silver))
     gold_root = Path(gold_root)
-    staging = Path(tempfile.mkdtemp(prefix=".gold-build-", dir=gold_root.parent))
+    staging = make_staging_dir(gold_root.parent, ".gold-build-")
     try:
         output_map = {name: ("listening_patterns" if name == "streaks" else name, "streaks.parquet" if name == "streaks" else f"{name}.parquet") for name in marts}
         for name, dataframe in marts.items():
