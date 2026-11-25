@@ -122,3 +122,9 @@ html {
 .pipe-flow { animation: pipe-flow linear infinite; }
 .pipe-box { fill: rgb(255 255 255 / .03); stroke: rgb(255 255 255 / .22); }
 .pipe-node .pipe-box { animation: pipe-glow 3.85s ease-in-out infinite; animation-delay: inherit; }
+
+/* medallion tiers */
+@keyframes medal-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(var(--rise)); opacity: 0; } }
+@keyframes medal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.medal-dot { animation: medal-rise 1.8s ease-in infinite; transform-box: fill-box; }
+.medal-tier { animation: medal-in .8s cubic-bezier(.2,.7,.2,1) both; }

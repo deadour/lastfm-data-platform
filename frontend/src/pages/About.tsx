@@ -1,6 +1,7 @@
 import type { InsightsFile, StatsFile } from "../data/types";
 import { n, shortDate } from "../utils/format";
 import { Sources } from "../components/Icons";
+import { Medallion } from "../components/Medallion";
 import { DailyRun, Pipeline } from "../components/Pipeline";
 
 const steps = [
@@ -25,19 +26,6 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
     <article className="fade-in">
       <header className="border-b border-line py-14 md:py-20">
         <h1 className="font-serif text-5xl leading-[0.95] tracking-tight text-ink md:text-7xl">cómo está hecho</h1>
-        <div className="mt-10 grid max-w-3xl gap-6 text-lg leading-relaxed text-ink/85">
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span>escucho música en spotify y en youtube,</span>
-            <Sources />
-            <span>y todo queda anotado en last.fm.</span>
-          </p>
-          <p>
-            cada mañana, un programa que corre solo en internet se fija qué escuché el día anterior, lo guarda ordenado y saca las cuentas: qué artista, qué disco, a qué hora. después actualiza esta página.
-          </p>
-          <p className="text-muted">
-            no tengo que tocar nada. si un día algo falla, no se rompe lo que ya estaba: al día siguiente se pone al día solo.
-          </p>
-        </div>
         {stats && (
           <p className="tabular mt-6 text-sm text-muted">
             {n(stats.totals.scrobbles)} escuchas · {n(stats.totals.artists)} artistas · {insights ? `${n(insights.session.sessions)} sesiones · ` : ""}desde {shortDate(stats.range.first)}
@@ -45,9 +33,36 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
         )}
       </header>
 
+      <section className="grid gap-10 border-b border-line py-14 md:grid-cols-[14rem_minmax(0,1fr)]">
+        <h2 className="font-serif text-2xl text-ink">sobre este proyecto</h2>
+        <div className="grid max-w-3xl gap-5 text-[1.05rem] leading-relaxed text-ink/85">
+          <p>este es un proyecto personal que empecé para practicar ingeniería de datos, utilizando como base el historial de música que escucho desde 2016.</p>
+          <p>
+            todos esos datos se fueron guardando durante años en mi cuenta de last.fm, conectada a spotify y youtube <Sources className="mx-1 align-middle" />.
+            aunque hubo un período entre 2017 y 2019 en el que dejé de registrar mis escuchas, retomé la actividad en 2020 y desde entonces seguí acumulando datos.
+          </p>
+          <p>
+            con toda esa información decidí poner en práctica algunos conceptos que fui viendo en la facultad y que también utilizo en mi trabajo, principalmente la arquitectura medallion,
+            que básicamente consiste en organizar los datos en tres etapas: bronze, donde guardo los registros originales; silver, donde los limpio y transformo; y gold, donde genero las estadísticas a partir de esos datos.
+          </p>
+          <p>
+            todo esto lo armé utilizando python, azure y github actions para automatizar el procesamiento. el sistema se ejecuta todos los días, obtiene las nuevas reproducciones de last.fm y actualiza los datos sin que tenga que intervenir manualmente.
+          </p>
+          <p>de ahí nació esta web. una forma de visualizar todo lo que fui escuchando durante estos años y, de paso, seguir aprendiendo y experimentando con ingeniería de datos.</p>
+        </div>
+      </section>
+
+      <section className="border-b border-line py-14">
+        <h2 className="mb-3 font-serif text-2xl text-ink">medallion</h2>
+        <p className="mb-10 max-w-2xl text-sm text-muted">bronze, silver y gold, con los números de hoy.</p>
+        <div className="overflow-x-auto pb-2">
+          <Medallion scrobbles={stats?.totals.scrobbles ?? null} artists={stats?.totals.artists ?? null} years={stats?.years.length ?? null} />
+        </div>
+      </section>
+
       <section className="border-b border-line py-14">
         <h2 className="mb-3 font-serif text-2xl text-ink">el recorrido</h2>
-        <p className="mb-10 max-w-2xl text-sm text-muted">lo mismo, con los nombres técnicos.</p>
+        <p className="mb-10 max-w-2xl text-sm text-muted">de dónde sale cada dato y cómo llega acá.</p>
         <div className="overflow-x-auto pb-2"><Pipeline /></div>
       </section>
 
