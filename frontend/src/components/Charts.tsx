@@ -22,7 +22,7 @@ export function Bars({ values, labels, dim = [], height = 140, label, showValues
               <span className="tabular mb-1 text-center text-[10px] text-muted">{n(v)}</span>
             )}
             <div
-              className={`grow-up w-full rounded-[1px] transition-colors duration-300 ${dim.includes(i) ? "bg-white/12" : "bg-white/55 group-hover:bg-white/85"}`}
+              className={`grow-up w-full rounded-[1px] transition-colors duration-300 ${dim.includes(i) ? "bg-white/12" : "bg-[#d9a66b]/45 group-hover:bg-[#e7b48c]/90"}`}
               style={{ height: `${Math.max(v > 0 ? 2 : 0, (v / max) * 100)}%` }}
               title={`${labels[i]}: ${n(v)}`}
             />

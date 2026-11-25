@@ -5,6 +5,8 @@ import { n } from "../utils/format";
 // between tiers; the svg stays static when reduced motion is requested (css).
 
 interface Props {
+  /** allow shrinking to the container instead of scrolling */
+  fluid?: boolean;
   scrobbles: number | null;
   artists: number | null;
   years: number | null;
@@ -16,14 +18,14 @@ const tiers = [
   { key: "bronze", y: 244, color: "#a8714a", title: "bronze", what: "registros originales", detail: "las respuestas de last.fm, tal cual llegan" },
 ] as const;
 
-export function Medallion({ scrobbles, artists, years }: Props) {
+export function Medallion({ scrobbles, artists, years, fluid = false }: Props) {
   const counts: Record<string, string> = {
     bronze: scrobbles ? `${n(scrobbles)} escuchas en json` : "json crudo",
     silver: scrobbles ? `${n(scrobbles)} filas` : "parquet",
     gold: artists && years ? `${n(artists)} artistas · ${years} años` : "agregados",
   };
   return (
-    <svg viewBox="0 0 760 340" className="w-full min-w-[560px]" role="img"
+    <svg viewBox="0 0 760 340" className={`w-full ${fluid ? "" : "min-w-[560px]"}`} role="img"
       aria-label="arquitectura medallion: bronze guarda los registros originales, silver los limpia, gold genera las estadísticas">
       {tiers.map((t, i) => {
         // a pyramid: gold is the narrowest tier, less data and more meaning

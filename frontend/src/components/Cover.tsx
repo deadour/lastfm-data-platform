@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { hash, secureImage } from "../utils/format";
 
 interface Props {
@@ -8,10 +8,11 @@ interface Props {
   className?: string;
   /** small thumbnail: no name overlay */
   compact?: boolean;
+  style?: CSSProperties;
 }
 
 // real artwork when there is a url; otherwise a quiet gradient derived from the name.
-export function Cover({ seed, image, label, className = "", compact = false }: Props) {
+export function Cover({ seed, image, label, className = "", compact = false, style }: Props) {
   const [failed, setFailed] = useState(false);
   const src = secureImage(image);
   const h = hash(seed);
@@ -21,7 +22,7 @@ export function Cover({ seed, image, label, className = "", compact = false }: P
   const background = `linear-gradient(${angle}deg, hsl(${hue} 30% 34%), hsl(${second} 26% 15%))`;
 
   return (
-    <div className={`relative aspect-square overflow-hidden bg-neutral-900 ${className}`}>
+    <div className={`relative aspect-square overflow-hidden bg-neutral-900 ${className}`} style={style}>
       {src && !failed ? (
         <img
           src={src}

@@ -128,3 +128,28 @@ html {
 @keyframes medal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .medal-dot { animation: medal-rise 1.8s ease-in infinite; transform-box: fill-box; }
 .medal-tier { animation: medal-in .8s cubic-bezier(.2,.7,.2,1) both; }
+
+/* a bit of grain, like an old sleeve; sits above everything, never catches clicks */
+.archive-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: .07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* scrolling strip of artists */
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee-track { display: flex; width: max-content; animation: marquee 70s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* covers dropped on the floor: a slight tilt that straightens on hover */
+.tossed { transform: rotate(var(--tilt, 0deg)); transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+.group:hover .tossed { transform: rotate(0deg) translateY(-3px); }
+
+/* section numbers */
+.section-index { font-family: var(--font-serif); color: #a8533f; font-size: .8rem; letter-spacing: .05em; margin-right: .9rem; vertical-align: .4em; }

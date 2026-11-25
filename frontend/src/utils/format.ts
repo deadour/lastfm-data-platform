@@ -58,3 +58,17 @@ export function days(count: number): string {
   if (count >= 60) return `${Math.round(count / 30)} meses`;
   return `${count} días`;
 }
+
+const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+/** 2020-05-27 -> "27 de mayo de 2020" */
+export function longDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return `${d} de ${monthNames[m - 1]} de ${y}`;
+}
+
+/** 2023-08-13 -> "agosto de 2023" */
+export function monthYear(iso: string): string {
+  const [y, m] = iso.slice(0, 7).split("-").map(Number);
+  return `${monthNames[m - 1]} de ${y}`;
+}
