@@ -97,7 +97,7 @@ export function YearStory({ years, linkFor }: { years: YearInsight[]; linkFor: (
             className={year.year === selected.year ? "year-button active" : "year-button"}
             onClick={() => setSelectedYear(year.year)}
           >
-            <span className="year-selector-bar" style={{ height: Math.max(6, 100 * year.scrobbles / max) + "%" }} />
+            <span className="year-selector-bar" style={{ height: Math.max(6, 96 * year.scrobbles / max) + "px" }} />
             <span>{year.year}</span>
           </button>
         ))}
