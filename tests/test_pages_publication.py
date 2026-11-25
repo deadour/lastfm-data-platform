@@ -96,3 +96,29 @@ def test_public_verification_rejects_incomplete_or_stale_deployments(build, prob
         return b"wrong" if problem == "missing_asset" else b"compiled application", "application/javascript"
     with pytest.raises(ValueError):
         verify_publication.verify(stats, index, fetcher=fetch)
+
+
+def test_public_fetch_identifies_itself(monkeypatch):
+    # Cloudflare's bot protection rejects the default Python-urllib agent with 403.
+    seen = {}
+
+    class Response:
+        headers = {"Content-Type": "application/json"}
+
+        def read(self, limit):
+            return b"{}"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def opener(request, timeout):
+        seen.update(request.header_items())
+        return Response()
+
+    monkeypatch.setattr(verify_publication, "urlopen", opener)
+    verify_publication.fetch("/data/stats.json")
+    agent = {k.lower(): v for k, v in seen.items()}["user-agent"]
+    assert agent.startswith("lastfm-data-platform-publication-check/") and "Python-urllib" not in agent
