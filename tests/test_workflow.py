@@ -4,9 +4,23 @@ WORKFLOW = Path(".github/workflows/daily-pipeline.yml").read_text(encoding="utf-
 ACTIVE = [line for line in WORKFLOW.splitlines() if not line.lstrip().startswith("#")]
 
 
-def test_schedule_is_not_active():
-    assert not any(line.strip().startswith(("schedule:", "- cron:")) for line in ACTIVE)
+def test_single_daily_schedule_and_manual_dispatch():
+    crons = [line.split("#")[0].strip() for line in ACTIVE if line.strip().startswith("- cron:")]
+    assert crons == ['- cron: "17 6 * * *"']  # exactly once a day, 06:17 UTC
     assert "workflow_dispatch:" in WORKFLOW
+
+
+def test_scheduled_runs_fall_back_to_default_page_cap():
+    # Schedule events carry no inputs, so the cap must default to 25.
+    text = "\n".join(ACTIVE)
+    assert "MAX_PAGES: ${{ inputs.max_pages || '25' }}" in text
+    assert 'default: "25"' in text
+
+
+def test_runs_in_protected_environment():
+    text = "\n".join(ACTIVE)
+    assert "environment: lastfm-prod" in text
+    assert "contents: read" in text
 
 
 def test_oidc_without_long_lived_secrets():
