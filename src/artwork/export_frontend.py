@@ -23,6 +23,7 @@ import json
 from pathlib import Path
 import tempfile
 from typing import Any
+from urllib.parse import urlsplit
 
 import pandas as pd
 
@@ -31,6 +32,22 @@ from .matching import album_key
 
 SCHEMA_VERSION = 1
 ATTRIBUTION = {"coverartarchive": "cover art archive", "deezer": "deezer"}
+
+
+def public_url(value: Any, *, source: bool = False) -> bool:
+    """Only provider URLs without embedded credentials or query tokens are public."""
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = urlsplit(value)
+        host = parsed.hostname or ""
+        allowed = ({"musicbrainz.org", "www.deezer.com", "deezer.com"} if source else
+                   {"coverartarchive.org", "archive.org", "cdn-images.dzcdn.net", "e-cdns-images.dzcdn.net"})
+        approved = host in allowed or (not source and host.endswith(".archive.org"))
+        return (approved and parsed.scheme == "https" and parsed.port in (None, 443)
+                and parsed.username is None and parsed.password is None and not parsed.query and not parsed.fragment)
+    except ValueError:
+        return False
 
 
 def _int(value) -> int:
@@ -43,8 +60,8 @@ def _date(value) -> str | None:
 
 def cover(row: pd.Series | None) -> dict[str, Any] | None:
     # Only https images are exported; the frontend is served over https with a strict CSP.
-    if (row is None or row.get("status") != "resolved" or not row.get("image_url")
-            or not str(row["image_url"]).startswith("https://")):
+    if (row is None or row.get("status") != "resolved" or row.get("provider") not in ATTRIBUTION
+            or not public_url(row.get("image_url")) or not public_url(row.get("source_url"), source=True)):
         return None
     return {"url": row["image_url"], "provider": row["provider"], "source_url": row.get("source_url"),
             "attribution": ATTRIBUTION.get(row["provider"], row["provider"])}
@@ -123,9 +140,17 @@ def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 
 def write(document: dict[str, Any], out: Path) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=out.parent, suffix=".json", delete=False) as handle:
-        json.dump(document, handle, ensure_ascii=False, separators=(",", ":"))
         staged = Path(handle.name)
-    staged.replace(out)
+        try:
+            json.dump(document, handle, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+        except BaseException:
+            handle.close()
+            staged.unlink(missing_ok=True)
+            raise
+    try:
+        staged.replace(out)
+    finally:
+        staged.unlink(missing_ok=True)
     return out
 
 

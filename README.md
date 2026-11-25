@@ -1,6 +1,7 @@
 # Last.fm Personal Data Platform
 
-Current implemented scope: Phase 6B — optional Bronze, Silver/Gold and state-snapshot transfers to Azure Data Lake.
+Current implemented scope: Azure-backed daily pipeline, album artwork, editorial
+frontend and opt-in cloud statistics publication.
 The repository contains a local Bronze → Silver → Gold pipeline, artist
 enrichment and a Streamlit dashboard. See [`docs/PROJECT_WALKTHROUGH.md`](docs/PROJECT_WALKTHROUGH.md)
 for the technical walkthrough.
@@ -151,6 +152,23 @@ See [Azure setup and verification](docs/azure-data-lake.md) for Entra login,
 upload, list, download and SHA-256 verification. Automated tests use fake Azure
 clients; they do not establish that a live account can be accessed.
 
+## Frontend statistics
+
+Album artwork and the static `StatsFile` v1 export are described in
+[artwork and frontend export](docs/artwork.md). The cloud wrapper restores the
+committed Gold/Silver pair from Azure, validates their hashes and writes only
+public aggregates:
+
+```powershell
+python -m src.jobs.export_stats --account stlastfmedu --container lake --out data/exports/frontend/stats.json --skip-artwork-refresh
+```
+
+The separate `export-frontend` workflow is prepared for OIDC authentication and
+optional publication to the existing Cloudflare Pages project. Automatic runs
+are disabled until explicitly enabled. It does not change ingestion checkpoints
+or the production cron. See [cloud export setup](docs/frontend-cloud-export.md)
+for the manual verification and activation steps.
+
 ## Tests
 
 Tests use mocked HTTP responses and fake Azure clients; they never call Last.fm or Azure:
@@ -187,4 +205,5 @@ Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags
 - Phase 6A — Optional Bronze file transfers to Azure Data Lake
 - Phase 6B — Opt-in Silver/Gold publication and immutable state backups
 - Phase 6C — Cloud readiness: completed-only watermark, bounded job runner, container and checkpoint design ([details](docs/phase6c-cloud-readiness.md))
-- Phase 6D — Daily GitHub Actions run with ADLS checkpoint and OIDC (prepared, cron disabled; [details](docs/phase6d-github-actions.md))
+- Phase 6D — Daily GitHub Actions run with ADLS checkpoint and OIDC (existing production schedule; [details](docs/phase6d-github-actions.md))
+- Frontend publication — Cloud snapshot export and complete Pages build, gated until manual verification ([setup](docs/frontend-cloud-export.md))

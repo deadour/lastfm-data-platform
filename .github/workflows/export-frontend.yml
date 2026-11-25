@@ -1,0 +1,157 @@
+name: export-frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Deploy the frontend with real statistics to the existing Cloudflare Pages project"
+        type: boolean
+        default: false
+      refresh_artwork:
+        description: "Refresh the separate artwork catalog using public providers"
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: [daily-pipeline]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-stats-publication
+  cancel-in-progress: false
+
+jobs:
+  export:
+    # No automatic execution until a repository admin explicitly enables it.
+    # Never run privileged code from a pull request or a triggering artifact.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (vars.FRONTEND_EXPORT_AUTOMATIC == 'true' &&
+        vars.FRONTEND_PUBLICATION_VERIFIED == 'true' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.event == 'schedule' ||
+         github.event.workflow_run.event == 'workflow_dispatch')))
+    runs-on: ubuntu-latest
+    environment: lastfm-prod
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-job.txt
+
+      - name: Install exporter dependencies
+        run: python -m pip install -r requirements-job.txt
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export committed snapshots
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER }}
+          REFRESH_ARTWORK: ${{ inputs.refresh_artwork || github.event_name == 'workflow_run' }}
+        shell: bash
+        run: |
+          options=()
+          if [ "$REFRESH_ARTWORK" != "true" ]; then
+            options+=(--skip-artwork-refresh)
+          fi
+          python -m src.jobs.export_stats --out output/stats.json --artwork-limit 100 "${options[@]}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate the public artifact with the React contract
+        run: node --experimental-strip-types frontend/scripts/check-stats.ts output/stats.json
+
+      - name: Save public statistics only
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-stats
+          path: output/stats.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: export
+    if: github.event_name == 'workflow_run' || inputs.publish
+    runs-on: ubuntu-latest
+    environment: lastfm-prod
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the same reviewed revision as the exporter
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: site
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify existing Pages deployment ownership (read only)
+        working-directory: site
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+        run: python -m src.jobs.check_pages
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/frontend/package-lock.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-stats
+          path: site/frontend/public/data
+
+      - name: Test and build with real statistics
+        working-directory: site/frontend
+        run: |
+          npm ci
+          npm test
+          npm run check:functions
+          node --experimental-strip-types scripts/check-stats.ts public/data/stats.json
+          npm run build
+          node --experimental-strip-types scripts/check-stats.ts dist/data/stats.json
+          test -s dist/index.html
+          cmp public/data/stats.json dist/data/stats.json
+
+      - name: Deploy to the existing Cloudflare Pages project
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: site/frontend
+          wranglerVersion: "4.168.0"   # same as the pinned devDependency
+          command: pages deploy dist --project-name=lastfm-data-platform --branch=main
+
+      - name: Verify the public site serves this build and real statistics
+        working-directory: site
+        run: python -m src.jobs.verify_publication --expected frontend/dist/data/stats.json --index frontend/dist/index.html

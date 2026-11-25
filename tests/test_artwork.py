@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from src.artwork import clients, enrich
-from src.artwork.export_frontend import build
+from src.artwork.export_frontend import build, cover, write
 from src.artwork.matching import album_key, decide, normalize
 from src.analytics.gold_builder import build_gold
 from src.transformation.transform_scrobbles import transform
@@ -228,7 +228,8 @@ def test_frontend_export_matches_statsfile_contract_and_stays_private(tmp_path):
     build_gold(silver_path=silver, gold_root=tmp_path / "gold")
     key = album_key("Fictional Artist", "Fictional Album")
     catalog = pd.DataFrame([{**{c: None for c in enrich.COLUMNS}, "album_key": key, "status": "needs_review",
-                             "image_url": "https://cdn-images.dzcdn.net/x.jpg", "provider": "deezer"}])
+                             "image_url": "https://cdn-images.dzcdn.net/x.jpg", "provider": "deezer",
+                             "source_url": "https://www.deezer.com/album/1"}])
 
     document = build(tmp_path / "gold", silver, catalog)
     # Fields the frontend loader requires (frontend/src/data/types.ts StatsFile).
@@ -306,3 +307,30 @@ def test_export_never_contains_http_images(tmp_path):
     images = [a["image"] for a in document["top_albums"]] + [t["image"] for t in document["top_tracks"]]
     assert all(url is None or url.startswith("https://") for url in images)
     assert "http://" not in json.dumps(document)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("image_url", "https://private.blob.core.windows.net/cover?sig=secret"),
+    ("image_url", "https://secret@archive.org/cover.jpg"),
+    ("image_url", "https://archive.org.evil.example/cover.jpg"),
+    ("source_url", "javascript:alert(1)"),
+    ("source_url", "https://musicbrainz.org/release/x?token=secret"),
+    ("source_url", None),
+])
+def test_export_drops_unsafe_or_unattributed_covers(field, value):
+    row = pd.Series({"status": "resolved", "provider": "coverartarchive",
+                     "image_url": "https://archive.org/cover.jpg", "source_url": "https://musicbrainz.org/release/x"})
+    row[field] = value
+    assert cover(row) is None
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_failed_json_serialization_removes_temporary_files(tmp_path, existing):
+    target = tmp_path / "stats.json"
+    if existing:
+        target.write_text("previous export")
+    with pytest.raises(ValueError):
+        write({"invalid": float("nan")}, target)
+    assert list(tmp_path.iterdir()) == ([target] if existing else [])
+    if existing:
+        assert target.read_text() == "previous export"

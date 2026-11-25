@@ -14,6 +14,5 @@ docs
 *.pyc
 .pytest_cache
 .pytest-tmp
-.claude
 pasos*.md
 project-walkthrough.md

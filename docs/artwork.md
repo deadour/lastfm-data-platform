@@ -134,8 +134,10 @@ cover that is still not `https://`.
 
 ## Not done yet
 
-- Not scheduled or wired into the cloud job. Run it locally; the cloud Silver is
-  newer than the local copy (118 343 vs 116 871 rows).
+- The existing local commands do not read Azure. The separate
+  [cloud export wrapper](frontend-cloud-export.md) restores committed snapshots
+  and prepares Actions publication; automatic execution remains disabled until
+  the owner enables it after manual verification.
 - No artist images. Neither CAA nor Gold has them, and Deezer artist photos need
   the same review rules.
 - `needs_review` items are handled by hand.
