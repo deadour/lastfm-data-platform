@@ -1,13 +1,12 @@
-import { isPartialYear } from "../data/load";
 import type { YearStat } from "../data/types";
 import { n } from "../lib/format";
 
-export function Years({ years, lastDay }: { years: YearStat[]; lastDay: string }) {
+export function Years({ years }: { years: YearStat[] }) {
   const max = Math.max(...years.map((y) => y.scrobbles), 1);
   return (
     <ol className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 lg:grid-cols-8">
       {years.map((y) => {
-        const partial = isPartialYear(y, lastDay);
+        const { partial } = y;
         return (
           <li key={y.year} className="flex min-w-0 flex-col">
             <div className="mb-4 flex h-28 items-end">

@@ -9,7 +9,7 @@ export function Albums({ albums }: { albums: AlbumStat[] }) {
   return (
     <div className="grid gap-x-5 gap-y-10 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <figure className="group">
-        <Cover seed={first.title} image={first.cover?.url} label={`portada de ${first.title}`} className="shadow-2xl shadow-black/50" />
+        <Cover seed={first.title} image={first.cover?.url ?? first.image} label={`portada de ${first.title}`} className="shadow-2xl shadow-black/50" />
         <figcaption className="mt-4">
           <span className="block font-serif text-3xl leading-tight text-ink">{first.title}</span>
           <span className="block text-ink/75">{first.artist}</span>
@@ -21,7 +21,7 @@ export function Albums({ albums }: { albums: AlbumStat[] }) {
       <ol className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3">
         {rest.map((a, i) => (
           <li key={a.key} className="group min-w-0">
-            <Cover seed={a.title} image={a.cover?.url} label={`portada de ${a.title}`} />
+            <Cover seed={a.title} image={a.cover?.url ?? a.image} label={`portada de ${a.title}`} />
             <div className="mt-3 flex items-baseline gap-2">
               <span className="tabular text-xs text-muted">{String(i + 2).padStart(2, "0")}</span>
               <span className="truncate text-sm text-ink" title={a.title}>

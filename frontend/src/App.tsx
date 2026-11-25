@@ -58,16 +58,20 @@ export function App() {
         {stats && (
           <>
             <p className="max-w-3xl pb-16 font-serif text-2xl leading-snug text-ink/90 md:text-3xl">
-              {n(stats.totals.scrobbles)} escuchas desde {shortDate(stats.range.first_day)}: {n(stats.totals.artists)} artistas,{" "}
-              {n(stats.totals.albums)} discos y {n(stats.totals.tracks)} canciones, en {n(stats.totals.active_days)} días con música.
+              {n(stats.totals.scrobbles)} escuchas desde {shortDate(stats.range.first)}: {n(stats.totals.artists)} artistas
+              {stats.totals.albums ? `, ${n(stats.totals.albums)} discos` : ""} y {n(stats.totals.tracks)} canciones, en{" "}
+              {n(stats.totals.active_days)} días con música.
+              {stats.longest_streak && ` la racha más larga fue de ${n(stats.longest_streak.days)} días seguidos.`}
             </p>
 
-            <Section id="discos" title="discos" note="los más escuchados. las portadas vienen de cover art archive o deezer, con su crédito.">
-              <Albums albums={stats.top_albums} />
-            </Section>
+            {stats.top_albums && stats.top_albums.length > 0 && (
+              <Section id="discos" title="discos" note="los más escuchados. las portadas vienen de cover art archive o deezer, con su crédito.">
+                <Albums albums={stats.top_albums} />
+              </Section>
+            )}
 
             <Section id="anos" title="por año" note="los años incompletos están más claros: antes de 2020 no registraba todo.">
-              <Years years={stats.years} lastDay={stats.range.last_day} />
+              <Years years={stats.years} />
             </Section>
 
             <Section id="meses" title="últimos meses">
@@ -83,7 +87,7 @@ export function App() {
             </Section>
 
             <Section id="ritmo" title="cuándo escucho" note="día y hora, en utc. más claro, más escuchas.">
-              <Rhythm weekHours={stats.week_hours} />
+              <Rhythm cells={stats.rhythm} />
             </Section>
           </>
         )}
@@ -92,7 +96,7 @@ export function App() {
       <footer className="border-t border-line py-10 text-xs text-muted">
         <p>
           datos de last.fm, procesados en un pipeline propio
-          {stats && !isMock ? ` · datos al ${shortDate(stats.data_as_of)}` : ""}.
+          {stats && !isMock ? ` · datos al ${shortDate(stats.data_as_of ?? stats.generated_at)}` : ""}.
         </p>
       </footer>
     </div>

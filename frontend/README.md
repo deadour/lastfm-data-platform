@@ -37,20 +37,26 @@ To try the real function locally, put the secrets in `frontend/.dev.vars`
 
 ## Stats contract
 
-`src/data/types.ts` (`StatsFile`, `schema_version: 1`) mirrors the exporter's
-contract:
-- `totals`, `years` (with `era`), `months` (last 24);
-- `top_artists`, `top_albums` and `top_tracks` (50 each);
-- `week_hours` (weekday × hour counts).
+`src/data/types.ts` (`StatsFile`, `schema_version: 1`) is shared with the
+exporter (`python -m src.artwork.export_frontend`). The required fields are:
+- `range{first,last}`, `totals`;
+- `years` with `partial`, `months` (last 24);
+- `top_artists` and `top_tracks`;
+- `rhythm` (168 weekday × hour shares);
+- `longest_streak`.
 
-The loader rejects other versions or missing lists and falls back to the mock.
+The exporter also sends `data_as_of`, `totals.albums` and `top_albums`. The
+loader rejects other versions or missing lists and falls back to the mock.
 
-`top_albums[].cover` is `null` until an album is resolved in the artwork
-catalog. Then the site shows a gradient made from the title instead. A real
-cover is always shown with its `attribution`, linked to `source_url` (the
-MusicBrainz release or the Deezer page). Images are hotlinked, never
-rehosted; the CSP allows `coverartarchive.org`, `*.archive.org` and
-`*.dzcdn.net`.
+Covers:
+- `top_tracks[].image` and `top_albums[].cover` stay `null` until the album is
+  resolved in the artwork catalog. Until then the site shows a gradient made
+  from the title.
+- A real album cover is always shown with its `attribution`, linked to
+  `source_url` (the MusicBrainz release or the Deezer page).
+- Images are hotlinked, never rehosted. The CSP allows `coverartarchive.org`,
+  `archive.org`, `*.archive.org` (CAA redirects there), `cdn-images.dzcdn.net`
+  and `e-cdns-images.dzcdn.net`.
 
 ## Now playing
 

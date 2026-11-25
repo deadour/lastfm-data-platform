@@ -6,10 +6,12 @@ interface Props {
   image?: string | null;
   label: string;
   className?: string;
+  /** small thumbnail: no name overlay */
+  compact?: boolean;
 }
 
 // real artwork when there is a url; otherwise a quiet gradient derived from the name.
-export function Cover({ seed, image, label, className = "" }: Props) {
+export function Cover({ seed, image, label, className = "", compact = false }: Props) {
   const [failed, setFailed] = useState(false);
   const h = hash(seed);
   const hue = h % 360;
@@ -34,7 +36,9 @@ export function Cover({ seed, image, label, className = "" }: Props) {
           className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           style={{ background }}
         >
-          <span className="absolute bottom-3 left-3 right-3 font-serif text-sm leading-tight text-white/55">{seed}</span>
+          {!compact && (
+            <span className="absolute bottom-3 left-3 right-3 font-serif text-sm leading-tight text-white/55">{seed}</span>
+          )}
         </div>
       )}
     </div>

@@ -33,11 +33,10 @@ const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map((year, i) => 
   return {
     year,
     scrobbles,
-    active_days: Math.min(365, Math.round(scrobbles / 50)),
     artists: Math.round(scrobbles / 9),
     tracks: Math.round(scrobbles / 3.4),
     top_artist: artists[i % artists.length],
-    era: year === 2019 ? ("partial_tracking" as const) : ("consistent_tracking" as const),
+    partial: year === 2019 || year === 2026,
   };
 });
 
@@ -49,21 +48,21 @@ const months = Array.from({ length: 24 }, (_, i) => {
   };
 });
 
-const week_hours = Array.from({ length: 7 * 24 }, (_, i) => {
+const grid = Array.from({ length: 7 * 24 }, (_, i) => {
   const weekday = Math.floor(i / 24);
   const hour = i % 24;
   const evening = Math.exp(-((hour - 21) ** 2) / 18);
   const morning = Math.exp(-((hour - 9) ** 2) / 10) * (weekday < 5 ? 0.6 : 0.2);
-  return { weekday, hour, scrobbles: Math.round((evening + morning + seeded(i) * 0.08) * 400) };
+  return { weekday, hour, share: evening + morning + seeded(i) * 0.08 };
 });
+const gridTotal = grid.reduce((sum, c) => sum + c.share, 0);
 
 export const mockStats: StatsFile = {
   schema_version: 1,
   source: "mock",
   generated_at: "2026-11-25T00:00:00Z",
   data_as_of: "2026-11-25T00:00:00Z",
-  notes: {},
-  range: { first_day: "2019-03-14", last_day: "2026-11-25" },
+  range: { first: "2019-03-14", last: "2026-11-25" },
   totals: {
     scrobbles: years.reduce((sum, y) => sum + y.scrobbles, 0),
     artists: 4800,
@@ -73,26 +72,23 @@ export const mockStats: StatsFile = {
   },
   years,
   months,
-  top_artists: artists.map((name, i) => ({
-    name,
-    scrobbles: Math.round(3200 / (1 + i * 0.35)),
-    first_seen: "2019-03-14",
-    last_seen: "2026-11-20",
-  })),
+  top_artists: artists.map((name, i) => ({ name, scrobbles: Math.round(3200 / (1 + i * 0.35)), image: null })),
   top_albums: albums.map(([title, artist], i) => ({
     key: `mock${String(i).padStart(2, "0")}`,
     artist,
     title,
     scrobbles: Math.round(1400 / (1 + i * 0.3)),
+    image: null,
     cover: null,
   })),
   top_tracks: tracks.map(([title, artist], i) => ({
     title,
     artist,
     scrobbles: Math.round(410 / (1 + i * 0.3)),
-    peak_year: 2020 + (i % 6),
+    image: null,
   })),
-  week_hours,
+  rhythm: grid.map((c) => ({ ...c, share: c.share / gridTotal })),
+  longest_streak: { days: 212, start: "2023-04-02", end: "2023-10-30" },
 };
 
 export const mockNowPlaying: NowPlaying = {
