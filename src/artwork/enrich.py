@@ -25,7 +25,7 @@ from typing import Any
 
 import pandas as pd
 
-from .clients import ArtworkError, CoverArtArchive, Deezer, MusicBrainzReleases
+from .clients import ArtworkError, CoverArtArchive, Deezer, MusicBrainzReleases, https_url
 from .matching import album_key, decide
 
 LOGGER = logging.getLogger("artwork")
@@ -68,8 +68,13 @@ def albums_from_silver(silver: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_catalog(directory: Path = CATALOG_DIR) -> pd.DataFrame:
+    """Load the catalog; rows saved before https normalization are upgraded on read."""
     path = directory / "catalog.parquet"
-    return pd.read_parquet(path) if path.exists() else pd.DataFrame(columns=COLUMNS)
+    if not path.exists():
+        return pd.DataFrame(columns=COLUMNS)
+    catalog = pd.read_parquet(path)
+    catalog["image_url"] = catalog["image_url"].map(https_url)
+    return catalog
 
 
 def write_catalog(catalog: pd.DataFrame, directory: Path = CATALOG_DIR) -> None:
@@ -126,7 +131,7 @@ def resolve(album: dict[str, Any], caa: CoverArtArchive, mb: MusicBrainzReleases
     if decision.index is not None:
         chosen = candidates[decision.index]
         record.update(provider="deezer", provider_id=str(chosen.get("id")),
-                      image_url=chosen.get("cover_xl") or chosen.get("cover_big"),
+                      image_url=https_url(chosen.get("cover_xl") or chosen.get("cover_big")),
                       source_url=chosen.get("link"), license_note=LICENSE["deezer"])
     return record
 

@@ -71,6 +71,20 @@ class _Paced:
         return False
 
 
+HTTPS_HOSTS = ("coverartarchive.org", "archive.org")
+
+
+def https_url(url: str | None) -> str | None:
+    """Cover Art Archive lists many thumbnails as http://; the same paths serve over https."""
+    if not url:
+        return url
+    scheme, sep, rest = url.partition("://")
+    host = rest.split("/", 1)[0].lower()
+    if sep and scheme.lower() == "http" and (host in HTTPS_HOSTS or host.endswith(".archive.org")):
+        return "https://" + rest
+    return url
+
+
 class CoverArtArchive(_Paced):
     endpoint = "https://coverartarchive.org"
 
@@ -83,7 +97,7 @@ class CoverArtArchive(_Paced):
         for image in (body or {}).get("images", []):
             if image.get("front") and image.get("approved", True):
                 thumbs = image.get("thumbnails") or {}
-                return thumbs.get("500") or thumbs.get("large") or image.get("image")
+                return https_url(thumbs.get("500") or thumbs.get("large") or image.get("image"))
         return None
 
 

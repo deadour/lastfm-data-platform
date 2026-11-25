@@ -122,6 +122,11 @@ longest_streak {days, start, end} | null
 - `partial` is true for the partial-tracking era and for calendar years that the
   data does not fully cover.
 
+**HTTPS only.** Cover Art Archive lists many thumbnails as `http://`. The
+client upgrades `coverartarchive.org` and `*.archive.org` URLs to `https://`
+before saving, and older catalog rows are upgraded on read. The export drops any
+cover that is still not `https://`.
+
 **Image hosts** (for the frontend CSP `img-src`), checked against real URLs:
 `https://coverartarchive.org`, which redirects to `https://archive.org` and then
 `https://*.archive.org` (for example `dn721604.ca.archive.org`), plus

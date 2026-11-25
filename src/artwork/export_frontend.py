@@ -42,7 +42,9 @@ def _date(value) -> str | None:
 
 
 def cover(row: pd.Series | None) -> dict[str, Any] | None:
-    if row is None or row.get("status") != "resolved" or not row.get("image_url"):
+    # Only https images are exported; the frontend is served over https with a strict CSP.
+    if (row is None or row.get("status") != "resolved" or not row.get("image_url")
+            or not str(row["image_url"]).startswith("https://")):
         return None
     return {"url": row["image_url"], "provider": row["provider"], "source_url": row.get("source_url"),
             "attribution": ATTRIBUTION.get(row["provider"], row["provider"])}

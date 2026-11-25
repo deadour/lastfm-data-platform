@@ -265,3 +265,44 @@ def test_musicbrainz_release_lookup_retries_then_succeeds():
                                           sleep=lambda s: None)
     with pytest.raises(clients.ArtworkError):
         failing.release_group(MBID)
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("http://coverartarchive.org/release/x/1-500.jpg", "https://coverartarchive.org/release/x/1-500.jpg"),
+    ("http://ia800.us.archive.org/a.jpg", "https://ia800.us.archive.org/a.jpg"),
+    ("HTTP://archive.org/a.jpg", "https://archive.org/a.jpg"),
+    ("https://coverartarchive.org/a.jpg", "https://coverartarchive.org/a.jpg"),
+    ("http://example.com/a.jpg", "http://example.com/a.jpg"),         # unknown host left alone (then not exported)
+    ("http://notarchive.org/a.jpg", "http://notarchive.org/a.jpg"),
+    (None, None),
+])
+def test_https_url_only_upgrades_cover_art_archive_hosts(url, expected):
+    assert clients.https_url(url) == expected
+
+
+def test_cover_art_archive_client_returns_https_urls():
+    images = {"images": [{"front": True, "approved": True, "thumbnails": {"500": "http://coverartarchive.org/release/x/1-500.jpg"}}]}
+    caa, _ = paced(clients.CoverArtArchive, [FakeResponse(200, images)])
+    assert caa.front("release", MBID) == "https://coverartarchive.org/release/x/1-500.jpg"
+
+
+def test_existing_http_catalog_rows_are_upgraded_on_read(tmp_path):
+    out = tmp_path / "artwork"
+    row = {**{c: None for c in enrich.COLUMNS}, "album_key": "k", "status": "resolved", "provider": "coverartarchive",
+           "image_url": "http://coverartarchive.org/release/x/1-500.jpg", "scrobbles": 1}
+    enrich.write_catalog(pd.DataFrame([row]), out)
+    assert enrich.read_catalog(out).loc[0, "image_url"].startswith("https://")
+
+
+def test_export_never_contains_http_images(tmp_path):
+    make_run(tmp_path / "bronze", "run-one", 1700000000)
+    transform(full=True, bronze_root=tmp_path / "bronze", silver_root=tmp_path / "silver")
+    silver = tmp_path / "silver" / "scrobbles" / "scrobbles.parquet"
+    build_gold(silver_path=silver, gold_root=tmp_path / "gold")
+    key = album_key("Fictional Artist", "Fictional Album")
+    catalog = pd.DataFrame([{**{c: None for c in enrich.COLUMNS}, "album_key": key, "status": "resolved",
+                             "provider": "coverartarchive", "image_url": "http://example.com/plain.jpg"}])
+    document = build(tmp_path / "gold", silver, catalog)
+    images = [a["image"] for a in document["top_albums"]] + [t["image"] for t in document["top_tracks"]]
+    assert all(url is None or url.startswith("https://") for url in images)
+    assert "http://" not in json.dumps(document)
