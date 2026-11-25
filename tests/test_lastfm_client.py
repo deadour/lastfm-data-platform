@@ -61,11 +61,11 @@ def test_get_recent_tracks_builds_request():
 
 def test_request_uses_public_recent_tracks_contract():
     session = FakeSession(FakeResponse(valid_payload()))
-    LastFMClient("sentinel", "eduramirez87", session=session).get_recent_tracks()
+    LastFMClient("sentinel", "fictional-listener", session=session).get_recent_tracks()
     assert session.endpoint == "https://ws.audioscrobbler.com/2.0/"
     assert session.params == {
         "method": "user.getRecentTracks",
-        "user": "eduramirez87",
+        "user": "fictional-listener",
         "api_key": "sentinel",
         "format": "json",
         "page": 1,
@@ -77,10 +77,10 @@ def test_request_uses_public_recent_tracks_contract():
 def test_debug_request_parameters_redact_api_key(caplog):
     session = FakeSession(FakeResponse(valid_payload()))
     with caplog.at_level(logging.DEBUG, logger="src.ingestion.lastfm_client"):
-        LastFMClient("sentinel", "eduramirez87", session=session).get_recent_tracks()
+        LastFMClient("sentinel", "fictional-listener", session=session).get_recent_tracks()
     message = caplog.records[-1].message
     assert "method=user.getRecentTracks" in message
-    assert "user=eduramirez87" in message
+    assert "user=fictional-listener" in message
     assert "format=json" in message
     assert "api_key=[REDACTED]" in message
     assert "sentinel" not in message
