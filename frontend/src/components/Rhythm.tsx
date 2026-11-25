@@ -1,8 +1,10 @@
-import type { RhythmCell } from "../data/types";
+import { shares } from "../data/load";
+import type { WeekHour } from "../data/types";
 
 const days = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 
-export function Rhythm({ cells }: { cells: RhythmCell[] }) {
+export function Rhythm({ weekHours }: { weekHours: WeekHour[] }) {
+  const cells = shares(weekHours);
   const max = Math.max(...cells.map((c) => c.share), Number.EPSILON);
   const grid = new Map(cells.map((c) => [`${c.weekday}-${c.hour}`, c.share]));
 

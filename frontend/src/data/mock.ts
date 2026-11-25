@@ -1,7 +1,7 @@
 import type { NowPlaying, StatsFile } from "./types";
 
 // invented data so the layout can be built before real stats are exported.
-// every artist and track name here is fictional.
+// every artist, album and track name here is fictional; no covers are used.
 
 const artists = [
   "los años luz", "marea baja", "cine vacío", "la siesta eléctrica", "norte frío",
@@ -9,11 +9,18 @@ const artists = [
   "ciudad dormida", "la última ronda",
 ];
 
-const tracks: [string, string][] = [
-  ["autopista", "los años luz"], ["once de la noche", "marea baja"], ["sala tres", "cine vacío"],
-  ["ventilador", "la siesta eléctrica"], ["ruta 40", "norte frío"], ["interferencia", "ruido de fondo"],
+const albums: [string, string][] = [
+  ["verano largo", "marea baja"], ["autopista", "los años luz"], ["sala tres", "cine vacío"],
+  ["siesta", "la siesta eléctrica"], ["ruta 40", "norte frío"], ["interferencia", "ruido de fondo"],
   ["el pasillo", "casa tomada"], ["abrigo", "verano en mayo"], ["sin nombre", "los invisibles"],
-  ["ascensor", "planta baja"],
+  ["ascensor", "planta baja"], ["luces bajas", "ciudad dormida"], ["cierre", "la última ronda"],
+];
+
+const tracks: [string, string][] = [
+  ["once de la noche", "marea baja"], ["la curva", "los años luz"], ["butaca", "cine vacío"],
+  ["ventilador", "la siesta eléctrica"], ["escarcha", "norte frío"], ["estática", "ruido de fondo"],
+  ["la puerta", "casa tomada"], ["mayo", "verano en mayo"], ["nadie", "los invisibles"],
+  ["timbre", "planta baja"],
 ];
 
 function seeded(n: number) {
@@ -22,14 +29,15 @@ function seeded(n: number) {
 }
 
 const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map((year, i) => {
-  const scrobbles = Math.round(6000 + seeded(i) * 14000);
+  const scrobbles = Math.round((year === 2019 ? 900 : 9000) + seeded(i) * 9000);
   return {
     year,
     scrobbles,
+    active_days: Math.min(365, Math.round(scrobbles / 50)),
     artists: Math.round(scrobbles / 9),
     tracks: Math.round(scrobbles / 3.4),
     top_artist: artists[i % artists.length],
-    partial: year === 2019 || year === 2026,
+    era: year === 2019 ? ("partial_tracking" as const) : ("consistent_tracking" as const),
   };
 });
 
@@ -41,32 +49,50 @@ const months = Array.from({ length: 24 }, (_, i) => {
   };
 });
 
-const rhythm = Array.from({ length: 7 * 24 }, (_, i) => {
+const week_hours = Array.from({ length: 7 * 24 }, (_, i) => {
   const weekday = Math.floor(i / 24);
   const hour = i % 24;
   const evening = Math.exp(-((hour - 21) ** 2) / 18);
   const morning = Math.exp(-((hour - 9) ** 2) / 10) * (weekday < 5 ? 0.6 : 0.2);
-  return { weekday, hour, share: evening + morning + seeded(i) * 0.08 };
+  return { weekday, hour, scrobbles: Math.round((evening + morning + seeded(i) * 0.08) * 400) };
 });
-const total = rhythm.reduce((sum, c) => sum + c.share, 0);
 
 export const mockStats: StatsFile = {
   schema_version: 1,
   source: "mock",
   generated_at: "2026-11-25T00:00:00Z",
-  range: { first: "2019-03-14", last: "2026-11-25" },
+  data_as_of: "2026-11-25T00:00:00Z",
+  notes: {},
+  range: { first_day: "2019-03-14", last_day: "2026-11-25" },
   totals: {
     scrobbles: years.reduce((sum, y) => sum + y.scrobbles, 0),
     artists: 4800,
     tracks: 16000,
+    albums: 9000,
     active_days: 2300,
   },
   years,
   months,
-  top_artists: artists.map((name, i) => ({ name, scrobbles: Math.round(3200 / (1 + i * 0.35)) })),
-  top_tracks: tracks.map(([title, artist], i) => ({ title, artist, scrobbles: Math.round(410 / (1 + i * 0.3)) })),
-  rhythm: rhythm.map((c) => ({ ...c, share: c.share / total })),
-  longest_streak: { days: 212, start: "2023-04-02", end: "2023-10-30" },
+  top_artists: artists.map((name, i) => ({
+    name,
+    scrobbles: Math.round(3200 / (1 + i * 0.35)),
+    first_seen: "2019-03-14",
+    last_seen: "2026-11-20",
+  })),
+  top_albums: albums.map(([title, artist], i) => ({
+    key: `mock${String(i).padStart(2, "0")}`,
+    artist,
+    title,
+    scrobbles: Math.round(1400 / (1 + i * 0.3)),
+    cover: null,
+  })),
+  top_tracks: tracks.map(([title, artist], i) => ({
+    title,
+    artist,
+    scrobbles: Math.round(410 / (1 + i * 0.3)),
+    peak_year: 2020 + (i % 6),
+  })),
+  week_hours,
 };
 
 export const mockNowPlaying: NowPlaying = {

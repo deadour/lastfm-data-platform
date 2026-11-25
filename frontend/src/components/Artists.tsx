@@ -1,20 +1,20 @@
 import type { ArtistStat } from "../data/types";
 import { n } from "../lib/format";
-import { Cover } from "./Cover";
 
 export function Artists({ artists }: { artists: ArtistStat[] }) {
+  const max = artists[0]?.scrobbles || 1;
   return (
-    <ol className="grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
-      {artists.slice(0, 12).map((a, i) => (
-        <li key={a.name} className="group min-w-0">
-          <Cover seed={a.name} image={a.image} label={a.name} />
-          <div className="mt-3 flex items-baseline gap-3">
-            <span className="tabular text-xs text-muted">{String(i + 1).padStart(2, "0")}</span>
-            <span className="truncate text-ink" title={a.name}>
+    <ol className="grid gap-x-10 sm:grid-cols-2">
+      {artists.slice(0, 20).map((a, i) => (
+        <li key={a.name} className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-3 border-b border-line py-3">
+          <span className="tabular text-xs text-muted">{String(i + 1).padStart(2, "0")}</span>
+          <span className="min-w-0">
+            <span className="block truncate font-serif text-lg text-ink" title={a.name}>
               {a.name}
             </span>
-          </div>
-          <span className="tabular ml-8 text-sm text-muted">{n(a.scrobbles)}</span>
+            <span className="mt-1 block h-px bg-white/25 grow-x" style={{ width: `${(a.scrobbles / max) * 100}%` }} aria-hidden />
+          </span>
+          <span className="tabular text-sm text-ink/70">{n(a.scrobbles)}</span>
         </li>
       ))}
     </ol>

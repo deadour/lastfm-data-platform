@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ago, hash, monthLabel, n, shortDate } from "../lib/format";
-import { loadStats } from "./load";
+import { isPartialYear, isStatsFile, loadStats, shares } from "./load";
 import { mockStats } from "./mock";
 
 const ok = (body: unknown) => (async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
@@ -36,9 +36,41 @@ describe("mock data", () => {
     expect(mockStats.source).toBe("mock");
   });
 
-  it("has a normalised rhythm grid", () => {
-    expect(mockStats.rhythm).toHaveLength(168);
-    expect(mockStats.rhythm.reduce((s, c) => s + c.share, 0)).toBeCloseTo(1, 6);
+  it("has a full week grid that normalises to 1", () => {
+    expect(mockStats.week_hours).toHaveLength(168);
+    expect(shares(mockStats.week_hours).reduce((s, c) => s + c.share, 0)).toBeCloseTo(1, 6);
+  });
+
+  it("uses no artwork", () => {
+    expect(mockStats.top_albums.every((a) => a.cover === null)).toBe(true);
+  });
+});
+
+describe("contract helpers", () => {
+  const year = (y: number, era: "partial_tracking" | "consistent_tracking" = "consistent_tracking") => ({
+    year: y, scrobbles: 1, active_days: 1, artists: 1, tracks: 1, top_artist: null, era,
+  });
+
+  it("fades partial-tracking years and the unfinished current year", () => {
+    expect(isPartialYear(year(2016, "partial_tracking"), "2026-11-25")).toBe(true);
+    expect(isPartialYear(year(2026), "2026-11-25")).toBe(true);
+    expect(isPartialYear(year(2025), "2026-11-25")).toBe(false);
+    expect(isPartialYear(year(2025), "2025-12-31")).toBe(false);
+  });
+
+  it("rejects files missing a required list", () => {
+    const { top_albums: _omit, ...rest } = mockStats;
+    expect(isStatsFile({ ...rest, source: "gold" })).toBe(false);
+  });
+
+  it("accepts the exporter's shape with covers", () => {
+    const withCover = {
+      ...mockStats,
+      source: "gold",
+      top_albums: [{ key: "k", artist: "a", title: "t", scrobbles: 1,
+        cover: { url: "https://coverartarchive.org/x-500.jpg", provider: "coverartarchive", source_url: "https://musicbrainz.org/release/x", attribution: "cover art archive" } }],
+    };
+    expect(isStatsFile(withCover)).toBe(true);
   });
 });
 

@@ -12,7 +12,10 @@ export function Tracks({ tracks }: { tracks: TrackStat[] }) {
           <span className="tabular text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
           <span className="min-w-0">
             <span className="block truncate font-serif text-xl text-ink">{t.title}</span>
-            <span className="block truncate text-sm text-muted">{t.artist}</span>
+            <span className="block truncate text-sm text-muted">
+              {t.artist}
+              {t.peak_year ? ` · su año fue ${t.peak_year}` : ""}
+            </span>
           </span>
           <span className="tabular text-sm text-ink/70">{n(t.scrobbles)}</span>
         </li>

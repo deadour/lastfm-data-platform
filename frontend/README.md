@@ -24,11 +24,11 @@ npm run build      # typecheck + production build into dist/
 
 Without `public/data/stats.json` the site shows invented data and a visible
 "datos de ejemplo (mock)" notice. Real numbers come from the Gold → JSON
-export, which is developed separately (with album artwork) and writes
-`public/data/stats.json`.
+export with album artwork (`python -m src.artwork.export_frontend`, branch
+`feature/artwork-enrichment`). Copy its output to `public/data/stats.json`.
 
 The file is git-ignored on purpose. It holds only aggregates (yearly counts,
-top 20 artists and tracks, a weekday × hour grid). It is still your listening
+top artists, albums and tracks, a weekday × hour grid). It is still your listening
 history, and it becomes public the moment it is deployed. Publish it on
 purpose: commit it, or use a direct upload (below).
 
@@ -37,11 +37,20 @@ To try the real function locally, put the secrets in `frontend/.dev.vars`
 
 ## Stats contract
 
-`src/data/types.ts` (`StatsFile`, `schema_version: 1`) is the frontend side of
-the contract. It will be aligned with the exporter's final field names. The
-loader rejects other versions and falls back to the mock. Image
-fields are optional: Gold has no artwork URLs yet, so covers use a gradient
-generated from the name.
+`src/data/types.ts` (`StatsFile`, `schema_version: 1`) mirrors the exporter's
+contract:
+- `totals`, `years` (with `era`), `months` (last 24);
+- `top_artists`, `top_albums` and `top_tracks` (50 each);
+- `week_hours` (weekday × hour counts).
+
+The loader rejects other versions or missing lists and falls back to the mock.
+
+`top_albums[].cover` is `null` until an album is resolved in the artwork
+catalog. Then the site shows a gradient made from the title instead. A real
+cover is always shown with its `attribution`, linked to `source_url` (the
+MusicBrainz release or the Deezer page). Images are hotlinked, never
+rehosted; the CSP allows `coverartarchive.org`, `*.archive.org` and
+`*.dzcdn.net`.
 
 ## Now playing
 

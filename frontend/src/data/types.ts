@@ -1,16 +1,17 @@
-// contract for public/data/stats.json, written by the gold -> json export.
-// bump schema_version on breaking changes; the loader rejects unknown versions.
+// contract for public/data/stats.json, written by `python -m src.artwork.export_frontend`.
+// schema_version 1; the loader rejects other versions and shows the mock instead.
 
 export type Source = "gold" | "mock";
+export type Era = "partial_tracking" | "consistent_tracking";
 
 export interface YearStat {
   year: number;
   scrobbles: number;
+  active_days: number;
   artists: number;
   tracks: number;
   top_artist: string | null;
-  /** before consistent tracking started, or the current calendar year */
-  partial: boolean;
+  era: Era;
 }
 
 export interface MonthStat {
@@ -22,36 +23,55 @@ export interface MonthStat {
 export interface ArtistStat {
   name: string;
   scrobbles: number;
-  image?: string | null;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface Cover {
+  url: string;
+  provider: "coverartarchive" | "deezer";
+  /** page to link back to (musicbrainz release or deezer album) */
+  source_url: string;
+  attribution: string;
+}
+
+export interface AlbumStat {
+  key: string;
+  artist: string;
+  title: string;
+  scrobbles: number;
+  /** null until the album is resolved in the artwork catalog */
+  cover: Cover | null;
 }
 
 export interface TrackStat {
-  title: string;
   artist: string;
+  title: string;
   scrobbles: number;
-  image?: string | null;
+  peak_year: number | null;
 }
 
-export interface RhythmCell {
+export interface WeekHour {
   /** 0 = monday */
   weekday: number;
   hour: number;
-  /** share of scrobbles in the consistent tracking era, 0..1 */
-  share: number;
+  scrobbles: number;
 }
 
 export interface StatsFile {
   schema_version: 1;
   source: Source;
   generated_at: string;
-  range: { first: string; last: string };
-  totals: { scrobbles: number; artists: number; tracks: number; active_days: number };
+  data_as_of: string;
+  notes: { tracking?: string; albums?: string };
+  range: { first_day: string; last_day: string };
+  totals: { scrobbles: number; artists: number; tracks: number; albums: number; active_days: number };
   years: YearStat[];
   months: MonthStat[];
   top_artists: ArtistStat[];
+  top_albums: AlbumStat[];
   top_tracks: TrackStat[];
-  rhythm: RhythmCell[];
-  longest_streak: { days: number; start: string; end: string } | null;
+  week_hours: WeekHour[];
 }
 
 export interface NowPlaying {
