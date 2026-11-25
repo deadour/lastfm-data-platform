@@ -91,10 +91,19 @@ describe("onRequestGet", () => {
     expect(body).not.toContain("someone");
   });
 
-  it("returns a short-lived 502 without upstream details on failure", async () => {
+  it("reports last.fm's error code, never the key, when last.fm refuses", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: 10, message: `Invalid API key ${SECRET}` }), { status: 403 })));
+    const response = await call();
+    expect(response.status).toBe(503);
+    const text = await response.text();
+    expect(JSON.parse(text)).toMatchObject({ upstream_status: 403, lastfm_error: 10 });
+    expect(text).not.toContain(SECRET);
+  });
+
+  it("returns a short-lived 503 without upstream details on failure", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error(`boom ${SECRET}`); }));
     const response = await call();
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toContain("s-maxage=10");
     expect(await response.text()).not.toContain(SECRET);
   });

@@ -87,11 +87,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
   let response: Response;
   try {
     const upstream = await fetch(url, { signal: AbortSignal.timeout(4000), headers: { "user-agent": "fm.eduramirez.dev" } });
-    if (!upstream.ok) throw new Error(`upstream ${upstream.status}`);
-    response = json(shape(await upstream.json()), 200, TTL_SECONDS);
+    if (!upstream.ok) {
+      // last.fm explains failures with a numeric code (10 bad key, 6 unknown user, 29 rate limit).
+      // only that number is kept: the url and message can carry the key.
+      const body = (await upstream.json().catch(() => null)) as { error?: unknown } | null;
+      const code = typeof body?.error === "number" ? body.error : null;
+      response = json({ playing: false, track: null, played_at: null, source: "lastfm", error: "unavailable",
+        upstream_status: upstream.status, lastfm_error: code }, 503, ERROR_TTL_SECONDS);
+    } else {
+      response = json(shape(await upstream.json()), 200, TTL_SECONDS);
+    }
   } catch {
-    // never echo the upstream url or error: it contains the api key
-    response = json({ playing: false, track: null, played_at: null, source: "lastfm", error: "unavailable" }, 502, ERROR_TTL_SECONDS);
+    // never echo the upstream url or error: it contains the api key.
+    // 503, not 502: cloudflare swaps 502 bodies for its own error page.
+    response = json({ playing: false, track: null, played_at: null, source: "lastfm", error: "unavailable",
+      upstream_status: null, lastfm_error: null }, 503, ERROR_TTL_SECONDS);
   }
 
   waitUntil(cache.put(key, response.clone()));
