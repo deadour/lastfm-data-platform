@@ -27,77 +27,96 @@ export function App() {
     void loadStats().then(setLoaded);
   }, []);
 
-  const stats = loaded?.stats;
-  const isMock = stats?.source === "mock";
+  const stats = loaded?.stats.source === "gold" ? loaded.stats : null;
+  const liveTrack = nowPlaying?.source === "lastfm" ? nowPlaying : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-5 md:px-10">
-      <header className="flex items-center justify-between py-6 text-sm">
-        <a href="/" className="font-serif text-xl text-ink">
-          fm
-        </a>
-        <nav className="flex gap-5 text-muted">
+    <div className="archive-shell mx-auto max-w-[1440px] px-5 md:px-10 lg:px-16">
+      <header className="archive-topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-6">
+        <a href="/" className="archive-wordmark" aria-label="fm, inicio">fm<span className="archive-wordmark-dot">.</span></a>
+        <nav aria-label="archivo" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
           {nav.map(([label, href]) => (
-            <a key={href} href={href} className="transition-colors hover:text-ink">
-              {label}
-            </a>
+            <a key={href} href={href} className="archive-nav-link">{label}</a>
           ))}
         </nav>
+        <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer" className="archive-external text-xs">
+          last.fm ↗
+        </a>
       </header>
 
-      {isMock && (
-        <p role="status" className="border border-line px-4 py-2 text-xs text-muted">
-          datos de ejemplo (mock). los nombres son inventados
-          {loaded?.fallback ? ` · ${loaded.fallback}` : ""}
-        </p>
-      )}
-
       <main>
-        <NowPlayingHero data={nowPlaying} />
+        <section className="archive-masthead" aria-labelledby="archive-title">
+          <div className="archive-masthead-meta">
+            <span>eduramirez87 / archivo personal</span>
+            <span>música escuchada, no recomendada.</span>
+          </div>
+          <h1 id="archive-title" className="archive-main-title">lo que<br /><em>suena.</em></h1>
+          <div className="archive-masthead-bottom">
+            <p>un registro de lo que escuché. artistas, discos y épocas que fueron quedando.</p>
+            <span>↘ explorá el archivo</span>
+          </div>
+        </section>
+
+        {liveTrack?.track && (
+          <section className="archive-live">
+            <div className="archive-section-flag"><span>en este momento</span><span>señal en vivo</span></div>
+            <NowPlayingHero data={liveTrack} />
+          </section>
+        )}
+
+        {!loaded && (
+          <div role="status" className="archive-empty">
+            <span className="archive-kicker">archivo / cargando</span>
+            <p>buscando los registros…</p>
+          </div>
+        )}
+
+        {loaded && !stats && (
+          <section className="archive-empty" aria-labelledby="archive-unavailable">
+            <span className="archive-kicker">archivo / sin publicar</span>
+            <h2 id="archive-unavailable">los datos todavía no están acá.</h2>
+            <p>la web ya está online. falta publicar la primera exportación del historial.</p>
+            <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer">mientras tanto, mi last.fm ↗</a>
+          </section>
+        )}
 
         {stats && (
           <>
-            <p className="max-w-3xl pb-16 font-serif text-2xl leading-snug text-ink/90 md:text-3xl">
-              {n(stats.totals.scrobbles)} escuchas desde {shortDate(stats.range.first)}: {n(stats.totals.artists)} artistas
-              {stats.totals.albums ? `, ${n(stats.totals.albums)} discos` : ""} y {n(stats.totals.tracks)} canciones, en{" "}
-              {n(stats.totals.active_days)} días con música.
-              {stats.longest_streak && ` la racha más larga fue de ${n(stats.longest_streak.days)} días seguidos.`}
-            </p>
+            <div className="archive-ledger" aria-label="resumen del archivo">
+              <div><span>escuchas registradas</span><strong>{n(stats.totals.scrobbles)}</strong></div>
+              <div><span>artistas</span><strong>{n(stats.totals.artists)}</strong></div>
+              <div><span>canciones</span><strong>{n(stats.totals.tracks)}</strong></div>
+              <div><span>desde</span><strong>{shortDate(stats.range.first)}</strong></div>
+            </div>
 
             {stats.top_albums && stats.top_albums.length > 0 && (
-              <Section id="discos" title="discos" note="los más escuchados. las portadas vienen de cover art archive o deezer, con su crédito.">
+              <Section id="discos" title="discos" note="los que siempre vuelven.">
                 <Albums albums={stats.top_albums} />
               </Section>
             )}
-
-            <Section id="anos" title="por año" note="los años incompletos están más claros: antes de 2020 no registraba todo.">
+            <Section id="anos" title="el paso de los años" note="cada año tiene su propia banda sonora.">
               <Years years={stats.years} />
             </Section>
-
-            <Section id="meses" title="últimos meses">
+            <Section id="meses" title="mes a mes">
               <Months months={stats.months} />
             </Section>
-
-            <Section id="artistas" title="artistas" note="los que más sonaron desde el principio.">
+            <Section id="artistas" title="los de siempre">
               <Artists artists={stats.top_artists} />
             </Section>
-
-            <Section id="canciones" title="canciones">
+            <Section id="canciones" title="en repetición">
               <Tracks tracks={stats.top_tracks} />
             </Section>
-
-            <Section id="ritmo" title="cuándo escucho" note="día y hora, en utc. más claro, más escuchas.">
+            <Section id="ritmo" title="a qué hora suena" note="distribución de escuchas registradas, en utc.">
               <Rhythm cells={stats.rhythm} />
             </Section>
           </>
         )}
       </main>
 
-      <footer className="border-t border-line py-10 text-xs text-muted">
-        <p>
-          datos de last.fm, procesados en un pipeline propio
-          {stats && !isMock ? ` · datos al ${shortDate(stats.data_as_of ?? stats.generated_at)}` : ""}.
-        </p>
+      <footer className="archive-footer">
+        <span>fm. / eduramirez87</span>
+        <span>{stats ? `archivo actualizado: ${shortDate(stats.data_as_of ?? stats.generated_at)}` : "un archivo en construcción"}</span>
+        <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">cómo está hecho ↗</a>
       </footer>
     </div>
   );
