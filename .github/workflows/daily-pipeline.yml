@@ -1,0 +1,57 @@
+# Daily Last.fm pipeline on a GitHub-hosted runner; ADLS Gen2 is the only persistent store.
+# Azure access uses OIDC (workload identity federation) -- no client secret, key or SAS.
+# The schedule is intentionally disabled until the owner approves it (see docs/phase6d-github-actions.md).
+name: daily-pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "Page cap (200 scrobbles each). Partial runs are not committed."
+        required: true
+        default: "25"
+  # schedule:
+  #   - cron: "17 6 * * *"   # 06:17 UTC daily; enable only after a successful manual run
+
+permissions:
+  contents: read
+  id-token: write   # lets azure/login request an OIDC token; nothing else
+
+concurrency:
+  group: lastfm-pipeline   # one run at a time; the blob lease guards anything outside Actions
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: lastfm-prod   # the federated credential trusts only this environment
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-job.txt
+
+      - name: Install job dependencies
+        run: python -m pip install -r requirements-job.txt
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run pipeline
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_USERNAME: ${{ secrets.LASTFM_USERNAME }}
+          AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER }}
+          MAX_PAGES: ${{ inputs.max_pages || '25' }}
+        run: python -m src.jobs.cloud_run run --max-pages "$MAX_PAGES"

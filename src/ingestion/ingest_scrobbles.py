@@ -51,10 +51,21 @@ def _mark_failed(run_dir: Path, metadata: dict, exc: BaseException) -> None:
 
 
 def ingest(backfill: bool, max_pages: int | None = None, output_root: str | Path = "data/bronze",
-           resume: bool = False) -> int:
+           resume: bool = False, from_timestamp: int | None = None, to_timestamp: int | None = None) -> int:
+    """``from_timestamp`` lets a stateless job supply the watermark from its
+    remote checkpoint; by default it is derived from local completed runs.
+    ``to_timestamp`` freezes the window's upper bound so scrobbles arriving
+    mid-run cannot shift Last.fm's newest-first pagination between pages."""
+    if backfill and (from_timestamp is not None or to_timestamp is not None):
+        raise ValueError("from_timestamp/to_timestamp apply to incremental runs only")
     settings = load_settings()
     client = LastFMClient(settings.api_key, settings.username)
-    watermark = None if backfill else latest_completed_timestamp(output_root)
+    if backfill:
+        watermark = None
+    elif from_timestamp is not None:
+        watermark = from_timestamp
+    else:
+        watermark = latest_completed_timestamp(output_root)
     mode = "backfill" if backfill else "incremental"
     started_at = _utc_now()
 
@@ -97,7 +108,7 @@ def ingest(backfill: bool, max_pages: int | None = None, output_root: str | Path
 
         while True:
             LOGGER.info("Fetching page %s%s", page, f"/{total_pages}" if total_pages else "")
-            payload = client.get_recent_tracks(page=page, from_timestamp=watermark)
+            payload = client.get_recent_tracks(page=page, from_timestamp=watermark, to_timestamp=to_timestamp)
             recent = payload["recenttracks"]
             attr = recent.get("@attr", {})
             try:
