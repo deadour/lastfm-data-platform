@@ -10,10 +10,14 @@ from urllib.request import Request, urlopen
 
 ORIGIN = "https://fm.eduramirez.dev"
 MAX_RESPONSE = 4 * 1024 * 1024
+# Cloudflare's bot protection answers 403 to the default "Python-urllib" agent.
+USER_AGENT = "lastfm-data-platform-publication-check/1.0 (+https://github.com/deadour/lastfm-data-platform)"
 
 
 def fetch(path: str) -> tuple[bytes, str]:
-    request = Request(ORIGIN + path, headers={"Cache-Control": "no-cache", "Accept-Encoding": "identity"})
+    request = Request(ORIGIN + path, headers={
+        "Cache-Control": "no-cache", "Accept-Encoding": "identity", "User-Agent": USER_AGENT,
+    })
     with urlopen(request, timeout=20) as response:
         content = response.read(MAX_RESPONSE + 1)
         if len(content) > MAX_RESPONSE:
