@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="lo que escucho, según last.fm" />
+    <title>fm · edu ramírez</title>
+    <style>
+      /* shown until react mounts, and if the script never loads */
+      html { background: #0e0d0c; color: #ebe7df; font-family: ui-sans-serif, system-ui, sans-serif; text-transform: lowercase; }
+      .boot { max-width: 36rem; margin: 20vh auto 0; padding: 0 1.25rem; }
+      .boot h1 { font-family: Georgia, serif; font-weight: 400; font-size: 2.25rem; margin: 0 0 0.75rem; }
+      .boot p { color: #8c877e; font-size: 0.9rem; line-height: 1.5; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot">
+        <h1>fm</h1>
+        <p id="boot-status">cargando…</p>
+        <noscript><p>esta página necesita javascript.</p></noscript>
+      </div>
+    </div>
+    <script src="/boot.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+# real stats come from the gold export; publish them deliberately
+public/data/stats.json
+
+# typescript incremental build artifacts
+*.tsbuildinfo
