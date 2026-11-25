@@ -81,20 +81,32 @@ def find_latest_incomplete_backfill(output_root: str | Path) -> tuple[Path, dict
     _, run_dir, metadata = max(candidates, key=lambda item: item[0])
     return run_dir, metadata
 def latest_completed_timestamp(output_root: str | Path) -> int | None:
-    """Return the greatest completed scrobble timestamp found in Bronze."""
+    """Return the greatest scrobble timestamp found in completed Bronze runs.
+
+    Only runs whose metadata says ``completed`` count. Last.fm returns newest
+    tracks first, so a partial run (for example ``failed / MaxPagesLimit``)
+    holds the newest page of a gap; letting it advance the watermark would make
+    the next incremental run skip the older, never-fetched pages.
+    """
     latest = None
-    for path in Path(output_root).glob("lastfm/recent_tracks/ingestion_date=*/run_*/page_*.json"):
+    for metadata_path in Path(output_root).glob("lastfm/recent_tracks/ingestion_date=*/run_*/" + RUN_METADATA_NAME):
         try:
-            document = json.loads(path.read_text(encoding="utf-8"))
-            tracks = document["payload"]["recenttracks"]["track"]
-        except (OSError, ValueError, KeyError, TypeError):
+            if json.loads(metadata_path.read_text(encoding="utf-8")).get("status") != "completed":
+                continue
+        except (OSError, ValueError, AttributeError):
             continue
-        for track in tracks:
-            if not isinstance(track, dict) or track.get("@attr", {}).get("nowplaying") == "true":
-                continue
+        for path in metadata_path.parent.glob("page_*.json"):
             try:
-                value = int(track["date"]["uts"])
-            except (KeyError, TypeError, ValueError):
+                document = json.loads(path.read_text(encoding="utf-8"))
+                tracks = document["payload"]["recenttracks"]["track"]
+            except (OSError, ValueError, KeyError, TypeError):
                 continue
-            latest = value if latest is None else max(latest, value)
+            for track in tracks:
+                if not isinstance(track, dict) or track.get("@attr", {}).get("nowplaying") == "true":
+                    continue
+                try:
+                    value = int(track["date"]["uts"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                latest = value if latest is None else max(latest, value)
     return latest

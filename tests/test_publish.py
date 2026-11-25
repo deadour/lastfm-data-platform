@@ -200,6 +200,5 @@ def test_max_pages_failure_never_advances_completed_watermark(data):
     assert manifest["completed_runs"] == 1
     assert manifest["completed_watermark_uts"] == 100
     assert manifest["authoritative"] is False
-    # Documents pre-existing ingestion behaviour that Phase 6C must address:
-    # the local incremental watermark scans pages from every run, including failed ones.
-    assert latest_completed_timestamp(data / "bronze") == 999
+    # Since Phase 6C the ingestion watermark uses the same completed-only rule.
+    assert latest_completed_timestamp(data / "bronze") == 100
