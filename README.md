@@ -151,6 +151,23 @@ See [Azure setup and verification](docs/azure-data-lake.md) for Entra login,
 upload, list, download and SHA-256 verification. Automated tests use fake Azure
 clients; they do not establish that a live account can be accessed.
 
+## Frontend statistics
+
+Album artwork and the static `StatsFile` v1 export are described in
+[artwork and frontend export](docs/artwork.md). The cloud wrapper restores the
+committed Gold/Silver pair from Azure, validates their hashes and writes only
+public aggregates:
+
+```powershell
+python -m src.jobs.export_stats --account stlastfmedu --container lake --out data/exports/frontend/stats.json --skip-artwork-refresh
+```
+
+The separate `export-frontend` workflow is prepared for OIDC authentication and
+optional publication to the existing Cloudflare Pages project. Automatic runs
+are disabled until explicitly enabled. It does not change ingestion checkpoints
+or the production cron. See [cloud export setup](docs/frontend-cloud-export.md)
+for the manual verification and activation steps.
+
 ## Tests
 
 Tests use mocked HTTP responses and fake Azure clients; they never call Last.fm or Azure:
