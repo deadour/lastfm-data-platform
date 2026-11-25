@@ -1,0 +1,19 @@
+# Only config/, src/ and requirements-job.txt are copied; exclude everything sensitive or bulky.
+.env
+.env.*
+!.env.example
+.git
+.venv
+venv
+data
+reports
+dashboard
+tests
+docs
+**/__pycache__
+*.pyc
+.pytest_cache
+.pytest-tmp
+.claude
+pasos*.md
+project-walkthrough.md
