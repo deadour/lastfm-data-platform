@@ -1,5 +1,5 @@
 import type { ArtistStat } from "../data/types";
-import { n } from "../lib/format";
+import { n } from "../utils/format";
 
 export function Artists({ artists }: { artists: ArtistStat[] }) {
   const max = artists[0]?.scrobbles || 1;

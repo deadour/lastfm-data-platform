@@ -8,8 +8,8 @@ import { Section } from "./components/Section";
 import { Tracks } from "./components/Tracks";
 import { Years } from "./components/Years";
 import { loadStats, type Loaded } from "./data/load";
-import { n, shortDate } from "./lib/format";
-import { useNowPlaying } from "./lib/useNowPlaying";
+import { n, shortDate } from "./utils/format";
+import { useNowPlaying } from "./utils/useNowPlaying";
 
 const nav = [
   ["discos", "#discos"],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ago, hash, monthLabel, n, shortDate } from "../lib/format";
+import { ago, hash, monthLabel, n, secureImage, shortDate } from "../utils/format";
 import { isStatsFile, loadStats } from "./load";
 import { mockStats } from "./mock";
 
@@ -91,5 +91,14 @@ describe("format", () => {
   it("hashes stably", () => {
     expect(hash("marea baja")).toBe(hash("marea baja"));
     expect(hash("marea baja")).not.toBe(hash("marea alta"));
+  });
+});
+
+describe("secureImage", () => {
+  it("upgrades cover art archive http urls and drops non-web ones", () => {
+    expect(secureImage("http://coverartarchive.org/release/x/1-500.jpg")).toBe("https://coverartarchive.org/release/x/1-500.jpg");
+    expect(secureImage("https://cdn-images.dzcdn.net/images/cover/a/500x500.jpg")).toBe("https://cdn-images.dzcdn.net/images/cover/a/500x500.jpg");
+    expect(secureImage("javascript:alert(1)")).toBeNull();
+    expect(secureImage(null)).toBeNull();
   });
 });

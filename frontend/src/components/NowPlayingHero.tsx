@@ -1,5 +1,5 @@
 import type { NowPlaying } from "../data/types";
-import { ago } from "../lib/format";
+import { ago } from "../utils/format";
 import { Cover } from "./Cover";
 
 export function NowPlayingHero({ data }: { data: NowPlaying | null }) {

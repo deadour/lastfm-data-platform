@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { hash } from "../lib/format";
+import { hash, secureImage } from "../utils/format";
 
 interface Props {
   seed: string;
@@ -13,6 +13,7 @@ interface Props {
 // real artwork when there is a url; otherwise a quiet gradient derived from the name.
 export function Cover({ seed, image, label, className = "", compact = false }: Props) {
   const [failed, setFailed] = useState(false);
+  const src = secureImage(image);
   const h = hash(seed);
   const hue = h % 360;
   const second = (hue + 25 + ((h >> 9) % 70)) % 360;
@@ -21,9 +22,9 @@ export function Cover({ seed, image, label, className = "", compact = false }: P
 
   return (
     <div className={`relative aspect-square overflow-hidden bg-neutral-900 ${className}`}>
-      {image && !failed ? (
+      {src && !failed ? (
         <img
-          src={image}
+          src={src}
           alt={label}
           loading="lazy"
           onError={() => setFailed(true)}

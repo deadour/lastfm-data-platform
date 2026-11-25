@@ -1,5 +1,5 @@
 import type { TrackStat } from "../data/types";
-import { n } from "../lib/format";
+import { n } from "../utils/format";
 import { Cover } from "./Cover";
 
 export function Tracks({ tracks }: { tracks: TrackStat[] }) {

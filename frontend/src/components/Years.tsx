@@ -1,5 +1,5 @@
 import type { YearStat } from "../data/types";
-import { n } from "../lib/format";
+import { n } from "../utils/format";
 
 export function Years({ years }: { years: YearStat[] }) {
   const max = Math.max(...years.map((y) => y.scrobbles), 1);

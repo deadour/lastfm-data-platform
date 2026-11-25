@@ -1,5 +1,5 @@
 import type { MonthStat } from "../data/types";
-import { monthLabel, n } from "../lib/format";
+import { monthLabel, n } from "../utils/format";
 
 const WIDTH = 720;
 const HEIGHT = 120;
