@@ -37,6 +37,18 @@ def test_publication_is_opt_in_and_build_includes_the_generated_stats():
     assert "if: github.event_name == 'workflow_run' || inputs.publish" in ACTIVE
     assert "default: false" in ACTIVE
     assert "npm test" in ACTIVE and "npm run build" in ACTIVE
-    assert "test -s dist/data/stats.json" in ACTIVE
+    assert "scripts/check-stats.ts dist/data/stats.json" in ACTIVE
+    assert "cmp public/data/stats.json dist/data/stats.json" in ACTIVE
+    assert "test -s dist/index.html" in ACTIVE
     assert "CLOUDFLARE_PAGES_API_TOKEN" in ACTIVE
     assert "--branch=main" in ACTIVE
+
+
+def test_both_jobs_pin_the_same_reviewed_revision_and_gate_deployment_ownership():
+    assert ACTIVE.count("ref: ${{ github.sha }}") == 2
+    assert "FRONTEND_SOURCE_REF" not in ACTIVE
+    assert "python -m src.jobs.check_pages" in ACTIVE
+    assert "--project-name=lastfm-data-platform" in ACTIVE
+    assert "python -m src.jobs.verify_publication" in ACTIVE
+    assert ACTIVE.index("python -m src.jobs.check_pages") < ACTIVE.index("pages deploy dist")
+    assert ACTIVE.index("pages deploy dist") < ACTIVE.index("python -m src.jobs.verify_publication")

@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - uses: actions/setup-python@v5
@@ -77,6 +77,13 @@ jobs:
           fi
           python -m src.jobs.export_stats --out output/stats.json --artwork-limit 100 "${options[@]}"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate the public artifact with the React contract
+        run: node --experimental-strip-types frontend/scripts/check-stats.ts output/stats.json
+
       - name: Save public statistics only
         uses: actions/upload-artifact@v4
         with:
@@ -94,26 +101,23 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check publication configuration
-        env:
-          ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
-          API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
-        shell: bash
-        run: |
-          test -n "$ACCOUNT_ID" && test -n "$PROJECT" && test -n "$API_TOKEN" || {
-            echo "Configure the Cloudflare Pages account, project and scoped deployment token."
-            exit 1
-          }
-
-      - name: Checkout reviewed frontend source
+      - name: Checkout the same reviewed revision as the exporter
         uses: actions/checkout@v4
         with:
-          # Set a reviewed SHA while frontend is on its own feature branch.
-          # Once merged, main contains both frontend and exporter.
-          ref: ${{ vars.FRONTEND_SOURCE_REF || 'main' }}
+          ref: ${{ github.sha }}
           path: site
           persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify existing Pages deployment ownership (read only)
+        working-directory: site
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+        run: python -m src.jobs.check_pages
 
       - uses: actions/setup-node@v4
         with:
@@ -131,8 +135,11 @@ jobs:
         run: |
           npm ci
           npm test
+          node --experimental-strip-types scripts/check-stats.ts public/data/stats.json
           npm run build
-          test -s dist/data/stats.json
+          node --experimental-strip-types scripts/check-stats.ts dist/data/stats.json
+          test -s dist/index.html
+          cmp public/data/stats.json dist/data/stats.json
 
       - name: Deploy to the existing Cloudflare Pages project
         uses: cloudflare/wrangler-action@v3
@@ -140,4 +147,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: site/frontend
-          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main
+          command: pages deploy dist --project-name=lastfm-data-platform --branch=main
+
+      - name: Verify the public site serves this build and real statistics
+        working-directory: site
+        run: python -m src.jobs.verify_publication --expected frontend/dist/data/stats.json --index frontend/dist/index.html
