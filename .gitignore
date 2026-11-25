@@ -50,6 +50,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 .pytest-tmp/
+.pytest_temp*/
+.claude/
+pasos-phase5.md
+project-walkthrough.md
 cover/
 
 # Translations

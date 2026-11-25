@@ -4,3 +4,4 @@ pytest
 pandas
 pyarrow
 streamlit
+plotly
