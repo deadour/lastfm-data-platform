@@ -69,3 +69,40 @@ html {
     transition: none !important;
   }
 }
+
+/* fm / editorial archive */
+.archive-shell { position: relative; }
+.archive-topbar { border-bottom: 1px solid var(--color-line); }
+.archive-wordmark { font-family: var(--font-sans); font-size: 2rem; font-weight: 850; letter-spacing: -.11em; line-height: 1; }
+.archive-wordmark-dot { color: #cc533c; }
+.archive-nav-link { color: var(--color-muted); letter-spacing: .035em; text-decoration: none; transition: color .2s; }
+.archive-nav-link:hover, .archive-external:hover { color: var(--color-ink); }
+.archive-external { color: var(--color-muted); }
+.archive-masthead { min-height: 62vh; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 0 2.5rem; border-bottom: 1px solid var(--color-line); }
+.archive-masthead-meta, .archive-masthead-bottom { display: flex; justify-content: space-between; gap: 1.5rem; }
+.archive-masthead-meta { font-family: var(--font-sans); font-size: .68rem; color: var(--color-muted); letter-spacing: .12em; }
+.archive-main-title { max-width: 100%; font-family: var(--font-serif); font-size: clamp(6rem, 17.5vw, 17.5rem); line-height: .74; letter-spacing: -.095em; font-weight: 400; margin: 4rem 0; }
+.archive-main-title em { color: #bd533e; font-style: italic; padding-right: .15em; }
+.archive-masthead-bottom { align-items: end; font-size: .8rem; color: var(--color-muted); }
+.archive-masthead-bottom p { max-width: 26rem; color: var(--color-ink); font-size: clamp(.94rem, 1.4vw, 1.1rem); }
+.archive-masthead-bottom span { white-space: nowrap; }
+.archive-section-flag { border-bottom: 1px solid var(--color-line); display: flex; justify-content: space-between; gap: 1rem; padding: 1.2rem 0 0; font-size: .7rem; letter-spacing: .1em; color: var(--color-muted); }
+.archive-ledger { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); border-bottom: 1px solid var(--color-line); padding: 2.7rem 0; gap: 2rem; }
+.archive-ledger > div { display: flex; flex-direction: column; gap: .8rem; }
+.archive-ledger span { color: var(--color-muted); font-size: .7rem; letter-spacing: .06em; }
+.archive-ledger strong { color: var(--color-ink); font-family: var(--font-serif); font-size: clamp(1.6rem, 2.7vw, 3.1rem); font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1; }
+.archive-empty { padding: clamp(5rem, 12vw, 12rem) 0; max-width: 38rem; }
+.archive-kicker { font-size: .72rem; letter-spacing: .14em; color: #bd533e; }
+.archive-empty h2 { font-family: var(--font-serif); font-size: clamp(2.5rem, 6vw, 5rem); line-height: 1.04; letter-spacing: -.045em; margin: 1.25rem 0; }
+.archive-empty p { color: var(--color-muted); margin: 1.4rem 0; }
+.archive-empty a { color: var(--color-ink); text-decoration: underline; text-underline-offset: .4em; }
+.archive-footer { border-top: 1px solid var(--color-line); padding: 2rem 0 3rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--color-muted); font-size: .72rem; }
+.archive-footer a { color: var(--color-ink); }
+@media (max-width: 640px) {
+  .archive-masthead { min-height: 58vh; }
+  .archive-main-title { font-size: clamp(5.6rem, 19vw, 9rem); }
+  .archive-masthead-meta { flex-direction: column; gap: .35rem; }
+  .archive-masthead-bottom { align-items: start; flex-direction: column; }
+  .archive-ledger { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2rem 1rem; }
+  .archive-footer { align-items: flex-start; flex-direction: column; }
+}
