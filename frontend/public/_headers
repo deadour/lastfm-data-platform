@@ -8,4 +8,5 @@
   Cache-Control: public, max-age=31536000, immutable
 
 /data/*
-  Cache-Control: public, max-age=3600
+  # revalidate every visit (cheap via etag): a stale copy kept a phone on the empty state
+  Cache-Control: no-cache

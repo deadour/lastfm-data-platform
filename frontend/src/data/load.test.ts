@@ -14,6 +14,16 @@ describe("loadStats", () => {
     expect(result.stats?.source).toBe("gold");
   });
 
+  it("bypasses the browser cache so a stale copy can't hide published stats", async () => {
+    let init: RequestInit | undefined;
+    const spy = (async (_url: string, options?: RequestInit) => {
+      init = options;
+      return new Response(JSON.stringify({ ...mockStats, source: "gold" }), { headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    await loadStats(spy);
+    expect(init?.cache).toBe("no-cache");
+  });
+
   it("reports missing real statistics without substituting a mock", async () => {
     const missing = (async () => new Response("", { status: 404 })) as unknown as typeof fetch;
     const result = await loadStats(missing);

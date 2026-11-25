@@ -11,7 +11,7 @@ export interface Loaded {
 
 export async function loadStats(fetcher: typeof fetch = fetch, url = "/data/stats.json"): Promise<Loaded> {
   try {
-    const response = await fetcher(url, { headers: { accept: "application/json" } });
+    const response = await fetcher(url, { headers: { accept: "application/json" }, cache: "no-cache" });
     if (!response.ok) return { stats: null, fallback: `stats.json no disponible (${response.status})` };
     // pages answers unknown paths with index.html and a 200, so check the type too
     if (!(response.headers.get("content-type") ?? "").includes("json")) {
