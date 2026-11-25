@@ -50,7 +50,13 @@ export function App() {
             <span>eduramirez87 / archivo personal</span>
             <span>música escuchada, no recomendada.</span>
           </div>
-          <h1 id="archive-title" className="archive-main-title">lo que<br /><em>suena.</em></h1>
+          <div className="archive-masthead-row">
+            <h1 id="archive-title" className="archive-main-title">lo que<br /><em>escucho.</em></h1>
+            <figure className="archive-masthead-photo">
+              <img src="/img/diego.jpg" width={720} height={621} alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
+              <figcaption>el diez, poniendo un disco.</figcaption>
+            </figure>
+          </div>
           <div className="archive-masthead-bottom">
             <p>un registro de lo que escuché. artistas, discos y épocas que fueron quedando.</p>
             <span>↘ explorá el archivo</span>
