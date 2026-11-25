@@ -6,7 +6,7 @@ import { Rhythm } from "../components/Rhythm";
 import { Section } from "../components/Section";
 import { Tracks } from "../components/Tracks";
 import type { InsightsFile, StatsFile } from "../data/types";
-import { monthLabel, n, pct } from "../utils/format";
+import { monthLabel, monthYear, n, pct } from "../utils/format";
 import { Link } from "../utils/router";
 
 const weekdays = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
@@ -14,7 +14,7 @@ const weekdays = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 function RecentListening({ stats, insights }: { stats: StatsFile; insights: InsightsFile | null }) {
   const recent = stats.months.slice(-12);
   const latest = recent[recent.length - 1];
-  const year = insights?.years[insights.years.length - 1];
+  const year = insights?.years.slice().sort((a, b) => b.year - a.year)[0];
   const top = year?.top_album;
 
   return (
@@ -26,7 +26,7 @@ function RecentListening({ stats, insights }: { stats: StatsFile; insights: Insi
           <span className="listening-stat-number">{latest ? n(latest.scrobbles) : "—"}</span>
           <div className="listening-stat-caption">
             <span>escuchas</span>
-            <span>{latest ? monthLabel(latest.month) : "último mes registrado"}</span>
+            <span>{latest ? monthYear(latest.month) : "último mes registrado"}</span>
           </div>
         </div>
         <div className="listening-mini-chart">
