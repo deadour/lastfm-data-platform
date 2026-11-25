@@ -10,8 +10,9 @@ client secrets, account keys or SAS tokens.
 - Checkpoint seeded.
 - Entra identity, OIDC federation and container-scoped role created.
 - GitHub environment and variables created.
-- Last.fm secrets **not** set; the workflow is not on `main` yet.
-- Cron disabled; no ingestion has run in the cloud.
+- Last.fm secrets set in the environment; the workflow is on `main` (PR #2).
+- **First manual run succeeded** (see below). Checkpoint is at `sequence` 1.
+- Cron still disabled.
 
 ## Resources created (2026-11-25)
 
@@ -20,9 +21,9 @@ client secrets, account keys or SAS tokens.
 | Checkpoint blob | `lake/metadata/checkpoints/lastfm_recent_tracks.json` | `sequence` 0, watermark `1790979172`, points to `silver/scrobbles/snapshot=20261002T223940Z` (hashes `54004e83…5f5a`, `63efceb1…f6af`); seed ETag `"0x8DF4B1D2ECD23BC"` |
 | Entra app registration | `gh-lastfm-pipeline`, appId `8b235061-3bc6-45ef-83dd-0ad1473b583a` | single tenant; **no client secrets or certificates** |
 | Service principal | objectId `40466d4b-cee5-47e3-95a7-708bb80a7f51` | |
-| Federated credential | `gh-lastfm-prod` | issuer `https://token.actions.githubusercontent.com`, subject `repo:deadour/lastfm-data-platform:environment:lastfm-prod`, audience `api://AzureADTokenExchange` |
+| Federated credential | `gh-lastfm-prod-immutable` | issuer `https://token.actions.githubusercontent.com`, subject `repo:deadour@65253771/lastfm-data-platform@1402346073:environment:lastfm-prod`, audience `api://AzureADTokenExchange`. The only credential; see "OIDC subject format" |
 | Role assignment | `5f7d651b-81a7-4d25-8008-6ee4368bbb41` | *Storage Blob Data Contributor* on `…/stlastfmedu/blobServices/default/containers/lake` only; the SP has no other role |
-| GitHub environment | `lastfm-prod` | deployments limited to branch `main`; repo uses the default OIDC subject format |
+| GitHub environment | `lastfm-prod` | deployments limited to branch `main`; repo emits immutable OIDC subjects (`use_immutable_subject: true`) |
 | Environment variables | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_CONTAINER` | identifiers, not secrets |
 
 All of these are free. Checks performed:
@@ -38,6 +39,59 @@ verified correct; the adapter now uses `BlobClient.upload_blob`, which is covere
 a test and was confirmed against Azure by the refused second seed.
 
 To undo: `az role assignment delete --ids <scope>/providers/Microsoft.Authorization/roleAssignments/5f7d651b-81a7-4d25-8008-6ee4368bbb41`, `az ad app delete --id 8b235061-3bc6-45ef-83dd-0ad1473b583a`, delete the environment in GitHub.
+To cut only GitHub's access, delete the federated credential:
+`az ad app federated-credential delete --id <appId> --federated-credential-id gh-lastfm-prod-immutable`.
+
+## OIDC subject format (fix applied 2026-11-25)
+
+The first manual run ([45673908480](https://github.com/deadour/lastfm-data-platform/actions/runs/45673908480))
+failed at **Azure login** with `AADSTS700213: No matching federated identity
+record found`. The pipeline step never started, so nothing was ingested or
+written, and the checkpoint stayed at `sequence` 0.
+
+- **Cause.** This repository emits OIDC subjects in GitHub's immutable format,
+  `repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>`. Here that is
+  `repo:deadour@65253771/lastfm-data-platform@1402346073:environment:lastfm-prod`.
+  The federated credential had been created with the classic
+  `repo:deadour/lastfm-data-platform:environment:lastfm-prod`. Entra matches
+  the subject exactly.
+  - The `customization/sub` API reports `use_default: true` **and**
+    `use_immutable_subject: true`. The prefix to trust is its `sub_claim_prefix`,
+    not the classic form.
+- **Fix.**
+  1. Confirmed through the GitHub API that owner id `65253771` and repo id
+     `1402346073` belong to `deadour/lastfm-data-platform`.
+  2. Added `gh-lastfm-prod-immutable` with that exact subject. Same app,
+     environment, issuer and audience; no role change.
+  3. After the successful run, deleted the classic `gh-lastfm-prod` credential.
+     The successful run's token presented the immutable subject, so the
+     classic credential could never match.
+- **Why it is safer.** Repository and owner IDs do not change on rename. A
+  repository later created with the same name cannot match the subject.
+- **If the repo is renamed or transferred,** re-read `sub_claim_prefix` and
+  update the credential subject.
+
+## First successful run (2026-11-25)
+
+Run [45674216054](https://github.com/deadour/lastfm-data-platform/actions/runs/45674216054):
+`workflow_dispatch` from `main`, `max_pages=25`, conclusion **success**, all
+steps green. The results below were re-checked independently by downloading
+from ADLS after the run.
+
+| Stage | Result |
+| --- | --- |
+| OIDC login | Token for `environment:lastfm-prod` exchanged; no secret used |
+| Restore | Checkpoint `sequence` 0, watermark `1790979172`. Silver `snapshot=20261002T223940Z` restored and SHA-256 checked |
+| Ingest | Run `20261125T182121Z` `completed`: 8 pages, 1 473 scrobbles read, 0 rejected |
+| Bronze | `bronze/lastfm/recent_tracks/ingestion_date=2026-11-25/run_20261125T182121Z/`: 8 pages + `run_metadata.json`, 1 719 603 bytes, each SHA-256 verified |
+| Silver | `silver/scrobbles/snapshot=20261125T182131Z`: **118 343 rows** |
+| Gold | `gold/snapshot=20261125T182132Z`: 8 marts + `_metadata.json` |
+| Duplicates | 1 boundary scrobble refetched at the watermark and removed. 1 472 net new rows (116 871 + 1 472 = 118 343); `scrobble_id` unique; no repeated (timestamp, artist, track) |
+| Hashes | All 11 snapshot files referenced by the checkpoint match their recorded SHA-256 after download |
+| Checkpoint | `sequence` **1**, watermark `1795606010` (2026-11-25 11:26:50 UTC), `last_run_id` `20261125T182121Z`. Lock lease released |
+
+The previous Silver snapshot and all 6A/6B blobs are unchanged. The job log
+reports `new_rows 1473` because it counts rows before deduplication.
 
 ## How one run works
 
@@ -128,11 +182,13 @@ still identity changes, so each step waits for the owner.
 ```powershell
 az ad app create --display-name gh-lastfm-pipeline
 az ad sp create --id <appId>
-az ad app federated-credential create --id <appId> --parameters '{\"name\":\"gh-lastfm-prod\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:deadour/lastfm-data-platform:environment:lastfm-prod\",\"audiences\":[\"api://AzureADTokenExchange\"]}'
+gh api repos/deadour/lastfm-data-platform/actions/oidc/customization/sub   # read sub_claim_prefix first
+az ad app federated-credential create --id <appId> --parameters '{\"name\":\"gh-lastfm-prod-immutable\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"<sub_claim_prefix>:environment:lastfm-prod\",\"audiences\":[\"api://AzureADTokenExchange\"]}'
 az role assignment create --assignee <appId> --role "Storage Blob Data Contributor" --scope "/subscriptions/<sub>/resourceGroups/rg-lastfm-dev/providers/Microsoft.Storage/storageAccounts/stlastfmedu/blobServices/default/containers/lake"
 ```
 
-- The subject trusts only the `lastfm-prod` **environment** of this repository.
+- The subject trusts only the `lastfm-prod` **environment** of this repository,
+  identified by immutable owner/repo IDs.
   Forks, pull requests and other branches cannot get a token.
 - The role is scoped to the `lake` container, not the account. The identity
   cannot create resources and has no subscription role.
