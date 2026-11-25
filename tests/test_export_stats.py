@@ -1,6 +1,8 @@
 import hashlib
 import json
 from pathlib import Path
+import shutil
+import subprocess
 
 from azure.core.exceptions import ResourceModifiedError
 import pandas as pd
@@ -137,3 +139,58 @@ def test_errors_do_not_log_provider_secrets(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(job, "load_settings", unavailable)
     assert job.main(["--out", str(tmp_path / "stats.json")]) == 1
     assert "SECRET" not in caplog.text
+
+
+def test_cloud_export_passes_the_actual_react_contract(lake, tmp_path):
+    export(lake, tmp_path, enrich_fn=resolved_catalog)
+    node = shutil.which("node")
+    assert node is not None, "Install Node 22 to run the Python/React compatibility test"
+    script = Path(__file__).resolve().parents[1] / "frontend/scripts/check-stats.ts"
+    result = subprocess.run([node, "--experimental-strip-types", str(script), str(tmp_path / "public/stats.json")],
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    assert "Verified public StatsFile v1" in result.stdout
+
+
+def test_checkpoint_is_read_once_even_if_the_pipeline_advances(lake, tmp_path):
+    original = lake.read_bytes
+    reads = []
+    def read(name):
+        reads.append(name)
+        found = original(name)
+        if name == checkpoint.CHECKPOINT_BLOB:
+            lake.blobs[name] = b'{"schema_version":1,"snapshots":{}}'
+        return found
+    lake.read_bytes = read
+    _, document = export(lake, tmp_path, refresh_artwork=False)
+    assert document["totals"]["scrobbles"] == 1
+    assert reads.count(checkpoint.CHECKPOINT_BLOB) == 1
+
+
+def test_cli_removes_private_temporaries_after_failure(monkeypatch, tmp_path):
+    from unittest.mock import MagicMock
+    storage = MagicMock()
+    monkeypatch.setattr(job, "AzureStorage", lambda settings: storage)
+    monkeypatch.setattr(job, "load_settings", lambda **kwargs: None)
+    directories = []
+    def fail(store, work, *args, **kwargs):
+        directories.append(work)
+        (work / "private.parquet").write_bytes(b"private fixture")
+        raise RuntimeError("private provider response")
+    monkeypatch.setattr(job, "run_export", fail)
+    assert job.main(["--out", str(tmp_path / "stats.json")]) == 1
+    assert directories and not directories[0].exists()
+
+
+def test_missing_consistency_timestamp_is_rejected(lake, tmp_path):
+    cp = json.loads(lake.blobs[checkpoint.CHECKPOINT_BLOB])
+    for layer, field in (("silver", "last_transformed_at"), ("gold", "source_silver_updated_at")):
+        record = cp["snapshots"][layer]
+        name = record["prefix"] + "/_metadata.json"
+        meta = json.loads(lake.blobs[name])
+        meta.pop(field)
+        lake.blobs[name] = json.dumps(meta).encode()
+        record["files"]["_metadata.json"] = hashlib.sha256(lake.blobs[name]).hexdigest()
+    lake.blobs[checkpoint.CHECKPOINT_BLOB] = json.dumps(cp).encode()
+    with pytest.raises(job.ExportRejected, match="same dataset"):
+        export(lake, tmp_path, refresh_artwork=False)

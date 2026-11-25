@@ -88,8 +88,10 @@ def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
     gold_meta = json.loads((gold / "_metadata.json").read_text(encoding="utf-8"))
     silver_meta = json.loads((silver / "_metadata.json").read_text(encoding="utf-8"))
     silver_path = silver / "scrobbles.parquet"
-    if (gold_meta.get("source_silver_rows") != pq.read_metadata(silver_path).num_rows
-            or gold_meta.get("source_silver_updated_at") != silver_meta.get("last_transformed_at")):
+    updated_at = silver_meta.get("last_transformed_at")
+    if (not isinstance(updated_at, str) or not updated_at
+            or gold_meta.get("source_silver_rows") != pq.read_metadata(silver_path).num_rows
+            or gold_meta.get("source_silver_updated_at") != updated_at):
         raise ExportRejected("Gold and Silver snapshots do not describe the same dataset")
 
     etag = restore_catalog(storage, catalog_dir)
