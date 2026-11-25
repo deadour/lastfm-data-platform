@@ -11,13 +11,13 @@ describe("loadStats", () => {
     const gold = { ...mockStats, source: "gold" as const };
     const result = await loadStats(ok(gold));
     expect(result.fallback).toBeNull();
-    expect(result.stats.source).toBe("gold");
+    expect(result.stats?.source).toBe("gold");
   });
 
-  it("falls back to the mock, flagged, when the file is missing", async () => {
+  it("reports missing real statistics without substituting a mock", async () => {
     const missing = (async () => new Response("", { status: 404 })) as unknown as typeof fetch;
     const result = await loadStats(missing);
-    expect(result.stats.source).toBe("mock");
+    expect(result.stats).toBeNull();
     expect(result.fallback).toContain("404");
   });
 
@@ -25,18 +25,22 @@ describe("loadStats", () => {
     const html = (async () =>
       new Response("<!doctype html><div id=root></div>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } })) as unknown as typeof fetch;
     const result = await loadStats(html);
-    expect(result.stats.source).toBe("mock");
+    expect(result.stats).toBeNull();
     expect(result.fallback).toBe("todavía no hay estadísticas publicadas");
   });
 
   it("rejects unknown schema versions", async () => {
     const result = await loadStats(ok({ ...mockStats, schema_version: 2 }));
-    expect(result.stats.source).toBe("mock");
+    expect(result.stats).toBeNull();
   });
 
   it("survives network errors", async () => {
     const broken = (async () => { throw new TypeError("offline"); }) as unknown as typeof fetch;
-    expect((await loadStats(broken)).stats.source).toBe("mock");
+    expect((await loadStats(broken)).stats).toBeNull();
+  });
+
+  it("rejects mock documents even when served as successful JSON", async () => {
+    expect((await loadStats(ok(mockStats))).stats).toBeNull();
   });
 });
 
@@ -57,6 +61,23 @@ describe("mock data", () => {
 });
 
 describe("contract", () => {
+  it.each([
+    { totals: { scrobbles: -1 } },
+    { top_artists: [{ name: "fictional", scrobbles: null }] },
+    { range: { first: "2026-02-30", last: "2026-03-01" } },
+    { rhythm: [] },
+    { months: [{ month: "2026-13", scrobbles: 1 }] },
+    { username: "private-user" },
+    { totals: { ...mockStats.totals, checkpoint: "private" } },
+    { top_tracks: [{ title: "t", artist: "a", scrobbles: 1, image: "https://example.blob.core.windows.net/a?sig=secret" }] },
+  ])("rejects malformed or private fields: %j", (override) => {
+    expect(isStatsFile({ ...mockStats, source: "gold", ...override })).toBe(false);
+  });
+
+  it("rejects duplicate rhythm cells", () => {
+    expect(isStatsFile({ ...mockStats, source: "gold", rhythm: Array(168).fill({ weekday: 0, hour: 0, share: 0 }) })).toBe(false);
+  });
+
   it("rejects files missing a required list", () => {
     const { rhythm: _omit, ...rest } = mockStats;
     expect(isStatsFile({ ...rest, source: "gold" })).toBe(false);

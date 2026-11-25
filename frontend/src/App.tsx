@@ -27,7 +27,7 @@ export function App() {
     void loadStats().then(setLoaded);
   }, []);
 
-  const stats = loaded?.stats.source === "gold" ? loaded.stats : null;
+  const stats = loaded?.stats ?? null;
   const liveTrack = nowPlaying?.source === "lastfm" ? nowPlaying : null;
 
   return (

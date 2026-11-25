@@ -1,5 +1,5 @@
 // contract for public/data/stats.json, written by `python -m src.artwork.export_frontend`.
-// schema_version 1; the loader rejects other versions and shows the mock instead.
+// schema_version 1; invalid or unpublished data produces an unavailable state.
 // fields marked optional are additions the exporter emits and the site can live without.
 
 export type Source = "gold" | "mock";

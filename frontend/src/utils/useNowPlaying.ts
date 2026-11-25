@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
-import { mockNowPlaying } from "../data/mock";
 import type { NowPlaying } from "../data/types";
 
 const INTERVAL_MS = 30_000;
 
-// vite's dev server has no pages functions; use the mock unless asked otherwise.
-const useMock = import.meta.env.DEV && import.meta.env.VITE_NOW_PLAYING !== "live";
-
 export function useNowPlaying(): NowPlaying | null {
-  const [state, setState] = useState<NowPlaying | null>(useMock ? mockNowPlaying : null);
+  const [state, setState] = useState<NowPlaying | null>(null);
 
   useEffect(() => {
-    if (useMock) return;
     let timer: number | undefined;
     let controller: AbortController | undefined;
 
