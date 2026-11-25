@@ -5,3 +5,5 @@ pandas
 pyarrow
 streamlit
 plotly
+azure-identity
+azure-storage-blob
