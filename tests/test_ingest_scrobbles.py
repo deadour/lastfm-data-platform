@@ -83,3 +83,21 @@ def test_resume_ignores_legacy_run_directories_without_metadata(tmp_path, monkey
     assert legacy.exists()
     assert len(run_directories(tmp_path)) == 2
     assert find_latest_incomplete_backfill(tmp_path) is None
+
+
+def test_explicit_window_is_sent_on_every_page(tmp_path, monkeypatch):
+    seen = []
+    setup_fake_client(monkeypatch, {1: response(1), 2: response(2)})
+    original = FakeClient.get_recent_tracks
+    def record(self, page=1, **kwargs):
+        seen.append((kwargs.get("from_timestamp"), kwargs.get("to_timestamp")))
+        return original(self, page, **kwargs)
+    monkeypatch.setattr(FakeClient, "get_recent_tracks", record)
+    assert ingest_scrobbles.ingest(backfill=False, output_root=tmp_path, from_timestamp=100, to_timestamp=200) == 2
+    assert seen == [(100, 200), (100, 200)]  # fixed bounds: pagination cannot shift mid-run
+
+
+def test_window_bounds_rejected_for_backfill(tmp_path, monkeypatch):
+    setup_fake_client(monkeypatch, {1: response(1)})
+    with pytest.raises(ValueError):
+        ingest_scrobbles.ingest(backfill=True, output_root=tmp_path, to_timestamp=200)
