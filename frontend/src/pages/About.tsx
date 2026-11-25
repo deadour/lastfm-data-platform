@@ -5,11 +5,11 @@ import { Medallion } from "../components/Medallion";
 import { DailyRun, Pipeline } from "../components/Pipeline";
 
 const steps = [
-  ["1. bajar", "cada mañana un job pide a last.fm solo lo nuevo desde la última vez. si se corta a mitad de camino, no cuenta: la próxima vez arranca del mismo lugar."],
-  ["2. guardar crudo", "las respuestas quedan tal cual en bronze. si algún día cambio la lógica, puedo rearmar todo desde ahí."],
-  ["3. limpiar", "silver es una tabla parquet: una fila por escucha, sin duplicados ni temas a medio reproducir."],
-  ["4. resumir", "gold arma los agregados: años, meses, artistas, rachas. sobre eso salen las lecturas de esta página."],
-  ["5. publicar", "se exportan unos json chicos, sin nada privado, y se suben a cloudflare. antes de dar el deploy por bueno, se chequea que la web sirva exactamente esos archivos."],
+  ["1. bajar", "todos los días consulto last.fm desde github actions. si la ejecución falla, no avanzo el estado."],
+  ["2. bronze", "guardo las respuestas originales. si cambio algo del procesamiento, puedo empezar desde acá."],
+  ["3. silver", "limpio y organizo las escuchas en parquet, evitando duplicados."],
+  ["4. gold", "calculo artistas, discos, canciones, años y patrones de escucha."],
+  ["5. publicar", "exporto las estadísticas públicas a json y las publico junto con la web."],
 ] as const;
 
 const decisions = [
@@ -18,7 +18,7 @@ const decisions = [
   ["portadas con cuidado", "cover art archive por mbid y deezer como respaldo. si hay dudas sobre qué disco es, no se muestra nada."],
   ["estático a propósito", "los datos cambian una vez por día; servirlos como archivos es más rápido, más barato y no hay servidor que se caiga."],
   ["hora local", "las horas usan la zona donde estaba en cada momento: argentina, y unos meses en francia."],
-  ["costo", "github actions y cloudflare pages gratis, y unos centavos de almacenamiento en azure por mes."],
+  ["costos", "uso github actions y cloudflare pages, más almacenamiento y transferencias en azure."],
 ] as const;
 
 export function About({ stats, insights }: { stats: StatsFile | null; insights: InsightsFile | null }) {
@@ -36,25 +36,25 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
       <section className="grid gap-10 border-b border-line py-14 md:grid-cols-[14rem_minmax(0,1fr)]">
         <h2 className="font-serif text-2xl text-ink">sobre este proyecto</h2>
         <div className="grid max-w-3xl gap-5 text-[1.05rem] leading-relaxed text-ink/85">
-          <p>este es un proyecto personal que empecé para practicar ingeniería de datos, utilizando como base el historial de música que escucho desde 2016.</p>
+          <p>este es un proyecto personal para practicar ingeniería de datos con algo que ya tenía: mi historial de last.fm.</p>
           <p>
-            todos esos datos se fueron guardando durante años en mi cuenta de last.fm, conectada a spotify y youtube <Sources className="mx-1 align-middle" />.
-            aunque hubo un período entre 2017 y 2019 en el que dejé de registrar mis escuchas, retomé la actividad en 2020 y desde entonces seguí acumulando datos.
+            empecé a registrar lo que escuchaba en 2016, con spotify y youtube conectados a last.fm <Sources className="mx-1 align-middle" />.
+            entre 2017 y 2019 no registré nada. en 2020 volví a conectarlo y desde entonces seguí acumulando escuchas.
           </p>
           <p>
-            con toda esa información decidí poner en práctica algunos conceptos que fui viendo en la facultad y que también utilizo en mi trabajo, principalmente la arquitectura medallion,
-            que básicamente consiste en organizar los datos en tres etapas: bronze, donde guardo los registros originales; silver, donde los limpio y transformo; y gold, donde genero las estadísticas a partir de esos datos.
+            aproveché todo eso para poner en práctica cosas que vi en la facultad y también uso en el trabajo. entre ellas, la arquitectura medallón:
+            bronze guarda lo original, silver lo limpia y gold prepara las estadísticas.
           </p>
           <p>
-            todo esto lo armé utilizando python, azure y github actions para automatizar el procesamiento. el sistema se ejecuta todos los días, obtiene las nuevas reproducciones de last.fm y actualiza los datos sin que tenga que intervenir manualmente.
+            lo armé con python, azure y github actions. todos los días corre el pipeline, consulta las nuevas escuchas y publica los datos procesados.
           </p>
-          <p>de ahí nació esta web. una forma de visualizar todo lo que fui escuchando durante estos años y, de paso, seguir aprendiendo y experimentando con ingeniería de datos.</p>
+          <p>y de ahí salió esta web. quería ver qué escuché durante todos estos años y, de paso, seguir probando cosas.</p>
         </div>
       </section>
 
       <section className="border-b border-line py-14">
-        <h2 className="mb-3 font-serif text-2xl text-ink">medallion</h2>
-        <p className="mb-10 max-w-2xl text-sm text-muted">bronze, silver y gold, con los números de hoy.</p>
+        <h2 className="mb-3 font-serif text-2xl text-ink">arquitectura medallón</h2>
+        <p className="mb-10 max-w-2xl text-sm text-muted">las tres capas que uso para procesar las escuchas.</p>
         <div className="overflow-x-auto pb-2">
           <Medallion scrobbles={stats?.totals.scrobbles ?? null} artists={stats?.totals.artists ?? null} years={stats?.years.length ?? null} />
         </div>
