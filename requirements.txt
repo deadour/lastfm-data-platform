@@ -4,3 +4,5 @@ pytest
 pandas
 pyarrow
 streamlit
+azure-identity
+azure-storage-blob
