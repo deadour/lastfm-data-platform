@@ -186,4 +186,5 @@ Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags
 - Phase 5 — Enriched analytics and local portfolio dashboard
 - Phase 6A — Optional Bronze file transfers to Azure Data Lake
 - Phase 6B — Opt-in Silver/Gold publication and immutable state backups
-- Later phases — Cloud execution, authoritative checkpoints and scheduling (not implemented)
+- Phase 6C — Cloud readiness: completed-only watermark, bounded job runner, container and checkpoint design ([details](docs/phase6c-cloud-readiness.md))
+- Phase 6D — Daily GitHub Actions run with ADLS checkpoint and OIDC (prepared, cron disabled; [details](docs/phase6d-github-actions.md))
