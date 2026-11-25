@@ -1,6 +1,6 @@
 # Last.fm Personal Data Platform
 
-Current implemented scope: Phase 6A — optional Bronze transfers to Azure Data Lake.
+Current implemented scope: Phase 6B — optional Bronze, Silver/Gold and state-snapshot transfers to Azure Data Lake.
 The repository contains a local Bronze → Silver → Gold pipeline, artist
 enrichment and a Streamlit dashboard. See [`docs/PROJECT_WALKTHROUGH.md`](docs/PROJECT_WALKTHROUGH.md)
 for the technical walkthrough.
@@ -138,6 +138,15 @@ existing Bronze page):
 python -m src.storage.azure_cli --account stlastfmedu upload-bronze --file data/bronze/lastfm/recent_tracks/ingestion_date=2026-10-02/run_20261002T214613Z/page_0001.json --dry-run
 ```
 
+Silver and Gold snapshots publish the same way, under versioned paths derived
+from each layer's `_metadata.json`, and a non-authoritative state backup can be
+uploaded for safekeeping:
+
+```powershell
+python -m src.storage.azure_cli --account stlastfmedu publish-layer --layer gold_enriched --path data/gold_enriched/diversity.parquet --dry-run
+python -m src.storage.azure_cli --account stlastfmedu backup-state --dry-run
+```
+
 See [Azure setup and verification](docs/azure-data-lake.md) for Entra login,
 upload, list, download and SHA-256 verification. Automated tests use fake Azure
 clients; they do not establish that a live account can be accessed.
@@ -176,4 +185,5 @@ Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags
 - Phase 4 — Artist metadata enrichment
 - Phase 5 — Enriched analytics and local portfolio dashboard
 - Phase 6A — Optional Bronze file transfers to Azure Data Lake
-- Later phases — Cloud Silver/Gold, checkpoint migration and scheduled execution (not implemented)
+- Phase 6B — Opt-in Silver/Gold publication and immutable state backups
+- Later phases — Cloud execution, authoritative checkpoints and scheduling (not implemented)

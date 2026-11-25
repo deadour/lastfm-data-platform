@@ -208,6 +208,84 @@ configuration, [Blob pricing](https://azure.microsoft.com/en-us/pricing/details/
 and Azure Cost Management. This phase creates no compute resources and adds no
 schedule or background activity.
 
-Silver/Gold persistence, checkpoint migration, Container Apps Jobs, managed
+Checkpoint migration, Container Apps Jobs, managed
 identity deployment, scheduling, GitHub Actions OIDC and a cloud dashboard remain
 future work. The local pipeline and its watermark semantics are unchanged.
+
+## Phase 6B: Silver/Gold snapshots and state backups
+
+All commands below are opt-in, run locally, and never delete, rename or
+silently overwrite blobs. The local pipeline does not import them.
+
+### Layer publication
+
+`publish-layer` discovers existing files under `data/silver/scrobbles`,
+`data/gold` or `data/gold_enriched` (only `.parquet`, `.json`, `.jsonl`; hidden
+staging directories and Silver `rejected/` records stay local). The snapshot id
+comes from the layer's own metadata (`last_transformed_at` or `generated_at`):
+
+| Local | Remote |
+| --- | --- |
+| `data/silver/scrobbles/scrobbles.parquet` | `silver/scrobbles/snapshot=<id>/scrobbles.parquet` |
+| `data/gold/<mart>/<mart>.parquet` | `gold/snapshot=<id>/<mart>/<mart>.parquet` |
+| `data/gold_enriched/<mart>.parquet` | `gold_enriched/snapshot=<id>/<mart>.parquet` |
+
+The layer's `_metadata.json` is always uploaded last, so a snapshot with its
+manifest present is complete. Rerunning against unchanged data writes nothing
+("Already matches"); a rebuilt layer gets a new snapshot id and a new path, so
+it cannot overwrite an unrelated build. If a remote object exists with different
+bytes the command fails unless `--overwrite` is passed.
+
+Each upload records the file's SHA-256 in blob metadata (`sha256`). Repeat runs
+compare against that value without downloading. `--verify` ignores the recorded
+value and streams the remote bytes to hash them, so it costs one download per
+file. ETag and Content-MD5 are not treated as SHA-256.
+
+```powershell
+python -m src.storage.azure_cli --account stlastfmedu publish-layer --layer gold_enriched --path data/gold_enriched/diversity.parquet --dry-run
+python -m src.storage.azure_cli --account stlastfmedu publish-layer --layer gold_enriched --path data/gold_enriched/diversity.parquet --verify
+python -m src.storage.azure_cli --account stlastfmedu publish-layer --layer silver --dry-run
+python -m src.storage.azure_cli --account stlastfmedu publish-layer --layer silver --verify
+python -m src.storage.azure_cli --account stlastfmedu list-files --path-prefix gold_enriched
+```
+
+Silver is one Parquet file containing the full history (about 11 MB); publishing
+it is a full copy, not an increment. `list-files` prints only data files with
+sizes and excludes ADLS Gen2 directory entries (`hdi_isfolder` or zero-byte,
+extensionless names). It is restricted to `bronze`, `silver`, `gold`,
+`gold_enriched` and `metadata/state_backups`.
+
+### State backup (snapshot only)
+
+Pipeline state is local and file-based: Bronze `run_metadata.json` per run,
+Silver `processed_bronze_runs`, and the Gold/enrichment `_metadata.json` files.
+`backup-state` copies those allow-listed files to an immutable path
+`metadata/state_backups/<UTC timestamp>/...` plus a `manifest.json` with each
+file's SHA-256, run statuses and a watermark computed **from completed runs
+only**. It never touches the live state, never overwrites an existing backup,
+refuses files with credential-like keys, and never reads `.env`. A real upload
+requires `--confirm` because run metadata describes personal listening activity.
+
+```powershell
+python -m src.storage.azure_cli --account stlastfmedu backup-state --dry-run
+python -m src.storage.azure_cli --account stlastfmedu backup-state --confirm --verify
+```
+
+Unreadable files are listed as skipped in the manifest rather than failing.
+
+### Prerequisites for Phase 6C (authoritative remote checkpoints)
+
+Restore and remote-authoritative state are intentionally not implemented. First:
+
+- **Watermark correctness.** `latest_completed_timestamp` scans pages from every
+  run, including `failed / MaxPagesLimit`. A partial run therefore advances the
+  local incremental watermark today. A remote checkpoint must be derived only
+  from `status == "completed"` runs (as the backup manifest does).
+- **Single writer.** Use a blob lease (or equivalent lock) so two runs cannot
+  ingest or commit concurrently.
+- **End-of-run commit.** Publish Bronze, Silver and Gold first; advance the
+  checkpoint last, with an ETag condition (`if_match`) to detect lost updates.
+- **Recovery rules.** A checkpoint must reference a complete snapshot; restore
+  must verify hashes and refuse schema-version mismatches.
+- **Atomicity.** Write checkpoint documents as one small JSON blob; never derive
+  state from listing.
