@@ -13,10 +13,10 @@ import { Link, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
 
 const nav = [
-  ["lecturas", "/#lecturas"],
-  ["años", "/#anos"],
+  ["últimamente", "/#ahora-en-numeros"],
+  ["discos", "/#discos"],
   ["artistas", "/artistas"],
-  ["cómo está hecho", "/como-esta-hecho"],
+  ["sobre", "/como-esta-hecho"],
 ] as const;
 
 export function App() {
