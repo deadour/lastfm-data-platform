@@ -104,7 +104,7 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
             ))}
           </ul>
           <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer" className="mt-8 inline-block text-sm text-ink underline decoration-white/20 underline-offset-4 hover:decoration-white/60">
-            el código, en github ↗
+            código en github
           </a>
         </div>
       </section>
