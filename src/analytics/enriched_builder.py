@@ -8,12 +8,12 @@ import math
 import os
 from pathlib import Path
 import shutil
-import tempfile
 from typing import Any
 
 import pandas as pd
 
 from src.enrichment.enrich import artist_key
+from .gold_builder import make_staging_dir
 from .historical_time import add_historical_local_time
 
 
@@ -280,7 +280,7 @@ def build_enriched(silver_path: str | Path = "data/silver/scrobbles/scrobbles.pa
     metadata["insights"] = build_insights(marts, quality, profile)["findings"]
     output_root = Path(output_root)
     output_root.parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=".gold-enriched-", dir=output_root.parent))
+    staging = make_staging_dir(output_root.parent, ".gold-enriched-")
     try:
         for name, frame in marts.items():
             path = staging / f"{name}.parquet"
