@@ -26,6 +26,10 @@ export async function loadStats(fetcher: typeof fetch = fetch, url = "/data/stat
   try {
     const response = await fetcher(url, { headers: { accept: "application/json" } });
     if (!response.ok) return { stats: mockStats, fallback: `stats.json no disponible (${response.status})` };
+    // pages answers unknown paths with index.html and a 200, so check the type too
+    if (!(response.headers.get("content-type") ?? "").includes("json")) {
+      return { stats: mockStats, fallback: "todavía no hay estadísticas publicadas" };
+    }
     const body: unknown = await response.json();
     if (!isStatsFile(body)) return { stats: mockStats, fallback: "stats.json con formato desconocido" };
     return { stats: body, fallback: null };

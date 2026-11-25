@@ -1,0 +1,6 @@
+# cloudflare pages reads this file as the source of truth for the output folder,
+# so a dashboard misconfiguration can't publish the unbuilt frontend/ directory.
+# the build command is still set in the dashboard: `npm run build`.
+name = "lastfm-data-platform"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-11-01"

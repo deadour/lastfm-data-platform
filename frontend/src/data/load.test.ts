@@ -3,7 +3,8 @@ import { ago, hash, monthLabel, n, secureImage, shortDate } from "../utils/forma
 import { isStatsFile, loadStats } from "./load";
 import { mockStats } from "./mock";
 
-const ok = (body: unknown) => (async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
+const ok = (body: unknown) =>
+  (async () => new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
 
 describe("loadStats", () => {
   it("uses exported gold stats when they match the contract", async () => {
@@ -18,6 +19,14 @@ describe("loadStats", () => {
     const result = await loadStats(missing);
     expect(result.stats.source).toBe("mock");
     expect(result.fallback).toContain("404");
+  });
+
+  it("treats the html fallback pages serves for a missing file as unpublished", async () => {
+    const html = (async () =>
+      new Response("<!doctype html><div id=root></div>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } })) as unknown as typeof fetch;
+    const result = await loadStats(html);
+    expect(result.stats.source).toBe("mock");
+    expect(result.fallback).toBe("todavía no hay estadísticas publicadas");
   });
 
   it("rejects unknown schema versions", async () => {
