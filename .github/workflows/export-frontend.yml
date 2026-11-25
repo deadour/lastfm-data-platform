@@ -31,6 +31,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (vars.FRONTEND_EXPORT_AUTOMATIC == 'true' &&
+        vars.FRONTEND_PUBLICATION_VERIFIED == 'true' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_branch == 'main' &&
         github.event.workflow_run.head_repository.full_name == github.repository &&
@@ -135,6 +136,7 @@ jobs:
         run: |
           npm ci
           npm test
+          npm run check:functions
           node --experimental-strip-types scripts/check-stats.ts public/data/stats.json
           npm run build
           node --experimental-strip-types scripts/check-stats.ts dist/data/stats.json
@@ -147,6 +149,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: site/frontend
+          wranglerVersion: "4.168.0"   # same as the pinned devDependency
           command: pages deploy dist --project-name=lastfm-data-platform --branch=main
 
       - name: Verify the public site serves this build and real statistics

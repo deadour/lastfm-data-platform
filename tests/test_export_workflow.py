@@ -9,6 +9,7 @@ def test_cloud_export_is_gated_without_adding_a_cron():
     assert "workflow_dispatch:" in ACTIVE and "workflow_run:" in ACTIVE
     assert "workflows: [daily-pipeline]" in ACTIVE and "branches: [main]" in ACTIVE
     assert "vars.FRONTEND_EXPORT_AUTOMATIC == 'true'" in ACTIVE
+    assert "vars.FRONTEND_PUBLICATION_VERIFIED == 'true'" in ACTIVE
     assert "github.event.workflow_run.conclusion == 'success'" in ACTIVE
     assert "github.event.workflow_run.head_repository.full_name == github.repository" in ACTIVE
     assert "github.event.workflow_run.event == 'schedule'" in ACTIVE
