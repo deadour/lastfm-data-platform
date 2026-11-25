@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { onRequestGet, shape } from "./now-playing";
+import { onRequestGet, shape } from "../../functions/api/now-playing";
 
 const SECRET = "test-key-0000";
 
