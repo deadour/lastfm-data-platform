@@ -146,6 +146,8 @@ data/enrichment/**
 !data/enrichment/.gitkeep
 data/gold_enriched/**
 !data/gold_enriched/.gitkeep
+data/artwork/**
+data/exports/**
 reports/**
 !reports/.gitkeep
 env/
