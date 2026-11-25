@@ -1,13 +1,13 @@
 # Last.fm Personal Data Platform
 
-Current implemented scope: Phase 4 — artist metadata enrichment. The repository
-contains a local Bronze → Silver → Gold pipeline plus separate MusicBrainz and
-Last.fm artist enrichment. See [`docs/PROJECT_WALKTHROUGH.md`](docs/PROJECT_WALKTHROUGH.md)
+Current implemented scope: Phase 6A — optional Bronze transfers to Azure Data Lake.
+The repository contains a local Bronze → Silver → Gold pipeline, artist
+enrichment and a Streamlit dashboard. See [`docs/PROJECT_WALKTHROUGH.md`](docs/PROJECT_WALKTHROUGH.md)
 for the technical walkthrough.
 
 Personal data engineering project for collecting my Last.fm listening history.
 
-Current status: Phase 4 — Artist metadata enrichment
+Azure integration is opt-in; ingestion and incremental state remain local.
 
 ## Architecture
 
@@ -106,7 +106,7 @@ Run incremental ingestion using the latest completed scrobble found in Bronze as
 python -m src.ingestion.ingest_scrobbles
 ```
 
-Each execution writes to a unique run directory under `data/bronze/lastfm/recent_tracks/`. Overlapping raw responses between runs are intentional; event-level deduplication belongs in a future Silver layer. Now-playing tracks are preserved in raw payloads but are excluded from watermark calculation.
+Each execution writes to a unique run directory under `data/bronze/lastfm/recent_tracks/`. Overlapping raw responses between runs are intentional; Silver handles event-level deduplication. Now-playing tracks are preserved in raw payloads but are excluded from watermark calculation.
 
 Build the Phase 5 enriched analytical product from local Silver and Phase 4 outputs:
 
@@ -124,9 +124,27 @@ analytics from explicit IANA timezone periods while retaining UTC as canonical.
 See [`docs/phase5-decisions.md`](docs/phase5-decisions.md)
 for the actual grains, weighting policy, coverage and findings.
 
+## Azure Data Lake
+
+An optional command uploads an existing Bronze JSON file byte-for-byte to the
+private `lake` container, preserving its partition path. It does not ingest new
+data, provision resources or move local checkpoints. Existing blobs are protected
+unless `--overwrite` is explicitly supplied.
+
+Preview a transfer from the repository root (replace the file with your own
+existing Bronze page):
+
+```powershell
+python -m src.storage.azure_cli --account stlastfmedu upload-bronze --file data/bronze/lastfm/recent_tracks/ingestion_date=2026-10-02/run_20261002T214613Z/page_0001.json --dry-run
+```
+
+See [Azure setup and verification](docs/azure-data-lake.md) for Entra login,
+upload, list, download and SHA-256 verification. Automated tests use fake Azure
+clients; they do not establish that a live account can be accessed.
+
 ## Tests
 
-Tests use mocked HTTP responses and never call Last.fm:
+Tests use mocked HTTP responses and fake Azure clients; they never call Last.fm or Azure:
 
 ```bash
 pytest
@@ -157,4 +175,5 @@ Silver using cache-first MusicBrainz identity resolution and Last.fm artist tags
 - Phase 3 — Gold analytical marts
 - Phase 4 — Artist metadata enrichment
 - Phase 5 — Enriched analytics and local portfolio dashboard
-- Phase 6 — Future architecture and productionization (not implemented)
+- Phase 6A — Optional Bronze file transfers to Azure Data Lake
+- Later phases — Cloud Silver/Gold, checkpoint migration and scheduled execution (not implemented)
