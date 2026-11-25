@@ -220,7 +220,7 @@ def test_pacing_waits_between_requests():
     assert waits and abs(waits[0] - 0.3) < 1e-9
 
 
-def test_frontend_export_is_small_private_and_only_uses_resolved_covers(tmp_path):
+def test_frontend_export_matches_statsfile_contract_and_stays_private(tmp_path):
     make_run(tmp_path / "bronze", "run-one", 1700000000)
     make_run(tmp_path / "bronze", "run-two", 1700003600)
     transform(full=True, bronze_root=tmp_path / "bronze", silver_root=tmp_path / "silver")
@@ -228,14 +228,29 @@ def test_frontend_export_is_small_private_and_only_uses_resolved_covers(tmp_path
     build_gold(silver_path=silver, gold_root=tmp_path / "gold")
     key = album_key("Fictional Artist", "Fictional Album")
     catalog = pd.DataFrame([{**{c: None for c in enrich.COLUMNS}, "album_key": key, "status": "needs_review",
-                             "image_url": "https://cdn.example/x.jpg", "provider": "deezer"}])
+                             "image_url": "https://cdn-images.dzcdn.net/x.jpg", "provider": "deezer"}])
 
     document = build(tmp_path / "gold", silver, catalog)
-    assert document["top_albums"][0]["cover"] is None  # needs_review never exported
+    # Fields the frontend loader requires (frontend/src/data/types.ts StatsFile).
+    assert document["schema_version"] == 1 and document["source"] == "gold"
+    assert set(document["range"]) == {"first", "last"}
+    assert {"scrobbles", "artists", "tracks", "active_days"} <= set(document["totals"])
+    assert set(document["years"][0]) == {"year", "scrobbles", "artists", "tracks", "top_artist", "partial"}
+    assert set(document["months"][0]) == {"month", "scrobbles"}
+    assert set(document["top_artists"][0]) == {"name", "scrobbles", "image"}
+    assert set(document["top_tracks"][0]) == {"title", "artist", "scrobbles", "image"}
+    assert len(document["rhythm"]) == 168 and abs(sum(c["share"] for c in document["rhythm"]) - 1) < 1e-3
+    assert set(document["longest_streak"]) == {"days", "start", "end"}
+    assert document["years"][0]["partial"] is True  # 2023 is only partly covered
+
+    assert document["top_albums"][0]["cover"] is None and document["top_albums"][0]["image"] is None
+    assert document["top_tracks"][0]["image"] is None  # needs_review never exported
     catalog.loc[0, "status"] = "resolved"
     document = build(tmp_path / "gold", silver, catalog)
+    assert document["top_albums"][0]["image"] == "https://cdn-images.dzcdn.net/x.jpg"
     assert document["top_albums"][0]["cover"]["attribution"] == "deezer"
-    assert document["totals"]["scrobbles"] == 2 and document["years"][0]["scrobbles"] == 2
+    assert document["top_tracks"][0]["image"] == "https://cdn-images.dzcdn.net/x.jpg"  # via its album
+    assert document["totals"]["scrobbles"] == 2
 
     text = json.dumps(document)
     assert "fictional-user" not in text and "blob.core.windows.net" not in text and str(tmp_path) not in text

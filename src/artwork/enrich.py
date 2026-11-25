@@ -50,11 +50,20 @@ def albums_from_silver(silver: pd.DataFrame) -> pd.DataFrame:
     frame["album_name"] = frame["album_name"].fillna("").astype(str).str.strip()
     frame = frame[frame["album_name"] != ""]
     frame["album_mbid"] = frame["album_mbid"].fillna("").astype(str).str.strip()
-    frame["album_key"] = [album_key(a, b) for a, b in zip(frame["artist_name"], frame["album_name"])]
-    mode = lambda values: values.value_counts().index[0] if len(values) else ""
-    grouped = frame.groupby("album_key").agg(
-        artist_name=("artist_name", mode), album_name=("album_name", mode),
-        album_mbid=("album_mbid", lambda v: mode(v[v != ""])), scrobbles=("album_name", "size"))
+    pairs = frame[["artist_name", "album_name"]].drop_duplicates()
+    pairs["album_key"] = [album_key(a, b) for a, b in zip(pairs["artist_name"], pairs["album_name"])]
+    frame = frame.merge(pairs, on=["artist_name", "album_name"], how="left")
+    def most_common(column: str, rows: pd.DataFrame) -> pd.Series:
+        # value_counts order: highest count first, ties by first appearance.
+        counts = rows.groupby(["album_key", column], sort=False).size().rename("n").reset_index()
+        counts = counts.sort_values("n", ascending=False, kind="stable").drop_duplicates("album_key")
+        return counts.set_index("album_key")[column]
+
+    grouped = pd.DataFrame({"artist_name": most_common("artist_name", frame),
+                            "album_name": most_common("album_name", frame)})
+    grouped["album_mbid"] = most_common("album_mbid", frame[frame["album_mbid"] != ""]).reindex(grouped.index).fillna("")
+    grouped["scrobbles"] = frame.groupby("album_key").size()
+    grouped.index.name = "album_key"
     return grouped.reset_index().sort_values(["scrobbles", "album_key"], ascending=[False, True], ignore_index=True)
 
 

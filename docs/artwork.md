@@ -93,25 +93,39 @@ failing, the run stops, keeps what it resolved and exits 1.
 python -m src.artwork.export_frontend --out data/exports/frontend/stats.json
 ```
 
-The export is one minified JSON (about 25 KB with the full history) meant to be
+The export is one minified JSON (about 16 KB with the full history) meant to be
 copied into the frontend as a static asset. It never reads the data lake. It
 contains no username, API key, storage account or path. Gold has no album mart,
-so album play counts are computed from Silver.
+so album play counts, and the album a track is mostly played from, are computed
+from Silver.
+
+The shape follows the frontend's `StatsFile` (`frontend/src/data/types.ts`,
+`schema_version` 1). Fields marked `+` are additions the frontend may ignore.
 
 ```text
-schema_version: 1, source: "gold", generated_at, data_as_of, notes{tracking, albums}
-range{first_day, last_day}
-totals{scrobbles, artists, tracks, albums, active_days}
-years[]       {year, scrobbles, active_days, artists, tracks, top_artist, era}
-months[]      {month "YYYY-MM", scrobbles}          last 24
-top_artists[] {name, scrobbles, first_seen, last_seen}
-top_albums[]  {key, artist, title, scrobbles, cover: null | {url, provider, source_url, attribution}}
-top_tracks[]  {artist, title, scrobbles, peak_year}
-week_hours[]  {weekday 0=monday, hour, scrobbles}
+schema_version: 1, source: "gold", generated_at, +data_as_of
+range{first, last}                                   yyyy-mm-dd
+totals{scrobbles, artists, tracks, active_days, +albums}
+years[]        {year, scrobbles, artists, tracks, top_artist|null, partial}
+months[]       {month "yyyy-mm", scrobbles}           last 24
+top_artists[]  {name, scrobbles, image: null}          artist images not sourced yet
+top_tracks[]   {title, artist, scrobbles, image|null}  cover of the album it is mostly played from
++top_albums[]  {key, title, artist, scrobbles, image|null, cover: null | {url, provider, source_url, attribution}}
+rhythm[]       {weekday 0=mon, hour, share 0..1}       168 cells, consistent tracking era
+longest_streak {days, start, end} | null
 ```
 
-`top_*` hold 50 items (`--top`). `cover` is `null` until an album is resolved, so
-the UI needs a placeholder.
+- `top_*` hold 20 items (`--top`).
+- `image` and `cover` are `null` until the album is `resolved`, so the UI needs a
+  placeholder.
+- When a cover is shown, render `cover.attribution` and link `cover.source_url`.
+- `partial` is true for the partial-tracking era and for calendar years that the
+  data does not fully cover.
+
+**Image hosts** (for the frontend CSP `img-src`), checked against real URLs:
+`https://coverartarchive.org`, which redirects to `https://archive.org` and then
+`https://*.archive.org` (for example `dn721604.ca.archive.org`), plus
+`https://cdn-images.dzcdn.net` and `https://e-cdns-images.dzcdn.net` for Deezer.
 
 ## Not done yet
 
