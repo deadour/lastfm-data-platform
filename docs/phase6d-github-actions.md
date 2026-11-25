@@ -12,7 +12,8 @@ client secrets, account keys or SAS tokens.
 - GitHub environment and variables created.
 - Last.fm secrets set in the environment; the workflow is on `main` (PR #2).
 - **First manual run succeeded** (see below). Checkpoint is at `sequence` 1.
-- Cron still disabled.
+- Daily schedule `17 6 * * *` (06:17 UTC) is defined in the workflow; it is active
+  once this change is on `main`. Scheduled runs use `max_pages=25`.
 
 ## Resources created (2026-11-25)
 
@@ -197,9 +198,9 @@ az role assignment create --assignee <appId> --role "Storage Blob Data Contribut
   - variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
     `AZURE_STORAGE_ACCOUNT=stlastfmedu`, `AZURE_STORAGE_CONTAINER=lake`;
   - optionally restrict deployments to `main`.
-- Then run the workflow manually (Actions → daily-pipeline → Run workflow,
-  `max_pages=100`), check `list-files` and the checkpoint, and only then
-  uncomment the `schedule` block.
+- Then run the workflow manually (Actions → daily-pipeline → Run workflow),
+  check `list-files` and the checkpoint, and only then enable the `schedule`
+  block (done after the first successful run).
 
 ## Costs (real, as of this phase)
 
@@ -240,6 +241,19 @@ approval). **Budget alerts notify; they do not stop spending.**
 - **Lease expiry.** If the runner dies mid-run, the lease expires in ≤ 60 s.
   If renewal fails during a long run, a second writer could start. The
   commit's ETag check still prevents a lost update.
+
+## Daily schedule
+
+- `cron: "17 6 * * *"` runs once a day at 06:17 UTC on `main`. GitHub may start
+  it late or skip it under load.
+- Schedule events carry no inputs, so `MAX_PAGES` falls back to `25` (5 000
+  scrobbles, far above a normal day).
+- A day with nothing new commits an unchanged watermark and uploads no new
+  snapshots.
+- A failed scheduled run commits nothing (exit codes 1–5). The checkpoint
+  keeps the last good state and the next day retries the same window. The
+  first failed run (45673908480) confirmed this in practice: `sequence` stayed 0.
+- To pause without a code change: Actions → daily-pipeline → **Disable workflow**.
 
 ## Rollback
 
