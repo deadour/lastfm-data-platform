@@ -12,7 +12,7 @@ import { Artist } from "./pages/Artist";
 import { Artists } from "./pages/Artists";
 import { Home } from "./pages/Home";
 import { shortDate } from "./utils/format";
-import { Link, useRoute } from "./utils/router";
+import { Link, navigate, restoreHome, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
 import { scrollToHashWhenSettled } from "./utils/hashScroll";
 
@@ -84,6 +84,9 @@ export function App() {
             {stats && <Home stats={stats} insights={insights} recent={recent} explore={explore} />}
             <About stats={stats} insights={insights} />
           </>
+        )}
+        {route.page !== "home" && (
+          <button type="button" className="back-home" onClick={() => { navigate("/"); restoreHome(); }}>← volver al inicio</button>
         )}
         {route.page === "artists" && <Artists insights={insights} />}
         {route.page === "artist" && <Artist slug={route.slug} insights={insights} />}

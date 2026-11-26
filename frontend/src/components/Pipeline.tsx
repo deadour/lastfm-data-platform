@@ -97,7 +97,7 @@ export function Pipeline() {
       <rect x="385" y="66" width="580" height="132" rx="4" fill="none" stroke="currentColor" strokeDasharray="3 6" className="text-white/18" />
       <g transform="translate(400, 74)"><AzureIcon size={16} /></g>
       <text x="422" y="88" fontSize="12" className="fill-current text-muted">azure data lake · privado</text>
-      <text x="20" y="34" fontSize="12" className="fill-current text-muted">github actions · todos los días a las 00:17 · sin claves guardadas</text>
+      <text x="20" y="34" fontSize="12" className="fill-current text-muted">github actions · todos los días a las 00:17</text>
       <line x1="20" y1="44" x2="1115" y2="44" stroke="currentColor" className="text-white/10" />
 
       {edges.map(([a, b], i) => {

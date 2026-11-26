@@ -15,12 +15,12 @@ interface Props {
 const tiers = [
   { key: "gold", y: 20, color: "#c9a24a", title: "gold", what: "estadísticas", detail: "años, artistas, discos, rachas, horarios" },
   { key: "silver", y: 132, color: "#b9b9b4", title: "silver", what: "datos limpios", detail: "una fila por registro, sin duplicados" },
-  { key: "bronze", y: 244, color: "#a8714a", title: "bronze", what: "registros originales", detail: "las respuestas de last.fm, tal cual llegan" },
+  { key: "bronze", y: 244, color: "#a8714a", title: "bronze", what: "registros originales", detail: "en formato crudo (json)" },
 ] as const;
 
 export function Medallion({ scrobbles, artists, years, fluid = false }: Props) {
   const counts: Record<string, string> = {
-    bronze: scrobbles ? `${n(scrobbles)}e en json` : "json crudo",
+    bronze: scrobbles ? `${scrobbles} registros en lastfm` : "registros en lastfm",
     silver: scrobbles ? `${n(scrobbles)} filas` : "parquet",
     gold: artists && years ? `${n(artists)} artistas · ${years} años` : "agregados",
   };

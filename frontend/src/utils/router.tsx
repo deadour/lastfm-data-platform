@@ -15,7 +15,17 @@ export function parse(path: string): Route {
 
 const EVENT = "fm:navigate";
 
+// where the home page was scrolled when I left it, to come back to the same spot
+let homeScroll = 0;
+const onHome = () => (window.location.pathname.replace(/\/+$/, "") || "/") === "/";
+
+export function restoreHome() {
+  const target = homeScroll;
+  for (const delay of [0, 120, 350, 800]) setTimeout(() => window.scrollTo({ top: target }), delay);
+}
+
 export function navigate(href: string) {
+  if (onHome()) homeScroll = window.scrollY;
   window.history.pushState(null, "", href);
   window.dispatchEvent(new Event(EVENT));
   const hash = href.split("#")[1];
@@ -27,10 +37,11 @@ export function useRoute(): Route {
   const [route, setRoute] = useState(() => parse(window.location.pathname));
   useEffect(() => {
     const update = () => setRoute(parse(window.location.pathname));
-    window.addEventListener("popstate", update);
+    const onPop = () => { update(); if (onHome()) restoreHome(); };
+    window.addEventListener("popstate", onPop);
     window.addEventListener(EVENT, update);
     return () => {
-      window.removeEventListener("popstate", update);
+      window.removeEventListener("popstate", onPop);
       window.removeEventListener(EVENT, update);
     };
   }, []);
