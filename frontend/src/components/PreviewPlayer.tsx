@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { loadArtist } from "../data/insights";
 import { spotifyUrl, youtubeUrl } from "../utils/listen";
+import { ambientBeat } from "../utils/beat";
 import type { AlbumStat, TrackStat } from "../data/types";
 
 // one persistent <audio> behind a fixed dock with our own controls.
@@ -255,44 +256,87 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
 
   useEffect(() => {
     if (!playing || !selection) return;
-    // a colour per song; the page tint breathes with the volume
-    let h = 0;
-    for (const ch of selection.artist + selection.title) h = (h * 31 + ch.charCodeAt(0)) % 360;
+    // Keep visual activity present for the full preview, not only the first loud moments.
+    let hue = 0;
+    for (const ch of selection.artist + selection.title) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
     const root = document.documentElement;
-    root.style.setProperty("--tint-h", String(h));
+    root.style.setProperty("--tint-h", String(hue));
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const data = new Uint8Array(128);
-    // log-spaced bins so the bars cover bass to treble, not just the bass
-    const pick = Array.from({ length: 12 }, (_, i) => Math.min(127, Math.round(2 * Math.pow(28, i / 11))));
+    const bins = Array.from({ length: 12 }, (_, i) => Math.min(127, Math.round(2 * Math.pow(28, i / 11))));
+    const shown = new Array(12).fill(0);
     let frame = 0;
     let last = 0;
-    const shown = new Array(12).fill(0);
-    let bassAvg = 0, beat = 0, lastBeat = 0;
+    let energyAvg = 0;
+    let bassAvg = 0;
+    let beat = 0.18;
+    let lastBeat = 0;
+    let lastSignal = performance.now();
+
     const tick = (now: number) => {
-      const node = analyser.current;
-      if (node && now - last > 66) {
+      if (now - last >= 66) {
         last = now;
-        node.getByteFrequencyData(data);
-        const cells = bars.current?.children;
-        if (cells) for (let i = 0; i < cells.length; i++) {
-          const floor = 85 - i * 5; const v = Math.max(0, (data[pick[i]] - floor) / (255 - floor)); // drop the always-on floor so the beat shows
-          const target = Math.pow(v, 1.6) * 100;
-          shown[i] = target > shown[i] ? target : Math.max(target, shown[i] - 9); // jump up, fall slowly
-          (cells[i] as HTMLElement).style.height = `${Math.max(6, Math.round(shown[i] / 12.5) * 12.5)}%`; // 8 steps, blocky
+        if (reducedMotion.matches) {
+          root.style.setProperty("--tint-a", "0.12");
+          root.style.setProperty("--beat", "0");
+        } else {
+          const node = analyser.current;
+          // Native mobile playback deliberately bypasses Web Audio to avoid
+          // Safari silencing the media. Its visual pulse is illustrative,
+          // never claimed to be synchronized to an analysed recording.
+          const canAnalyse = node !== null && activeAudio.current === audio.current &&
+            audioContext.current?.state === "running";
+          let energy = 0;
+          if (canAnalyse && node) {
+            node.getByteFrequencyData(data);
+            energy = data.subarray(1, 24).reduce((sum, value) => sum + value, 0) / (23 * 255);
+            if (energy > 0.012) lastSignal = now;
+          }
+          const noSignal = !canAnalyse || now - lastSignal > 900;
+          if (noSignal) {
+            const visual = ambientBeat(now);
+            root.style.setProperty("--tint-a", visual.tint.toFixed(3));
+            root.style.setProperty("--beat", visual.beat.toFixed(3));
+            // On desktop, visually idle analyzer bars are not a playback failure.
+            if (bars.current) for (const child of bars.current.children)
+              (child as HTMLElement).style.height = `${Math.round(10 + visual.beat * 60)}%`;
+          } else {
+            // Automatic per-song normalization: quiet passages no longer erase
+            // the animation. Audio still controls the transient beats.
+            energyAvg = energyAvg ? energyAvg * 0.97 + energy * 0.03 : energy;
+            const energyRelative = Math.min(1, energy / Math.max(0.045, energyAvg * 1.4));
+            const bass = data.subarray(1, 8).reduce((sum, value) => sum + value, 0) / (7 * 255);
+            bassAvg = bassAvg ? bassAvg * 0.94 + bass * 0.06 : bass;
+            const transient = (bass - bassAvg) / Math.max(bassAvg, 0.035);
+            if (bass > 0.065 && transient > 0.16 && now - lastBeat > 220) {
+              beat = 1;
+              lastBeat = now;
+            } else {
+              beat = Math.max(0.18, beat - 0.075);
+            }
+            root.style.setProperty("--tint-a", Math.min(0.52, 0.16 + 0.13 * energyRelative + 0.17 * beat).toFixed(3));
+            root.style.setProperty("--beat", beat.toFixed(3));
+
+            const cells = bars.current?.children;
+            if (cells) for (let i = 0; i < cells.length; i++) {
+              const strength = Math.max(0, data[bins[i]] / 255);
+              const target = Math.pow(strength, 0.9) * 100;
+              shown[i] = target > shown[i] ? target : Math.max(target, shown[i] - 7);
+              (cells[i] as HTMLElement).style.height = `${Math.max(8, Math.round(shown[i] / 12.5) * 12.5)}%`;
+            }
+          }
         }
-        const energy = data.slice(1, 12).reduce((a, b) => a + b, 0) / (11 * 255);
-        // beat: the bass jumps well above its recent average
-        const bass = (data[1] + data[2] + data[3] + data[4]) / (4 * 255);
-        bassAvg = bassAvg * 0.9 + bass * 0.1;
-        if (bass > bassAvg * 1.18 && bass > 0.35 && now - lastBeat > 220) { beat = 1; lastBeat = now; }
-        else beat = Math.max(0, beat - 0.22);
-        root.style.setProperty("--tint-a", (energy * 0.25 + beat * 0.3).toFixed(3));
-        root.style.setProperty("--beat", beat.toFixed(2));
       }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(frame); root.style.setProperty("--tint-a", "0"); root.style.setProperty("--beat", "0");
-      if (bars.current) for (const cell of bars.current.children) (cell as HTMLElement).style.height = "6%";
+    return () => {
+      cancelAnimationFrame(frame);
+      root.style.setProperty("--tint-a", "0");
+      root.style.setProperty("--beat", "0");
+      if (bars.current) for (const cell of bars.current.children)
+        (cell as HTMLElement).style.height = "6%";
     };
   }, [playing, selection]);
 
