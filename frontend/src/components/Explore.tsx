@@ -162,7 +162,13 @@ export function MonthsVsAverage({ months, monthly, show = 24, onPick }: { months
         })}
       </div>
       <div className="diverge-axis" aria-hidden="true">
-        {recent.map((m, i) => <span key={m.month}>{i === 0 || m.month.endsWith("-01") ? `’${m.month.slice(2, 4)}` : ""}</span>)}
+        {recent.map((m, i) => {
+          // a year mark under each january; the first bar gets one only if the first january is far,
+          // otherwise "’24" and "’25" would sit on top of each other
+          const firstJanuary = recent.findIndex((r) => r.month.endsWith("-01"));
+          const mark = m.month.endsWith("-01") || (i === 0 && (firstJanuary < 0 || firstJanuary > 3));
+          return <span key={m.month}>{mark ? `’${m.month.slice(2, 4)}` : ""}</span>;
+        })}
       </div>
     </figure>
   );
