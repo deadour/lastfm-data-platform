@@ -33,7 +33,7 @@ export function Readings({ data }: { data: InsightsFile }) {
           <strong>{String(habits.peak_hour).padStart(2, "0")}:00</strong>
           <small>{pct(habits.hours[habits.peak_hour] ?? 0)}{translate(" de todas mis escuchas")}</small>
         </div>
-        <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label={translate("distribución histórica según la hora local")} />
+        <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label={translate("distribución histórica según la hora local")} unit />
         <p>{translate("cuánto escucho en cada hora del día, en hora local, desde 2016")}</p>
       </div>
     </div>

@@ -77,6 +77,8 @@ export function yearTicks(months: string[], every = 1) {
     .map(({ index, m }) => ({ index, text: m.slice(0, 4) }));
 }
 
-export function HourBars({ values, label }: { values: number[]; label: string }) {
-  return <Bars values={values} labels={values.map((_, h) => (h % 6 === 0 ? `${String(h).padStart(2, "0")}h` : ""))} height={90} label={label} />;
+export function HourBars({ values, label, unit = false }: { values: number[]; label: string; unit?: boolean }) {
+  // "00h" only where the chart is wide enough; narrow charts keep bare numbers
+  const tick = (h: number) => (unit ? `${String(h).padStart(2, "0")}h` : `${h}`);
+  return <Bars values={values} labels={values.map((_, h) => (h % 6 === 0 ? tick(h) : ""))} height={90} label={label} />;
 }

@@ -1125,6 +1125,15 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
   box-shadow: 0 0 0 100vmax #0b0c0a !important;
   clip-path: inset(-100vmax -100vmax 0 -100vmax);
 }
+/* phone: no giant shadow (ios safari mispositions the sticky player next to it); the bar just
+   bleeds to the screen edges, which is safe here because phones have no scrollbar to overflow */
+@media (max-width: 640px) {
+  .archive-topbar, .archive-topbar.is-compact {
+    box-shadow: none !important; clip-path: none;
+    margin-left: calc(50% - 50vw) !important; margin-right: calc(50% - 50vw) !important;
+    padding-left: max(1rem, env(safe-area-inset-left)) !important; padding-right: max(1rem, env(safe-area-inset-right)) !important;
+  }
+}
 
 /* technical notes in "sobre este proyecto" */
 .tech { margin-top: 3.5rem; display: grid; gap: 1.2rem; }
