@@ -14,6 +14,7 @@ import { Home } from "./pages/Home";
 import { shortDate } from "./utils/format";
 import { Link, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
+import { scrollToHashWhenSettled } from "./utils/hashScroll";
 
 const nav = [
   ["últimamente", "/#ultimamente"],
@@ -30,16 +31,17 @@ export function App() {
   const nowPlaying = useNowPlaying();
 
   useEffect(() => {
+    let cancelScroll = () => {};
     void Promise.allSettled([
       loadStats().then(setLoaded),
       loadInsights().then(setInsights),
       loadRecent().then(setRecent),
       loadExplore().then(setExplore),
     ]).then(() => {
-      // Initial anchors may be missing until React and the statistics finish loading.
-      const id = window.location.hash.slice(1);
-      if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+      // sections only exist once the data is in; covers keep shifting the layout after that
+      cancelScroll = scrollToHashWhenSettled();
     });
+    return () => cancelScroll();
   }, []);
 
   const stats = loaded?.stats ?? null;
