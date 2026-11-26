@@ -148,6 +148,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const queueScope = useRef<{ slug: string | null; albumKey: string | null }>({ slug: null, albumKey: null });
   const playedInQueue = useRef(new Set<string>());
   const customQueue = useRef(false);
+  const catalogMode = useRef<"artist" | "genre" | "random" | "queue">("artist");
   // other artists of the genre being played, used only as fallbacks
   const relatedArtists = useRef<string[]>([]);
   const pendingRelated = useRef<string[]>([]);
@@ -268,7 +269,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     const current = ++sequence.current;
     previewPlan.current = null;
     if (!continuation) failedUrls.current.clear();
-    if (!continuation) customQueue.current = false;
+    if (!continuation) { customQueue.current = false; catalogMode.current = "artist"; }
     // artists of the same genre, set by playGenre just before this call; any other play has none
     const related = continuation ? relatedArtists.current : pendingRelated.current;
     relatedArtists.current = related;
@@ -319,9 +320,15 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         // Search the chosen context first, then the artist's real genre, then the wider archive.
         previewPlan.current = {
           request: { artist, title: song || title },
-          candidates: previewCandidates(artist, song, queue.current,
-            tracks.map((track) => ({ artist: track.artist, title: track.title })),
-            genres, related, Boolean(albumKey || customQueue.current)),
+          candidates: catalogMode.current === "genre" || catalogMode.current === "random"
+            ? [{ artist, title: song, reason: "requested" }, ...shuffle(queue.current.filter((track) =>
+                !playedInQueue.current.has(`${fold(track.artist)}\0${fold(track.title)}`) &&
+                !(fold(track.artist) === fold(artist) && fold(track.title) === fold(song))))
+                .sort((a, b) => Number(fold(a.artist) === fold(artist)) - Number(fold(b.artist) === fold(artist)))
+                .map((track): PreviewCandidate => ({ ...track, reason: "queue" }))]
+            : previewCandidates(artist, song, queue.current,
+                tracks.map((track) => ({ artist: track.artist, title: track.title })),
+                genres, related, Boolean(albumKey || customQueue.current)),
           cursor: 0,
           active: null,
         };
@@ -478,9 +485,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   };
 
   const random = async () => {
-    const pool = tracks.filter((track) => track.title !== selection?.title || track.artist !== selection?.artist);
-    const chosen = pool[Math.floor(Math.random() * pool.length)];
-    if (chosen) { queueScope.current = { slug: null, albumKey: null }; play(chosen.artist, chosen.title); }
+    startCatalog("random", tracks.map((track) => ({ artist: track.artist, title: track.title })));
   };
 
   const next = async () => {
@@ -490,17 +495,39 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
       !(fold(track.artist) === fold(artist) && fold(track.title) === fold(selection?.title ?? ""));
     const list = queue.current.filter(fresh);
     const same = list.filter((track) => fold(track.artist) === fold(artist));
-    const pool = customQueue.current ? list : same;
-    const chosen = shuffled ? pool[Math.floor(Math.random() * pool.length)] : pool[0];
+    const broad = catalogMode.current === "genre" || catalogMode.current === "random";
+    const other = list.filter((track) => fold(track.artist) !== fold(artist));
+    const pool = broad ? (other.length ? other : list) : customQueue.current ? list : same;
+    const chosen = shuffled || broad ? pool[Math.floor(Math.random() * pool.length)] : pool[0];
     if (chosen) play(chosen.artist, chosen.title, queueScope.current.slug, queueScope.current.albumKey, true);
-    else play(artist, "", queueScope.current.slug, queueScope.current.albumKey, true);
+    else if (!broad) play(artist, "", queueScope.current.slug, queueScope.current.albumKey, true);
   };
   /** a genre: one of its artists, and if nothing of them is found, another artist of the same genre */
+  const startCatalog = (mode: "genre" | "random", items: { artist: string; title: string }[]) => {
+    const unique = [...new Map(items.map((track) => [`${fold(track.artist)}\0${fold(track.title)}`, track])).values()];
+    const other = unique.filter((track) => fold(track.artist) !== fold(selection?.artist ?? ""));
+    const pool = other.length ? other : unique.filter((track) => track.title !== selection?.title);
+    const fresh = pool.filter((track) => !playedAcrossQueues.current.has(`${fold(track.artist)}\0${fold(track.title)}`));
+    const choices = fresh.length ? fresh : pool;
+    const chosen = choices[Math.floor(Math.random() * choices.length)];
+    if (!chosen) return;
+    catalogMode.current = mode;
+    customQueue.current = true;
+    queue.current = unique;
+    queueScope.current = { slug: null, albumKey: null };
+    relatedArtists.current = [];
+    pendingRelated.current = [];
+    playedInQueue.current.clear();
+    failedUrls.current.clear();
+    play(chosen.artist, chosen.title, null, null, true);
+  };
   const playGenre = (names: string[]) => {
-    const pool = shuffle(names.filter(Boolean));
-    if (!pool.length) return;
-    pendingRelated.current = pool.slice(1);
-    play(pool[0], "", null, null);
+    const members = new Set(names.filter(Boolean).map(fold));
+    const items = tracks.filter((track) => members.has(fold(track.artist)))
+      .map((track) => ({ artist: track.artist, title: track.title }));
+    const represented = new Set(items.map((track) => fold(track.artist)));
+    for (const name of names.filter(Boolean)) if (!represented.has(fold(name))) items.push({ artist: name, title: "" });
+    startCatalog("genre", items);
   };
 
   const playQueue = (tracks: { artist: string; title: string }[]) => {
@@ -513,6 +540,9 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     queueScope.current = { slug: null, albumKey: null };
     playedInQueue.current.clear();
     customQueue.current = true;
+    catalogMode.current = "queue";
+    relatedArtists.current = [];
+    failedUrls.current.clear();
     play(chosen.artist, chosen.title, null, null, true);
   };
 
