@@ -527,3 +527,6 @@ body { padding-bottom: 5.5rem; }
 
 .back-home { position: fixed; z-index: 55; top: .9rem; left: .9rem; padding: .45rem .8rem; font-size: .78rem; color: var(--color-ink); background: #1d1a17; border: 1px solid #4a3d31; cursor: pointer; }
 .back-home:hover { border-color: var(--color-accent); }
+
+/* everything lowercase, form controls included (they don't inherit by default) */
+button, input, select, textarea, svg text { text-transform: lowercase; }

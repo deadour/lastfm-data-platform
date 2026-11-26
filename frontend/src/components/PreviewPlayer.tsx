@@ -104,11 +104,6 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
     })();
   };
 
-  const turnOn = () => {
-    if (audio.current) unlock(audio.current);
-    setEnabled(true);
-  };
-
   const mute = () => {
     sequence.current++;
     audio.current?.pause();
@@ -134,26 +129,12 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
       onTimeUpdate={(e) => { if (!isSilence()) setTime({ current: e.currentTarget.currentTime, duration: e.currentTarget.duration || 30 }); }}
       onError={() => { if (ready) { setPlaying(false); setSelection((s) => (s ? { ...s, status: "error" } : s)); } }} />
-    <aside className={`preview-player ${enabled ? "on" : "off"}`} aria-label="reproductor de fragmentos">
-      {!enabled ? (
-        <>
-          <button type="button" className="preview-main" onClick={turnOn} aria-label="activar sonido">▶</button>
-          <div className="preview-body">
-            <div className="preview-description"><strong>activar sonido</strong></div>
-          </div>
-          <span />
-        </>
-      ) : (
-        <>
+    {selection && <aside className="preview-player on" aria-label="reproductor de fragmentos">
           <button type="button" className="preview-main" onClick={toggle} disabled={!ready} aria-label={playing ? "pausar" : "reproducir"}>
             {selection?.status === "loading" ? <span className="preview-spinner" aria-hidden /> : playing ? "❚❚" : "▶"}
           </button>
           <div className="preview-body">
-            {selection ? (
-              <div className="preview-description"><strong>{selection.title}</strong><span>{selection.artist}</span></div>
-            ) : (
-              <div className="preview-description"><strong>sonido activado</strong><span>tocá algo para escucharlo</span></div>
-            )}
+            <div className="preview-description"><strong>{selection.title}</strong><span>{selection.artist}</span></div>
             {ready && (
               <div className="preview-timeline">
                 <input type="range" min={0} max={1000} value={Math.round(progress * 1000)} aria-label="posición del fragmento"
@@ -168,11 +149,9 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           </div>
           <div className="preview-side">
             {ready && selection?.source && <a href={selection.source} target="_blank" rel="noreferrer">{selection.provider === "apple" ? "apple music ↗" : "deezer ↗"}</a>}
-            <button type="button" className="preview-mute" onClick={mute}>silenciar la página</button>
+            <button type="button" className="preview-close" aria-label="cerrar" onClick={mute}>×</button>
           </div>
-        </>
-      )}
-    </aside>
+    </aside>}
   </PreviewContext.Provider>;
 }
 
