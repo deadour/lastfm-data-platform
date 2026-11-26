@@ -6,7 +6,10 @@ ACTIVE = "\n".join(line for line in TEXT.splitlines() if not line.lstrip().start
 
 
 def test_cloud_export_is_gated_without_adding_a_cron():
-    assert "workflow_dispatch:" in ACTIVE and "workflow_run:" in ACTIVE
+    assert "workflow_dispatch:" in ACTIVE and "workflow_run:" in ACTIVE and "push:" in ACTIVE
+    assert '      - "frontend/**"' in ACTIVE
+    assert '      - ".github/workflows/export-frontend.yml"' in ACTIVE
+    assert "github.event_name == 'push'" in ACTIVE
     assert "workflows: [daily-pipeline]" in ACTIVE and "branches: [main]" in ACTIVE
     assert "vars.FRONTEND_EXPORT_AUTOMATIC == 'true'" in ACTIVE
     assert "vars.FRONTEND_PUBLICATION_VERIFIED == 'true'" in ACTIVE
@@ -39,8 +42,8 @@ def test_only_the_allowlisted_public_json_is_uploaded_as_an_artifact():
         assert forbidden not in ACTIVE
 
 
-def test_publication_is_opt_in_and_build_includes_the_generated_stats():
-    assert "if: github.event_name == 'workflow_run' || inputs.publish" in ACTIVE
+def test_publication_dispatch_is_opt_in_but_main_pushes_deploy_with_real_stats():
+    assert "if: github.event_name == 'push' || github.event_name == 'workflow_run' || inputs.publish" in ACTIVE
     assert "default: false" in ACTIVE
     assert "npm test" in ACTIVE and "npm run build" in ACTIVE
     assert "scripts/check-stats.ts dist/data/stats.json" in ACTIVE
