@@ -13,7 +13,7 @@ export function About({ stats }: { stats: StatsFile | null; insights: InsightsFi
       <p className="about-subtitle">{translate("proyecto personal que empecé para practicar ingeniería de datos, usando como base la música que escucho desde 2016.")}</p>
     </header>
     <div className="about-copy">
-      <p>{translate("todo lo que voy escuchando en spotify y youtube queda registrado en mi cuenta de last.fm, un servicio que recolecta datos musicales, desde abril de 2016. entre 2017 y 2019 no hay registros porque se había desconectado la app, pero desde 2020 registra lo que escucho a diario.")}</p>
+      <p>{translate("comencé a registrar la música que escucho en abril de 2016 y de forma ininterrumpida desde 2020, utilizando un servicio llamado last.fm, que se conecta a mis cuentas de spotify y youtube para guardar mi historial musical.")}</p>
       <p>{translate("con este escenario quise poner en práctica cosas que fui viendo en la facultad, usando herramientas que uso en el trabajo y otras que tenía ganas de aprender.")}</p>
       <p>{translate("básicamente, lo que hago es automatizar la extracción de mis datos en crudo desde last.fm y los proceso con una arquitectura ")}<strong>{translate("medallón")}</strong>{translate(". la idea es que los datos van subiendo de medalla: en bronce están tal cual llegan, en plata ya están limpios y ordenados, y en oro quedan listos para mostrar. esos son los que usa esta web.")}</p>
       <p>{translate("todo el proceso se repite diariamente en forma automática y actualiza lo que voy escuchando.")}</p>
