@@ -45,6 +45,7 @@ export const english: Record<string, string> = {
   "arranca": "starts", "github actions levanta el job": "github actions starts the job", "lee el checkpoint": "reads the checkpoint", "y toma un candado para correr solo": "and takes a lock to run exclusively",
   "baja lo nuevo": "fetches new plays", "de last.fm, desde el último registro": "from last.fm, since the last record", "silver y gold": "silver and gold", "se rearman y se suben con hash": "rebuilt and uploaded with checksums",
   "avanza el checkpoint": "advances the checkpoint", "solo si todo salió completo": "only after a complete successful run", "publica": "publishes", "exporta, despliega y verifica la web": "exports, deploys and verifies the site",
+  "▶ azar": "▶ random", "cerrar reproductor": "close player", "tocá ▶ para escuchar": "tap ▶ to play",
   "elegí un tema": "choose a song", "reproductor de fragmentos": "preview player", "detener": "stop", "volumen": "volume", "elegí una canción o tocá shuffle": "choose a song or press shuffle",
   "buscando…": "searching…", "sin fragmento ·": "no preview ·", "no se pudo reproducir el fragmento": "could not play the preview", "posición del fragmento": "preview position",
   "anterior": "previous", "pausar": "pause", "reproducir": "play", "siguiente tema": "next song", "repetir fragmento": "repeat preview", "repetir este fragmento": "repeat this preview",

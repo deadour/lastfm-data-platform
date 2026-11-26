@@ -98,9 +98,12 @@ export function App() {
           <>
             <section className="archive-masthead" aria-labelledby="archive-title">
               <div className="archive-masthead-row">
-                <div className="masthead-editorial"><MastheadCollage stats={stats} insights={insights} /><div ref={masthead} className="masthead-lettering"><h1 id="archive-title" className="archive-main-title">e</h1><p className="archive-subtitle">{translate("lo que escucho")}</p></div></div>
-                <img className="archive-masthead-photo" src="/img/diego.jpg" width={720} height={621}
-                  alt={translate("diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo")} />
+                <div className="masthead-editorial"><MastheadCollage stats={stats} insights={insights} /><div ref={masthead} className="masthead-lettering"><h1 id="archive-title" className="archive-main-title">e</h1></div></div>
+                <div className="archive-masthead-photo-wrap">
+                  <img className="archive-masthead-photo" src="/img/diego.jpg" width={720} height={621}
+                    alt={translate("diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo")} />
+                  <p className="archive-subtitle archive-photo-subtitle">{translate("lo que escucho")}</p>
+                </div>
               </div>
             </section>
             {live ? <NowPlayingHero data={live} /> : fallbackTrack && <NowPlayingHero data={fallbackTrack} fallback />}

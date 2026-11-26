@@ -779,3 +779,209 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
   .time-chart-line, .time-chart-bar { filter: none; }
   .wa-right .wa-marquee span { animation: none !important; }
 }
+
+
+/* fixed-in-view header: an opaque layer, not text scrolling through glass */
+.archive-topbar-slot {
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  min-height: 4rem;
+  isolation: isolate;
+  background: #101511;
+}
+.archive-topbar-slot::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  background: #101511;
+  border-bottom: 1px solid #344037;
+  pointer-events: none;
+}
+.archive-topbar,
+.archive-topbar.is-compact {
+  position: relative;
+  inset: auto;
+  min-height: 4rem;
+  padding: .55rem 0;
+  background: #101511;
+  box-shadow: none;
+  backdrop-filter: none;
+  border-bottom: 1px solid #344037;
+}
+.archive-topbar-slot:has(.archive-topbar.is-compact) {
+  box-shadow: 0 5px 18px #0006;
+}
+.random-mobile { display: none; }
+
+/* subtitle sits ON the Diego photograph in either language */
+.archive-masthead-photo-wrap {
+  position: relative;
+  flex: 0 0 clamp(16rem, 34vw, 30rem);
+  width: clamp(16rem, 34vw, 30rem);
+}
+.archive-masthead-photo-wrap .archive-masthead-photo {
+  display: block;
+  width: 100%;
+  max-height: none;
+  height: auto;
+  flex: none;
+}
+.archive-masthead-photo-wrap .archive-photo-subtitle {
+  position: absolute;
+  z-index: 5;
+  bottom: 1.3rem;
+  left: -1.2rem;
+  margin: 0;
+  padding: .45rem .8rem;
+  max-width: calc(100% + .8rem);
+  background: #dbe6cf;
+  color: #172418;
+  font: 700 clamp(1.05rem, 2.5vw, 1.65rem)/1.12 var(--font-serif);
+  letter-spacing: -.04em;
+  text-shadow: none;
+  transform: rotate(-4deg);
+  box-shadow: 4px 5px 0 #0008;
+}
+
+/* bottom-docked winamp: tiny, touchable, never floating over half the screen */
+.winamp .wa-x {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 22px;
+  font: 700 18px/1 "Courier New", monospace;
+}
+@media (max-width: 640px) {
+  .archive-topbar-slot {
+    min-height: 3.45rem;
+  }
+  .archive-topbar,
+  .archive-topbar.is-compact {
+    min-height: 3.45rem;
+    padding: .35rem 0;
+  }
+  .archive-header-actions { gap: .5rem; font-size: .7rem; }
+  .archive-header-logo { font-size: 2rem; }
+  .archive-header-actions .random-play {
+    font-size: .7rem;
+    padding: .35rem .4rem;
+    white-space: nowrap;
+  }
+  .random-desktop { display: none; }
+  .random-mobile { display: inline; }
+  .archive-nav-link { white-space: nowrap; }
+  .archive-masthead-row { position: relative; }
+  .archive-masthead-photo-wrap {
+    position: absolute;
+    z-index: 4;
+    top: .75rem;
+    right: .25rem;
+    width: clamp(115px, 34vw, 165px);
+    flex: none;
+    transform: rotate(4deg);
+    box-shadow: 0 5px 16px #0007;
+  }
+  .archive-masthead-row .archive-masthead-photo-wrap .archive-masthead-photo {
+    position: static;
+    top: auto;
+    right: auto;
+    width: 100%;
+    max-height: none;
+    transform: none;
+    box-shadow: none;
+  }
+  .archive-masthead-photo-wrap .archive-photo-subtitle {
+    bottom: .7rem;
+    left: -.9rem;
+    padding: .25rem .45rem;
+    max-width: calc(100% + 1rem);
+    font-size: clamp(.78rem, 3.4vw, 1rem);
+    line-height: 1.12;
+    white-space: normal;
+    overflow-wrap: normal;
+  }
+  .winamp {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 200;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-width: 2px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-color: #72738d;
+    box-shadow: 0 -7px 20px #0008;
+  }
+  .winamp .wa-titlebar {
+    min-height: 16px;
+    padding: 0 7px 0 9px;
+  }
+  .winamp .wa-x {
+    min-height: 20px;
+    min-width: 32px;
+    font-size: 18px;
+  }
+  .winamp .wa-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 6px;
+    padding: 4px 6px 6px;
+  }
+  .winamp .wa-display {
+    grid-column: 1;
+    grid-row: 1;
+    display: block;
+    min-width: 0;
+  }
+  .winamp .wa-left, .winamp .wa-vol-row { display: none; }
+  .winamp .wa-right {
+    min-width: 0;
+    gap: 2px;
+    align-content: center;
+  }
+  .winamp .wa-right .wa-marquee {
+    padding: 4px 5px;
+    font-size: 11px;
+  }
+  .winamp .wa-right .wa-meta {
+    display: block;
+    min-height: 12px;
+    font-size: 9px;
+    line-height: 1.25;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .winamp .wa-seek {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    height: 5px;
+    margin: 2px 0 0;
+  }
+  .winamp .wa-buttons {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 3px;
+  }
+  .winamp .wa-buttons button {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 4px;
+    font-size: 14px;
+  }
+  .winamp .wa-buttons .wa-mode, .winamp .wa-buttons .wa-shuffle { display: none; }
+  body:has(.winamp) .archive-shell {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-width: 360px) {
+  .archive-header-actions { gap: .3rem; }
+  .archive-header-actions .random-play { padding-inline: .25rem; }
+  .archive-nav-link { font-size: .68rem; }
+  .language-switch { font-size: .72rem; }
+}
