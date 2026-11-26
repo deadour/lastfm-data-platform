@@ -5,10 +5,9 @@ import { spotifyUrl, youtubeUrl } from "../utils/listen";
 import type { AlbumStat, TrackStat } from "../data/types";
 
 // one persistent <audio> behind a fixed dock with our own controls.
-// sound starts off; the first tap on the dock (or on anything playable) turns
-// it on, and from then on any song, bar, artist or genre plays a fragment.
-// the element is unlocked inside the tap with a 50 ms silent clip served from
-// this site, so the real preview can start on its own when its url arrives.
+// sound starts only after a tap. mobile browsers may require a second tap once
+// an asynchronously looked-up preview URL becomes ready. the dock exposes
+// that action instead of hiding playback failures.
 
 interface Selection { artist: string; title: string; status: "loading" | "ready" | "unavailable" | "error"; url?: string; source?: string; provider?: string; note?: string }
 interface Context {
@@ -88,6 +87,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [playing, setPlaying] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [requiresTap, setRequiresTap] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [autoNext, setAutoNext] = useState(true);
   const [shuffled, setShuffled] = useState(true);
@@ -102,6 +102,8 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   // Keep non-CORS providers outside the Web Audio graph to avoid silent playback.
   const plainAudio = useRef<HTMLAudioElement>(null);
   const activeAudio = useRef<HTMLAudioElement | null>(null);
+  const touchAudio = () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+  const preferredAudio = () => touchAudio() ? plainAudio.current ?? audio.current : audio.current;
   const audioContext = useRef<AudioContext | null>(null);
   useEffect(() => () => { void audioContext.current?.close(); }, []);
 
@@ -112,27 +114,32 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   };
 
   const toggle = () => {
-    const el = activeAudio.current ?? audio.current;
+    const el = activeAudio.current ?? preferredAudio();
     if (!el) return;
-    void audioContext.current?.resume();
-    if (el.paused) void el.play().catch(() => setPlaying(false));
-    else el.pause();
+    if (el.paused) {
+      void audioContext.current?.resume();
+      void el.play().then(() => setRequiresTap(false)).catch(() => {
+        setPlaying(false);
+        setRequiresTap(true);
+      });
+    } else el.pause();
   };
 
   const play = (artist: string, title = "", slug: string | null = null, albumKey: string | null = null, continuation = false) => {
-    const el = activeAudio.current ?? audio.current;
+    const el = preferredAudio();
     if (!el) return;
-    setEnabled(true); // a tap on anything playable turns sound on
+    setEnabled(true); // a tap on anything playable opens the dock
+    setRequiresTap(false);
     if (!continuation && selection?.artist === artist && title && selection.title === title && selection.status === "ready" && queueScope.current.albumKey === albumKey) {
       toggle();
       return;
     }
     const current = ++sequence.current;
     if (!continuation) customQueue.current = false;
-    // Create/resume the graph inside the user's gesture, before provider lookups.
-    if (audio.current) wire(audio.current);
-    void audioContext.current?.resume();
-    unlock(el); // still inside the tap
+    // Mobile Safari can suspend Web Audio; use native HTMLAudioElement there.
+    if (!touchAudio() && audio.current) wire(audio.current);
+    if (!touchAudio()) void audioContext.current?.resume();
+    unlock(el); // gesture-bound best effort; a retry control handles mobile restrictions
     setPlaying(false);
     setTime({ current: 0, duration: 30 });
     setSelection({ artist, title: title || "…", status: "loading" });
@@ -182,14 +189,20 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
             source: found.source_url, provider: found.provider,
             note: exact ? undefined : translate("no encontré ese fragmento; suena otra canción de esta selección") });
           const needsProxy = new URL(found.url).hostname.endsWith(".dzcdn.net");
-          const target = audio.current;
+          const target = preferredAudio();
           if (!target) return;
           audio.current?.pause();
           plainAudio.current?.pause();
           activeAudio.current = target;
           target.volume = volume;
+          delete target.dataset.directRetry;
           target.src = needsProxy ? `/api/audio?${new URLSearchParams({ url: found.url })}` : found.url;
-          void target.play().catch(() => setPlaying(false));
+          void target.play().then(() => setRequiresTap(false)).catch(() => {
+            setPlaying(false);
+            // iOS may block play() after async preview lookup.
+            // The URL is ready, so the next direct tap on ▶ can start it.
+            setRequiresTap(true);
+          });
           return;
         }
         el.pause();
@@ -327,8 +340,11 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     sequence.current++;
     audio.current?.pause();
     plainAudio.current?.pause();
+    activeAudio.current = null;
     setSelection(null);
     setPlaying(false);
+    setRequiresTap(false);
+    setEnabled(false);
     setTime({ current: 0, duration: 30 });
   };
 
@@ -342,12 +358,26 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   return <PreviewContext.Provider value={contextValue}>
     {children}
     {[audio, plainAudio].map((ref, i) => <audio key={i} ref={ref} preload="none" hidden loop={repeat} crossOrigin={i === 0 ? "anonymous" : undefined}
-      onPlay={(e) => { if (!isSilence(e.currentTarget)) setPlaying(true); }}
-      onPause={() => setPlaying(false)} onEnded={(e) => { setPlaying(false); if (autoNext && !isSilence(e.currentTarget)) void next(); }}
-      onTimeUpdate={(e) => { if (!isSilence(e.currentTarget)) setTime({ current: e.currentTarget.currentTime, duration: e.currentTarget.duration || 30 }); }}
-      onError={() => { if (ready && selection) { setPlaying(false); setSelection({ ...selection, status: "error" }); } }} />)}
+      onPlay={(e) => { if (e.currentTarget === activeAudio.current && !isSilence(e.currentTarget)) { setPlaying(true); setRequiresTap(false); } }}
+      onPause={(e) => { if (e.currentTarget === activeAudio.current) setPlaying(false); }}
+      onEnded={(e) => { if (e.currentTarget === activeAudio.current && !isSilence(e.currentTarget)) { setPlaying(false); if (autoNext) void next(); } }}
+      onTimeUpdate={(e) => { if (e.currentTarget === activeAudio.current && !isSilence(e.currentTarget)) setTime({ current: e.currentTarget.currentTime, duration: e.currentTarget.duration || 30 }); }}
+      onError={(e) => {
+        const el = e.currentTarget;
+        if (el !== activeAudio.current || !ready || !selection) return;
+        // A direct audio element does not need CORS. If the proxy failed,
+        // use the already validated public Deezer URL as a native fallback.
+        if (el === plainAudio.current && selection.provider === "deezer" && selection.url && !el.dataset.directRetry) {
+          el.dataset.directRetry = "true";
+          el.src = selection.url;
+          void el.play().then(() => setRequiresTap(false)).catch(() => setRequiresTap(true));
+          return;
+        }
+        setPlaying(false);
+        setSelection({ ...selection, status: "error" });
+      }} />)}
     {enabled && <aside className="winamp" aria-label={translate("reproductor de fragmentos")}>
-      <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("detener")} onClick={mute}>■</button></div>
+      <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("cerrar reproductor")} title={translate("cerrar reproductor")} onClick={mute}>×</button></div>
       <div className="wa-main">
         <div className="wa-display">
           <div className="wa-left">
@@ -365,8 +395,9 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
               {display.status === "idle" && translate("elegí una canción o tocá shuffle")}
               {selection?.status === "loading" && translate("buscando…")}
               {selection?.status === "unavailable" && <>{translate("sin fragmento · ")}<a href={spotifyUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">spotify</a> · <a href={youtubeUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">youtube</a></>}
-              {ready && selection?.note}
-              {selection?.status === "error" && translate("no se pudo reproducir el fragmento")}
+              {ready && requiresTap && translate("tocá ▶ para escuchar")}
+              {ready && !requiresTap && selection?.note}
+              {selection?.status === "error" && <>{translate("no se pudo reproducir el fragmento")} · <a href={spotifyUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">spotify</a> · <a href={youtubeUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">youtube</a></>}
             </div>
           </div>
         </div>
