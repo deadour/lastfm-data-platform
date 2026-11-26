@@ -454,6 +454,17 @@ html {
 .diverge-axis { display: flex; gap: 3px; font-size: .72rem; color: var(--color-muted); margin-top: .5rem; }
 .diverge-axis span { flex: 1; min-width: 0; white-space: nowrap; overflow: visible; }
 
+/* Legend for monthly deviations from the historical average. */
+.diverge-key { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.2rem; margin: .6rem 0 1.25rem; color: var(--color-muted); font-size: .76rem; }
+.diverge-key > span { display: inline-flex; align-items: center; gap: .4rem; }
+.diverge-swatch { display: inline-block; width: .65rem; height: .65rem; flex: 0 0 .65rem; background: #c4563f; }
+.diverge-swatch.below { background: #56B4E9; }
+.diverge-swatch.current { background: transparent; border: 1px dashed #b8afa3; }
+.diverge-axis { min-height: 1.4rem; font-size: .76rem; }
+.diverge-hint { margin-top: .6rem; color: var(--color-muted); font-size: .73rem; }
+.diverge-col:focus-visible { outline: 2px solid #d8c1a5; outline-offset: 1px; }
+
+
 .year-ranks-years { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: 1.4rem; }
 .year-ranks-years button { padding: .35rem .75rem; font: 700 .9rem var(--font-serif); color: var(--color-muted); border: 1px solid #2a2622; cursor: pointer; }
 .year-ranks-years button.on { color: #141210; background: var(--color-ink); border-color: var(--color-ink); }
@@ -993,24 +1004,6 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
 }
 
 
-/* Portaled directly to body; keep the dock at the actual viewport bottom.
-   No visualViewport offset: Safari's toolbar resizing made it jump upwards. */
-@media (max-width: 640px) {
-  body > .winamp {
-    position: fixed;
-    inset: auto 0 0 0;
-    bottom: 0;
-    top: auto;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    transform: none;
-    z-index: 1000;
-  }
-}
-
 /* A listening count is written as 51e, never as an invisible suffix. */
 .count-unit, .e-listen {
   display: inline-block;
@@ -1036,30 +1029,13 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
   }
   .play-count { font-size: .95rem; }
 }
-/* iOS 26 WebKit: fixed bottom overlays can paint half a screen too high
-   when the address bar collapses. Use a document-positioned portal
-   whose top is updated from visualViewport.pageTop + height. */
-@media (max-width: 640px) {
-  body > .winamp.wa-ios-absolute {
-    position: absolute !important;
-    inset: auto 0 auto 0;
-    top: 0;
-    bottom: auto !important;
-    left: 0;
-    right: 0;
-    transform: none !important;
-    margin: 0;
-    z-index: 1000;
-  }
-}
-
-/* header always pinned (position: fixed works on every safari; sticky didn't on some iphones) */
-.archive-topbar-slot { position: static !important; min-height: 4rem !important; }
-.archive-topbar-slot::before { display: none !important; }
+/* Keep the header in normal document flow so Safari can pin it reliably. */
+.archive-topbar-slot { position: sticky; top: 0; z-index: 1100; background: #0b0c0a; }
+.archive-topbar-slot::before { background: #0b0c0a; }
 .archive-topbar, .archive-topbar.is-compact {
-  position: fixed !important; inset: 0 0 auto !important; z-index: 50 !important; min-height: 4rem !important;
-  padding: .6rem max(1.25rem, calc((100vw - 1192px) / 2)) !important; justify-content: space-between !important;
-  background: rgb(14 18 14 / .94) !important; backdrop-filter: blur(14px); border-bottom: 1px solid var(--color-line) !important; }
+  position: relative; inset: auto; min-height: 4rem; padding: .55rem 0;
+  justify-content: space-between; background: #0b0c0a; backdrop-filter: none;
+}
 .archive-header-logo { font: 700 2rem/1 var(--font-serif); color: var(--color-e); letter-spacing: -.06em; }
 
 /* the e is the identity: huge, heavy, not a footnote */
@@ -1077,37 +1053,25 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 /* the e reads exactly like the number next to it */
 .count-unit, .e-listen { font-family: inherit !important; font-weight: inherit !important; font-size: 1em !important; letter-spacing: inherit !important; }
 
-/* phone: dock glued to the bottom edge, handled by the browser (no js positioning) */
+/* A portaled player must stay fixed, never sticky in the document flow. */
 @media (max-width: 640px) {
-  body > .winamp, .winamp {
-    position: fixed !important; top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
-    width: 100% !important; margin: 0 !important; transform: none !important;
-    padding-bottom: env(safe-area-inset-bottom) !important; z-index: 1000 !important;
-  }
-}
-/* iOS safari mispaints bottom-anchored fixed boxes while its toolbar shrinks.
-   anchor from the top instead: start at the dynamic viewport height and pull up by the dock's own height. */
-@media (max-width: 640px) {
-  body > .winamp, .winamp {
-    top: 100dvh !important; bottom: auto !important;
-    transform: translateY(-100%) !important;
-  }
-}
-/* phone: sticky at the end of the page instead of fixed. ios safari paints fixed
-   bottom boxes in the wrong place while its toolbar collapses; sticky scrolls with
-   the content, so it stays glued to the visible bottom edge. */
-@media (max-width: 640px) {
-  body > .winamp, .winamp {
-    position: sticky !important; top: auto !important; bottom: 0 !important;
-    transform: none !important; left: auto !important; right: auto !important;
+  body > .winamp {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 1200 !important;
   }
 }
 /* the title must scroll to be readable, so the marquee runs even with reduced motion (slower) */
 .wa-right .wa-marquee span { animation: wa-scroll 16s steps(80) infinite !important; }
 @media (prefers-reduced-motion: reduce) { .wa-right .wa-marquee span { animation: wa-scroll 26s linear infinite !important; } }
 
-/* header: fully opaque, logo and actions on one row. it stays position: fixed (the rule above):
-   sticky and viewport-fit=cover both broke the phone player on ios safari. */
+/* The header stays opaque and on one row while its wrapper sticks to the top. */
 .archive-topbar, .archive-topbar.is-compact {
   background: #0b0c0a !important; backdrop-filter: none !important;
   flex-wrap: nowrap !important; align-items: center !important;

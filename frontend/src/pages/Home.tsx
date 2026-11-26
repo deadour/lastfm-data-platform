@@ -152,12 +152,7 @@ export function Home({ stats, insights, recent, explore }: {
 
       {insights && (
         <Section id="mes-a-mes" title={translate("mes a mes, contra mi promedio")}>
-          <MonthsVsAverage months={insights.months} monthly={insights.monthly} onPick={(month) => {
-            const year = Number(month.slice(0, 4));
-            const list = explore?.year_ranks.find((r) => r.year === year)?.top_artists ?? insights.artists;
-            const who = list[Math.floor(Math.random() * list.length)]?.name;
-            if (who) preview?.play(who, "", slugs.get(who) ?? null);
-          }} />
+          <MonthsVsAverage months={insights.months} monthly={insights.monthly} />
         </Section>
       )}
 
