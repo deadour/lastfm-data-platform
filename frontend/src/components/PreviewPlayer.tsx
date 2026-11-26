@@ -22,6 +22,8 @@ interface Context {
   enabled: boolean;
   /** something I listen to, at random */
   random: () => void;
+  /** the catalog key of one of my albums, to play it as a queue */
+  albumKeyFor: (artist: string, title: string) => string | null;
 }
 const PreviewContext = createContext<Context | null>(null);
 
@@ -462,7 +464,8 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const progress = time.duration ? Math.min(1, time.current / time.duration) : 0;
   const isSilence = (el: HTMLAudioElement) => el.src.endsWith(SILENCE);
   const display = selection ?? { artist: "e", title: translate("elegí un tema"), status: "idle" };
-  const contextValue = useMemo<Context>(() => ({ play, playQueue, selection, playing, enabled, random: () => void random() }),
+  const contextValue = useMemo<Context>(() => ({ play, playQueue, selection, playing, enabled, random: () => void random(),
+    albumKeyFor: (artist: string, title: string) => albums.find((a) => fold(a.artist) === fold(artist) && fold(a.title) === fold(title))?.key ?? null }),
     [selection, playing, enabled, volume, shuffled, tracks, albums, artists]);
 
   return <PreviewContext.Provider value={contextValue}>
@@ -551,6 +554,16 @@ export function PlayableTitle({ artist, title, className = "", slug, albumKey }:
   const playing = context.selection?.artist === artist && context.selection.title === title && context.playing;
   return <button type="button" className={`playable ${playing ? "on" : ""} ${className}`} onClick={() => context.play(artist, title, slug, albumKey)}
     aria-label={translate(`escuchar ${title}, de ${artist}`)}>{title}</button>;
+}
+
+/** round play button for an artist (my most played songs) or one of my albums */
+export function PlaySomething({ artist, album, label }: { artist: string; album?: string; label: string }) {
+  const context = useContext(PreviewContext);
+  if (!context) return null;
+  const key = album ? context.albumKeyFor(artist, album) : null;
+  const active = context.selection?.artist === artist && context.playing;
+  return <button type="button" className={`preview-button ${active ? "on" : ""}`} aria-label={label} title={translate("escuchar")}
+    onClick={() => context.play(artist, "", null, key)}>▶</button>;
 }
 
 /** small header button: plays something I listen to, at random */

@@ -1,6 +1,7 @@
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -110,6 +111,7 @@ def test_only_artwork_catalog_is_updated_and_checkpoint_stays_identical(lake, tm
     first = json.loads((tmp_path / "public/insights.json").read_text(encoding="utf-8"))["first_ever"]
     assert first["album"] == document["top_albums"][0]["title"]
     assert first["cover"] == document["top_albums"][0]["cover"]
+    assert re.fullmatch(r"\d{2}:\d{2}", first["time"])
     assert set(lake.blobs) - set(before) == {job.CATALOG_BLOB, artist_photos.CATALOG_BLOB, cloud_genres.CATALOG_BLOB}
     assert all(lake.blobs[key] == value and lake.etags[key] == etags[key] for key, value in before.items())
     assert not lake.lease_held

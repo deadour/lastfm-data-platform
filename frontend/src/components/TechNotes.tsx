@@ -43,6 +43,14 @@ const build: [string, string][] = [
   ["filas en la capa silver", "116.871"],
 ];
 
+const lake: [string, string, string][] = [
+  ["lake/", "contenedor privado", ""],
+  ["  bronze/lastfm/recent_tracks/ingestion_date=2026-10-02/run_20261002T214613Z/page_0001.json", "una página cruda de la api por archivo, agrupadas por día y ejecución", "bronze"],
+  ["  silver/scrobbles/snapshot=20261002T223940Z/scrobbles.parquet", "una tabla con todas las escuchas, una versión por ejecución", "silver"],
+  ["  gold/snapshot=…/listening_yearly/", "las 7 tablas de estadísticas, también versionadas", "gold"],
+  ["  metadata/state_backups/", "copias del checkpoint, por si hay que recuperar el estado", ""],
+];
+
 const zones: [string, string, string, string][] = [
   ["hasta el 27/01/2026", "argentina", "utc−3", "todo el historial anterior"],
   ["28/01 → 28/03/2026", "francia", "utc+1", "horario de invierno"],
@@ -54,7 +62,7 @@ const decisions: [string, string][] = [
   ["por qué parquet",
     "elegí parquet porque guarda los datos por columna, comprime bastante y respeta el tipo de cada campo. para darme una idea, el historial en json ocupa 160 mb en la capa bronce y el mismo historial en parquet ocupa 11,4 mb en la capa plata. además, cuando armo algo por año puedo leer solamente las columnas de fecha."],
   ["pandas para procesar",
-    "el historial completo son unas 117 mil filas y entra entero en memoria, así que todas las transformaciones las hago con pandas leyendo los parquet directamente. para este volumen no me hizo falta una base de datos ni spark."],
+    "el historial completo son unas 117 mil filas y entra entero en memoria, así que todas las transformaciones las hago con pandas leyendo los parquet directamente. para este volumen no me hizo falta una base de datos ni spark. lo dejé fijo en pandas 2 porque con pandas 3 las fechas salían en microsegundos en vez de nanosegundos y no pasaban la validación de la capa silver."],
   ["un lago de datos en vez de una base de datos",
     "en azure cada capa se guarda como una foto fija del momento (un snapshot) con su hash sha-256. cada procesamiento genera una nueva y la anterior queda guardada, así que si algo sale mal puedo volver a la versión previa."],
   ["que una falla no rompa nada",
@@ -75,10 +83,12 @@ const decisions: [string, string][] = [
     "como los datos cambian una vez por día, después de armar la capa de oro exporto los resultados a archivos json que la web lee directamente desde cloudflare. por eso carga rápido y no necesito un servidor ni una base de datos respondiendo en cada visita."],
   ["controles antes de publicar",
     "antes de publicar valido que los json tengan la forma que espera la web, y después del despliegue reviso que la página pública esté sirviendo exactamente esos archivos. el proyecto tiene 184 tests en python y 95 en el frontend."],
+  ["por qué winamp",
+    "no sé, aguante la estética de los 2000s. el reproductor y los íconos son un guiño a cómo escuchaba música antes de spotify. para reproducir uso fragmentos de 30 segundos de apple o deezer, y si no aparece el tema pruebo con otro del mismo artista o con algo que escucho mucho, para que nunca quede en silencio."],
 ];
 
 // medal and service colours, so each decision reads at a glance
-const decisionColors = ["#c9a24a", "#5b9bd5", "#e07a5f", "#7fb069", "#b9b9b4", "#c879b0", "#f3a35c", "#56c1b4", "#e0473c", "#9b8cd9", "#d4c25a", "#6fa8dc"];
+const decisionColors = ["#c9a24a", "#5b9bd5", "#e07a5f", "#7fb069", "#b9b9b4", "#c879b0", "#f3a35c", "#56c1b4", "#e0473c", "#9b8cd9", "#d4c25a", "#6fa8dc", "#7fb069"];
 
 export function TechNotes() {
   return (
@@ -116,6 +126,13 @@ export function TechNotes() {
         {build.map(([k, v]) => <li key={k}><span>{translate(k)}</span><strong className="tabular">{v}</strong></li>)}
       </ol>
       <p className="tech-lead">{translate("al 41% de las escuchas le falta el id de musicbrainz del tema y al 27% el del artista, por eso para las portadas y los géneros también busco por nombre.")}</p>
+
+      <h3 className="tech-title">{translate("cómo está organizado el lago")}</h3>
+      <p className="tech-lead">{translate("es un contenedor privado en azure data lake gen2, con una carpeta por capa. cada ejecución guarda una versión nueva con la fecha en el nombre, y las anteriores quedan.")}</p>
+      <ul className="tech-lake">
+        {lake.map(([path, note, tone]) => <li key={path} className={tone}><code>{path}</code><small>{translate(note)}</small></li>)}
+      </ul>
+      <p className="tech-lead">{translate("cada archivo se sube con su hash sha-256 guardado como metadato. si ya hay uno igual no lo vuelvo a subir, y si hay uno distinto el pipeline se niega a pisarlo salvo que se lo pida. para entrar no uso claves de la cuenta: tanto yo como github actions usamos identidades de azure que solo tienen permiso para leer y escribir datos.")}</p>
 
       <h3 className="tech-title">{translate("decisiones")}</h3>
       <dl className="tech-decisions">

@@ -189,7 +189,7 @@ html {
 .reading-card:nth-child(2) { background: #423129; }
 .reading-card:nth-child(3) { background: #2b302b; }
 .reading-card:nth-child(4) { background: #292424; }
-.reading-card-top { display: flex; justify-content: space-between; gap: 1rem; color: #bfb4a6; font-size: .72rem; letter-spacing: .02em; }
+.reading-card-top { display: flex; justify-content: space-between; gap: 1rem; color: #bfb4a6; font: 400 clamp(1.1rem, 2vw, 1.45rem) var(--font-serif); letter-spacing: -.01em; }
 .reading-card-top span:last-child { opacity: .6; font-variant-numeric: tabular-nums; }
 .reading-card strong { font: 400 clamp(1.15rem, 2vw, 1.7rem)/1.25 var(--font-sans); overflow-wrap: anywhere; letter-spacing: -.025em; }
 .reading-card p { color: #b7afa6; margin-top: auto; font-size: .75rem; }
@@ -197,7 +197,8 @@ html {
 .reading-record > div:last-child { display: grid; gap: .75rem; }
 .reading-hours { min-width: 0; background: #1c1a17; border: 1px solid #2a2622; color: var(--color-ink); padding: clamp(1.25rem, 2vw, 2rem); display: flex; flex-direction: column; justify-content: space-between; }
 .reading-hours-header { display: grid; gap: .7rem; }
-.reading-hours-header span { font-size: .75rem; }
+.reading-hours-header span { font: 400 clamp(1.1rem, 2vw, 1.45rem) var(--font-serif); color: #bfb4a6; }
+.reading-hours-header small { font-size: .8rem; color: var(--color-muted); }
 .reading-hours-header strong { font: 400 clamp(3rem, 5vw, 5.6rem)/1 var(--font-serif); letter-spacing: -.06em; }
 .reading-hours .grow-up { background: #b8afa3 !important; }
 .reading-hours .text-muted { color: #7d766d; }
@@ -1202,3 +1203,16 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
   .medal-step-label { min-width: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .medal-layer { animation: none; } }
+
+/* year detail: a play button next to each pick */
+.year-play { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.year-play .preview-button { width: 1.5rem; height: 1.5rem; font-size: .55rem; }
+
+/* lake layout: one row per folder, path and what it holds */
+.tech-lake { display: grid; gap: .1rem; margin: 1rem 0 1.2rem; padding: 1rem 1.1rem; border: 1px solid #38a8ed40; border-radius: 8px; background: #073b6526; }
+.tech-lake li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: .3rem 1.2rem; padding: .45rem 0; border-top: 1px dashed #ffffff14; }
+.tech-lake li:first-child { border-top: 0; }
+.tech-lake code { font-size: .74rem; white-space: pre-wrap; overflow-wrap: anywhere; text-transform: none; color: #d8d2c8; }
+.tech-lake small { font-size: .76rem; color: #9a958c; }
+.tech-lake li.bronze code { color: #c08552; } .tech-lake li.silver code { color: #c9c6c0; } .tech-lake li.gold code { color: #d9a83a; }
+@media (max-width: 640px) { .tech-lake li { grid-template-columns: 1fr; } }

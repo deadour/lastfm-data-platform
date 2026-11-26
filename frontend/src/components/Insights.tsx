@@ -6,7 +6,7 @@ import { Link } from "../utils/router";
 import { Cover } from "./Cover";
 import { Count } from "./Count";
 import { HourBars } from "./Charts";
-import { PreviewButton } from "./PreviewPlayer";
+import { PlayableTitle, PlaySomething, PreviewButton } from "./PreviewPlayer";
 
 function Reading({ first }: { first: InsightsFile["first_ever"] }) {
   return (
@@ -14,7 +14,7 @@ function Reading({ first }: { first: InsightsFile["first_ever"] }) {
       <div className="reading-card-top"><span>{translate("el primer registro")}</span></div>
       <div className="reading-record">
         <Cover seed={first.album ?? first.title} image={first.cover?.url} label={translate(`portada de ${first.album ?? first.title}`)} album={first.album ? { artist: first.artist, title: first.album } : undefined} compact />
-        <div><strong>{first.title}</strong><p>{first.artist} · {longDate(first.date)}</p><PreviewButton artist={first.artist} title={first.title} /></div>
+        <div><strong>{first.title}</strong><p>{first.artist} · {longDate(first.date)}{first.time && <>{translate(" a las ")}{first.time}</>}</p><PreviewButton artist={first.artist} title={first.title} /></div>
       </div>
     </article>
   );
@@ -29,11 +29,12 @@ export function Readings({ data }: { data: InsightsFile }) {
       </div>
       <div className="reading-hours">
         <div className="reading-hours-header">
-          <span>{translate("mi horario")}</span>
+          <span>{translate("la hora en la que más escucho")}</span>
           <strong>{String(habits.peak_hour).padStart(2, "0")}:00</strong>
+          <small>{pct(habits.hours[habits.peak_hour] ?? 0)}{translate(" de todas mis escuchas")}</small>
         </div>
         <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label={translate("distribución histórica según la hora local")} />
-        <p>{translate("por hora · todo el historial")}</p>
+        <p>{translate("cuánto escucho en cada hora del día, en hora local, desde 2016")}</p>
       </div>
     </div>
   );
@@ -46,29 +47,32 @@ function YearRow({ year, linkFor }: { year: YearInsight; linkFor: (artist: strin
       <div>
         <span className="font-serif text-4xl text-ink">{year.year}</span>
         <span className="tabular mt-2 block text-sm text-muted"><span className="count-value">{n(year.scrobbles)}<small className="count-unit">e</small></span></span>
-        {year.partial && <span className="mt-1 block text-xs text-muted/70">{translate("año incompleto")}</span>}
+        {year.year === new Date().getFullYear()
+          ? <span className="mt-1 block text-xs text-muted/70">{translate("en curso")}</span>
+          : year.partial && <span className="mt-1 block text-xs text-muted/70">{translate("registro parcial")}</span>}
       </div>
       <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-xs text-muted">{translate("artista del año")}</dt>
-          <dd className="music-name mt-1 text-lg text-ink">
+          <dd className="year-play music-name mt-1 text-lg text-ink">
+            <PlaySomething artist={year.top_artist} label={translate(`escuchar algo de ${year.top_artist}`)} />
             {top ? <Link href={top} className="hover:underline hover:decoration-white/30 hover:underline-offset-4">{year.top_artist}</Link> : year.top_artist}
           </dd>
           <dd className="text-muted">{pct(year.top_artist_share)}{translate(" del total")}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted">{translate("canción del año")}</dt>
-          <dd className="mt-1 text-ink">{year.top_track.title}</dd>
+          <dd className="year-play mt-1 text-ink"><PreviewButton artist={year.top_track.artist} title={year.top_track.title} /><PlayableTitle artist={year.top_track.artist} title={year.top_track.title} /></dd>
           <dd className="text-muted">{translate("de ")}{year.top_track.artist} · <Count value={year.top_track.plays} /></dd>
         </div>
         <div>
           <dt className="text-xs text-muted">{translate("descubrimiento")}</dt>
-          <dd className="mt-1 text-ink">{year.discovery?.artist ?? "—"}</dd>
+          <dd className="year-play mt-1 text-ink">{year.discovery ? <><PlaySomething artist={year.discovery.artist} label={translate(`escuchar algo de ${year.discovery.artist}`)} />{linkFor(year.discovery.artist) ? <Link href={linkFor(year.discovery.artist)!} className="hover:underline hover:underline-offset-4">{year.discovery.artist}</Link> : year.discovery.artist}</> : "—"}</dd>
           <dd className="text-muted">{translate("entre ")}{n(year.new_artists)}{translate(" artistas nuevos")}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted">{translate("disco del año")}</dt>
-          <dd className="mt-1 text-ink">{year.top_album?.title ?? "—"}</dd>
+          <dd className="year-play mt-1 text-ink">{year.top_album ? <><PlaySomething artist={year.top_album.artist} album={year.top_album.title} label={translate(`escuchar algo de ${year.top_album.title}`)} />{year.top_album.title}</> : "—"}</dd>
           {year.top_album && <dd className="text-muted">{translate("de ")}{year.top_album.artist}</dd>}
         </div>
       </dl>

@@ -78,5 +78,5 @@ export function yearTicks(months: string[], every = 1) {
 }
 
 export function HourBars({ values, label }: { values: number[]; label: string }) {
-  return <Bars values={values} labels={values.map((_, h) => (h % 6 === 0 ? `${h}` : ""))} height={90} label={label} />;
+  return <Bars values={values} labels={values.map((_, h) => (h % 6 === 0 ? `${String(h).padStart(2, "0")}h` : ""))} height={90} label={label} />;
 }

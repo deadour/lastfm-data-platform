@@ -149,7 +149,7 @@ def constants(events: pd.DataFrame, limit: int = 6) -> list[dict[str, Any]]:
 def first_ever(events: pd.DataFrame, lookup) -> dict[str, Any]:
     row = events.iloc[0]
     return {"title": row.track_name, "artist": row.artist_name, "date": _day(row.scrobbled_at_local),
-            "album": row.album_name or None, "cover": lookup(row.artist_name, row.album_name)}
+            "time": row.scrobbled_at_local.strftime("%H:%M"), "album": row.album_name or None, "cover": lookup(row.artist_name, row.album_name)}
 
 
 def habits(events: pd.DataFrame) -> dict[str, Any]:
