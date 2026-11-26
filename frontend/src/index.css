@@ -521,7 +521,7 @@ body { padding-bottom: 5.5rem; }
 .dot-plot-value, .rank-bars-value { white-space: nowrap; }
 
 /* the e is green everywhere: title, subtitle and every count */
-:root { --color-e: #2f4a2c; }
+:root { --color-e: #a8d49e; }
 .archive-main-title, .e-green, .e-listen, .count-unit { color: var(--color-e) !important; }
 .album-year { color: var(--color-muted); }
 
@@ -1001,6 +1001,48 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
     max-width: none;
     margin: 0;
     transform: none;
+    z-index: 1000;
+  }
+}
+
+/* A listening count is written as 51e, never as an invisible suffix. */
+.count-unit, .e-listen {
+  display: inline-block;
+  margin-left: .18em;
+  color: var(--color-e) !important;
+  font-family: "Courier Prime", "Courier New", monospace;
+  font-size: .92em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+  vertical-align: baseline;
+}
+.play-count {
+  color: #ccc5bc;
+  font-size: .91rem;
+  gap: .03em;
+}
+.count-value { font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .count-unit, .e-listen {
+    font-size: 1em;
+    font-weight: 700;
+  }
+  .play-count { font-size: .95rem; }
+}
+/* iOS 26 WebKit: fixed bottom overlays can paint half a screen too high
+   when the address bar collapses. Use a document-positioned portal
+   whose top is updated from visualViewport.pageTop + height. */
+@media (max-width: 640px) {
+  body > .winamp.wa-ios-absolute {
+    position: absolute !important;
+    inset: auto 0 auto 0;
+    top: 0;
+    bottom: auto !important;
+    left: 0;
+    right: 0;
+    transform: none !important;
+    margin: 0;
     z-index: 1000;
   }
 }
