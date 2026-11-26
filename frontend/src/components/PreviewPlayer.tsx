@@ -50,7 +50,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
             aria-label={`fragmento de ${selection.title}, de ${selection.artist}`}
             onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
             onError={() => { setPlaying(false); setSelection({ ...selection, status: "error" }); }} />
-          <a href={selection.source} target="_blank" rel="noreferrer">{selection.provider === "apple" ? <img src="/icons/apple-music-badge.svg" width="100" height="33" alt="escuchar en apple music" /> : "fragmento · deezer ↗"}</a>
+          <a href={selection.source} target="_blank" rel="noreferrer">{selection.provider === "apple" ? "fragmento · apple music ↗" : "fragmento · deezer ↗"}</a>
         </>}
       </div>
       <button type="button" className="preview-close" aria-label="cerrar reproductor" onClick={() => { sequence.current++; setSelection(null); setPlaying(false); }}>×</button>
