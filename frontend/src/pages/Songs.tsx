@@ -4,7 +4,7 @@ import { Cover } from "../components/Cover";
 import { Loading } from "../components/Loading";
 import { PlayableTitle, PreviewButton } from "../components/PreviewPlayer";
 import type { StatsFile } from "../data/types";
-import { n } from "../utils/format";
+import { Count } from "../components/Count";
 
 const plain = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
@@ -23,7 +23,7 @@ export function Songs({ stats }: { stats: StatsFile | null }) {
         <span className="tabular text-muted">{String(t.rank).padStart(2, "0")}</span>
         <Cover seed={t.title} image={t.image} label={translate(`portada de ${t.title}`)} compact />
         <span className="min-w-0"><PlayableTitle artist={t.artist} title={t.title} /><small>{t.artist}</small></span>
-        <span className="tabular text-muted">{n(t.scrobbles)}</span>
+        <span className="tabular text-muted"><Count value={t.scrobbles} /></span>
         <PreviewButton artist={t.artist} title={t.title} />
       </li>)}
     </ol>
