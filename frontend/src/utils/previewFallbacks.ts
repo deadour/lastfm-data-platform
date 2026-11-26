@@ -21,9 +21,9 @@ export function previewCandidates(
   if (title) add(artist, title, "requested");
   const sameArtist = queue.filter((item) => fold(item.artist) === fold(artist));
   if (queueFirst) {
-    for (const item of queue.slice(0, 24)) add(item.artist, item.title, "queue");
+    for (const item of queue.slice(0, 48)) add(item.artist, item.title, "queue");
   } else {
-    for (const item of sameArtist.slice(0, 14)) add(item.artist, item.title, "artist");
+    for (const item of sameArtist.slice(0, 28)) add(item.artist, item.title, "artist");
   }
   // Artist-only search can find a popular, playable recording outside the user's top tracks.
   add(artist, "", "artist");
@@ -38,11 +38,11 @@ export function previewCandidates(
     ...matchingFamilies.flatMap((members) => members.map((member) => member.name)).filter(matchesGenre),
   ];
   // Prefer real tracks from the same genre before asking providers for any artist song.
-  for (const item of library.filter((track) => matchesGenre(track.artist)).slice(0, 12))
+  for (const item of library.filter((track) => matchesGenre(track.artist)).slice(0, 24))
     add(item.artist, item.title, "genre");
-  for (const name of relatedMembers.slice(0, 16)) add(name, "", "genre");
+  for (const name of relatedMembers.slice(0, 32)) add(name, "", "genre");
 
   // If the exact context is unavailable, keep searching the user's own listening archive.
-  for (const item of library.slice(0, 24)) add(item.artist, item.title, "library");
+  for (const item of library.slice(0, 48)) add(item.artist, item.title, "library");
   return result;
 }
