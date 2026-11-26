@@ -1,9 +1,10 @@
 import { t as translate } from "../i18n";
 import { createPortal } from "react-dom";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { loadArtist } from "../data/insights";
 import { spotifyUrl, youtubeUrl } from "../utils/listen";
 import { ambientBeat } from "../utils/beat";
+import { mobileDockTop } from "../utils/mobileDock";
 import type { AlbumStat, TrackStat } from "../data/types";
 
 // one persistent <audio> behind a fixed dock with our own controls.
@@ -97,6 +98,39 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [playing, setPlaying] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const dockRef = useRef<HTMLElement>(null);
+  // iOS 26 has a WebKit fixed-position painting bug when browser chrome moves.
+  // Absolute + visualViewport.pageTop avoids the compositor path responsible.
+  const isIOSWebKit = typeof navigator !== "undefined" &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+  useLayoutEffect(() => {
+    if (!enabled || !isIOSWebKit || !dockRef.current) return;
+    const node = dockRef.current;
+    let frame = 0;
+    let lastTop = Number.NaN;
+    const place = () => {
+      if (window.matchMedia("(max-width: 640px)").matches) {
+        const vv = window.visualViewport;
+        const pageTop = vv?.pageTop ?? window.scrollY;
+        const height = vv?.height ?? window.innerHeight;
+        const top = mobileDockTop(pageTop, height, node.offsetHeight);
+        if (top !== lastTop) {
+          node.style.top = `${top}px`;
+          lastTop = top;
+        }
+      } else if (node.style.top) {
+        node.style.removeProperty("top");
+        lastTop = Number.NaN;
+      }
+      frame = window.requestAnimationFrame(place);
+    };
+    place();
+    return () => {
+      window.cancelAnimationFrame(frame);
+      node.style.removeProperty("top");
+    };
+  }, [enabled, isIOSWebKit]);
   const [requiresTap, setRequiresTap] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [autoNext, setAutoNext] = useState(true);
@@ -429,7 +463,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         setPlaying(false);
         setSelection({ ...selection, status: "error" });
       }} />)}
-    {enabled && createPortal(<aside className="winamp" aria-label={translate("reproductor de fragmentos")}>
+    {enabled && createPortal(<aside ref={dockRef} className={`winamp ${isIOSWebKit ? "wa-ios-absolute" : ""}`} aria-label={translate("reproductor de fragmentos")}>
       <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("cerrar reproductor")} title={translate("cerrar reproductor")} onClick={mute}>×</button></div>
       <div className="wa-main">
         <div className="wa-display">
