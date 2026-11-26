@@ -461,6 +461,9 @@ html {
 .diverge-swatch.below { background: #56B4E9; }
 .diverge-swatch.current { background: transparent; border: 1px dashed #b8afa3; }
 .diverge-axis { min-height: 1.4rem; font-size: .76rem; }
+.diverge-hint { margin-top: .6rem; color: var(--color-muted); font-size: .73rem; }
+.diverge-col:focus-visible { outline: 2px solid #d8c1a5; outline-offset: 1px; }
+
 
 .year-ranks-years { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: 1.4rem; }
 .year-ranks-years button { padding: .35rem .75rem; font: 700 .9rem var(--font-serif); color: var(--color-muted); border: 1px solid #2a2622; cursor: pointer; }
