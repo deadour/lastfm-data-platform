@@ -138,6 +138,12 @@ export function Home({ stats, insights, recent, explore }: {
         </Section>
       )}
 
+      {insights && insights.artists.length > 0 && (
+        <Section id={translate("artistas")} title={translate("artistas")} icon={<RetroIcon kind="person" />} aside={<Link href="/artistas" className="hover:text-ink">{translate("ver todos ↗")}</Link>}>
+          <ArtistGrid artists={insights.artists} limit={15} />
+        </Section>
+      )}
+
       {insights && (
         <Section id="mes-a-mes" title={translate("mes a mes, contra mi promedio")}>
           <MonthsVsAverage months={insights.months} monthly={insights.monthly} onPick={(month) => {
@@ -163,24 +169,6 @@ export function Home({ stats, insights, recent, explore }: {
         </Section>
       )}
 
-      {explore && (explore.rarities.off_genre.length > 0 || explore.rarities.one_day.length > 0) && (
-        <Section id={translate("rarezas")} title={translate("varios")} icon={<RetroIcon kind="recycle" />}>
-          <div className="odd-ones">
-            {explore.rarities.off_genre.length > 0 && (
-              <div>
-                <p className="explore-sub">{translate("cosas que escucho a veces")}</p>
-                <ol>{explore.rarities.off_genre.map((a) => <li key={a.name} className="odd-row"><OddPhoto name={a.name} url={a.photo?.url} /><strong><button type="button" onClick={() => openArtist(a.name)}>{a.name}</button></strong><small>{a.style ?? a.family} · <span className="count-value">{n(a.plays)}<small className="count-unit">e</small></span></small></li>)}</ol>
-              </div>
-            )}
-            {explore.rarities.one_day.length > 0 && (
-              <div>
-                <p className="explore-sub">{translate("los escuché un solo día")}</p>
-                <ol>{explore.rarities.one_day.map((a) => <li key={a.name} className="odd-row"><OddPhoto name={a.name} url={a.photo?.url} /><strong><button type="button" onClick={() => openArtist(a.name)}>{a.name}</button></strong><small>{n(a.plays)}{translate(" veces el ")}{a.date.split("-").reverse().join("/")}</small></li>)}</ol>
-              </div>
-            )}
-          </div>
-        </Section>
-      )}
 
       {stats.top_albums && stats.top_albums.length > 0 && (
         <Section id={translate("discos")} title={translate("los discos de siempre")} icon={<RetroIcon kind="drive" />}>
@@ -203,11 +191,6 @@ export function Home({ stats, insights, recent, explore }: {
         {insights && <WeekPreview data={insights} tracks={explore?.weekday_tracks} />}
       </div>
 
-      {insights && insights.artists.length > 0 && (
-        <Section id={translate("artistas")} title={translate("artistas")} icon={<RetroIcon kind="person" />} aside={<Link href="/artistas" className="hover:text-ink">{translate("ver todos ↗")}</Link>}>
-          <ArtistGrid artists={insights.artists} limit={15} />
-        </Section>
-      )}
 
       {insights && (
         <Section id="anos" title={translate("año por año")} icon={<RetroIcon kind="calendar" />}>
@@ -215,6 +198,26 @@ export function Home({ stats, insights, recent, explore }: {
           <YearStory years={insights.years} linkFor={linkFor} />
         </Section>
       )}
+
+      {explore && (explore.rarities.off_genre.length > 0 || explore.rarities.one_day.length > 0) && (
+        <Section id={translate("rarezas")} title={translate("varios")} icon={<RetroIcon kind="recycle" />}>
+          <div className="odd-ones">
+            {explore.rarities.off_genre.length > 0 && (
+              <div>
+                <p className="explore-sub">{translate("cosas que escucho a veces")}</p>
+                <ol>{explore.rarities.off_genre.map((a) => <li key={a.name} className="odd-row"><OddPhoto name={a.name} url={a.photo?.url} /><strong><button type="button" onClick={() => openArtist(a.name)}>{a.name}</button></strong><small>{a.style ?? a.family} · <span className="count-value">{n(a.plays)}<small className="count-unit">e</small></span></small></li>)}</ol>
+              </div>
+            )}
+            {explore.rarities.one_day.length > 0 && (
+              <div>
+                <p className="explore-sub">{translate("los escuché un solo día")}</p>
+                <ol>{explore.rarities.one_day.map((a) => <li key={a.name} className="odd-row"><OddPhoto name={a.name} url={a.photo?.url} /><strong><button type="button" onClick={() => openArtist(a.name)}>{a.name}</button></strong><small>{n(a.plays)}{translate(" veces el ")}{a.date.split("-").reverse().join("/")}</small></li>)}</ol>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
+
 
       <details className="archive-deep-dive">
         <summary><span className="deep-title heading-with-icon"><RetroIcon kind="folder" size={44} />{translate("más del archivo")}</span><span className="big-plus" aria-hidden="true">+</span></summary>
