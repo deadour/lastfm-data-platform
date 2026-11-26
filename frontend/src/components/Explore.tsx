@@ -131,45 +131,57 @@ export function GenreLines({ byYear }: { byYear: { year: number; families: Famil
 /* ---------- months against my average (divergent) ---------- */
 
 /** tracked months only: 2016 and from 2020; 2017–2019 were not recorded, so they don't pull the average down */
-export function MonthsVsAverage({ months, monthly, show = 24, onPick }: { months: string[]; monthly: number[]; show?: number; onPick?: (month: string) => void }) {
-  const tracked = months.map((m, i) => ({ month: m, value: monthly[i] })).filter(({ month }) => {
+export function MonthsVsAverage({ months, monthly, show = 24 }: { months: string[]; monthly: number[]; show?: number }) {
+  const tracked = months.map((month, i) => ({ month, value: monthly[i] })).filter(({ month }) => {
     const year = Number(month.slice(0, 4));
     return year === 2016 || year >= 2020;
   });
-  const complete = tracked.slice(0, -1); // the running month is not finished
-  const avg = complete.reduce((s, m) => s + m.value, 0) / Math.max(1, complete.length);
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const hasRunningMonth = tracked.at(-1)?.month === currentMonth;
+  const complete = hasRunningMonth ? tracked.slice(0, -1) : tracked;
+  const avg = complete.reduce((sum, month) => sum + month.value, 0) / Math.max(1, complete.length);
   const recent = tracked.slice(-show);
-  const maxDev = Math.max(1, ...recent.map((m) => Math.abs(m.value - avg)));
+  const maxDev = Math.max(1, ...recent.map((month) => Math.abs(month.value - avg)));
   const [active, setActive] = useState<number | null>(null);
   const shown = active !== null ? recent[active] : null;
+
   return (
     <figure className="diverge">
-      <div className="time-chart-readout" aria-live="polite">
+      <figcaption className="time-chart-readout" aria-live="polite">
         {shown ? (
-          <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))}{translate(" contra mi promedio")}</span></>
-        ) : <span>{translate(`los últimos ${recent.length} meses · `)}{translate("mi promedio mensual es de ")}<span className="count-value">{n(Math.round(avg))}<small className="count-unit">e</small></span></span>}
+          <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {translate("escuchas")} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))} {translate("respecto al promedio")}</span></>
+        ) : (
+          <span>{translate("los últimos ")}{recent.length} {translate("meses")} · {translate("promedio histórico")}: <strong>{n(Math.round(avg))}</strong> {translate("escuchas por mes")}</span>
+        )}
+      </figcaption>
+      <div className="diverge-key">
+        <span><i className="diverge-swatch" aria-hidden="true" />{translate("más que el promedio")}</span>
+        <span><i className="diverge-swatch below" aria-hidden="true" />{translate("menos que el promedio")}</span>
+        {hasRunningMonth && <span><i className="diverge-swatch current" aria-hidden="true" />{translate("mes en curso")}</span>}
       </div>
-      <div className="diverge-bars" role="img" aria-label={`diferencia de cada mes contra el promedio de ${n(Math.round(avg))}e`}>
-        {recent.map((m, i) => {
-          const dev = m.value - avg;
-          const running = i === recent.length - 1;
+      <div className="diverge-bars" role="group" aria-label={translate("cada barra representa un mes y su diferencia con el promedio")}>
+        {recent.map((month, i) => {
+          const deviation = month.value - avg;
+          const running = hasRunningMonth && i === recent.length - 1;
           return (
-            <button key={m.month} className={`diverge-col ${running ? "running" : ""}`} onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)}
-              onClick={() => { setActive(i); onPick?.(m.month); }} aria-label={`${monthYear(m.month)}: ${n(m.value)}e`}>
-              <span className={dev >= 0 ? "up" : "down"} style={{ height: `${(Math.abs(dev) / maxDev) * 50}%` }} />
+            <button type="button" key={month.month} className={`diverge-col ${running ? "running" : ""}`}
+              onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)} onClick={() => setActive(i)}
+              aria-pressed={active === i}
+              aria-label={`${monthYear(month.month)}: ${n(month.value)} ${translate("escuchas")}, ${deviation >= 0 ? "+" : "−"}${n(Math.round(Math.abs(deviation)))} ${translate("respecto al promedio")}`}>
+              <span className={deviation >= 0 ? "up" : "down"} style={{ height: `${(Math.abs(deviation) / maxDev) * 50}%` }} />
             </button>
           );
         })}
       </div>
       <div className="diverge-axis" aria-hidden="true">
-        {recent.map((m, i) => {
-          // a year mark under each january; the first bar gets one only if the first january is far,
-          // otherwise "’24" and "’25" would sit on top of each other
-          const firstJanuary = recent.findIndex((r) => r.month.endsWith("-01"));
-          const mark = m.month.endsWith("-01") || (i === 0 && (firstJanuary < 0 || firstJanuary > 3));
-          return <span key={m.month}>{mark ? `’${m.month.slice(2, 4)}` : ""}</span>;
+        {recent.map((month, i) => {
+          const firstJanuary = recent.findIndex((item) => item.month.endsWith("-01"));
+          const mark = month.month.endsWith("-01") || (i === 0 && (firstJanuary < 0 || firstJanuary > 3));
+          return <span key={month.month}>{mark ? (month.month.endsWith("-01") ? `ene ${month.month.slice(0, 4)}` : month.month.slice(0, 4)) : ""}</span>;
         })}
       </div>
+      <p className="diverge-hint">{translate("tocá una barra para ver los datos de ese mes")}</p>
     </figure>
   );
 }
