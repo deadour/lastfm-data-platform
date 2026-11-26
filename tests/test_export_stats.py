@@ -107,6 +107,9 @@ def test_only_artwork_catalog_is_updated_and_checkpoint_stays_identical(lake, tm
     before, etags = dict(lake.blobs), dict(lake.etags)
     _, document = export(lake, tmp_path, enrich_fn=resolved_catalog)
     assert document["top_albums"][0]["cover"]["url"].startswith("https://")
+    first = json.loads((tmp_path / "public/insights.json").read_text(encoding="utf-8"))["first_ever"]
+    assert first["album"] == document["top_albums"][0]["title"]
+    assert first["cover"] == document["top_albums"][0]["cover"]
     assert set(lake.blobs) - set(before) == {job.CATALOG_BLOB, artist_photos.CATALOG_BLOB, cloud_genres.CATALOG_BLOB}
     assert all(lake.blobs[key] == value and lake.etags[key] == etags[key] for key, value in before.items())
     assert not lake.lease_held

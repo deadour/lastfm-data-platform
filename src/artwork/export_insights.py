@@ -146,9 +146,10 @@ def constants(events: pd.DataFrame, limit: int = 6) -> list[dict[str, Any]]:
     return [{"artist": artist, "years": int(r.years), "plays": int(r.plays)} for artist, r in years.iterrows()]
 
 
-def first_ever(events: pd.DataFrame) -> dict[str, Any]:
+def first_ever(events: pd.DataFrame, lookup) -> dict[str, Any]:
     row = events.iloc[0]
-    return {"title": row.track_name, "artist": row.artist_name, "date": _day(row.scrobbled_at_local)}
+    return {"title": row.track_name, "artist": row.artist_name, "date": _day(row.scrobbled_at_local),
+            "album": row.album_name or None, "cover": lookup(row.artist_name, row.album_name)}
 
 
 def habits(events: pd.DataFrame) -> dict[str, Any]:
@@ -244,7 +245,7 @@ def build_insights(silver_path: Path, catalog: pd.DataFrame, partial_years: set[
         "months": months,
         "monthly": [int(v) for v in events.assign(m=events["scrobbled_at_local"].dt.strftime("%Y-%m"))
                     .groupby("m").size().reindex(months, fill_value=0)],
-        "first_ever": first_ever(events),
+        "first_ever": first_ever(events, lookup),
         "busiest_day": busiest_day(events),
         "obsession": obsession(events),
         "binge": binge(events),

@@ -296,3 +296,14 @@ over 3 MiB are rejected. Failed responses are not cached. `x-artwork-cache` repo
 frontend falls back to the original provider if the cache request fails. Visible
 lead images load eagerly; other images retain lazy loading. This uses the
 existing Pages Functions quota without adding a service or storage binding.
+
+### Track fragments
+
+The play buttons request `/api/preview` only after a user clicks. The existing
+Pages Function searches Deezer's public API and accepts a fragment only when
+the normalized artist and title match. Full tracks still open through the
+Spotify/YouTube links. There is no Spotify OAuth application or extra secret.
+Not every track has a fragment. One shared audio player handles playback and
+shows an unavailable state rather than substituting another recording.
+Metadata is cached for two minutes because the provider's audio URLs expire;
+audio bytes are streamed from the provider, not committed or stored in Azure.

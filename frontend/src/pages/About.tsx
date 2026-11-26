@@ -13,15 +13,15 @@ const steps = [
 const notes = [
   ["qué pasa si falla", "el pipeline conserva el estado anterior. no doy por terminada una ejecución a medias."],
   ["cómo accedo a azure", "github actions se autentica con oidc, sin claves permanentes para el data lake."],
-  ["de dónde salen las portadas", "musicbrainz, cover art archive y deezer. cuando una coincidencia no es clara, no la publico."],
+  ["de dónde salen las portadas", "de catálogos públicos de música. cuando una coincidencia no es clara, no la publico."],
   ["cómo se publica", "exporto archivos json con estadísticas públicas y despliego el sitio en cloudflare pages."],
 ] as const;
 
 export function About({ stats, insights }: { stats: StatsFile | null; insights: InsightsFile | null }) {
   return (
-    <article className="about-page fade-in">
+    <section id="sobre-este-proyecto" className="about-page fade-in scroll-mt-6" aria-labelledby="about-title">
       <header className="about-header">
-        <h1>sobre este<br /><em>proyecto.</em></h1>
+        <h2 id="about-title">sobre este proyecto</h2>
         <p>automaticé la extracción y el procesamiento de mi historial musical para armar esta web.</p>
         {stats && (
           <span className="about-header-meta"><span className="count-value">{n(stats.totals.scrobbles)}<small className="count-unit">e</small></span> · desde {shortDate(stats.range.first)}{insights ? " · " + n(insights.session.sessions) + " sesiones" : ""}</span>
@@ -82,6 +82,6 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
           <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">código en github ↗</a>
         </div>
       </section>
-    </article>
+    </section>
   );
 }

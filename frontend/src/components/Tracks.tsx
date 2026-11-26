@@ -1,6 +1,7 @@
 import type { TrackStat } from "../data/types";
 import { PlayCount } from "./PlayCount";
 import { Cover } from "./Cover";
+import { PreviewButton } from "./PreviewPlayer";
 
 export function Tracks({ tracks }: { tracks: TrackStat[] }) {
   return (
@@ -16,7 +17,7 @@ export function Tracks({ tracks }: { tracks: TrackStat[] }) {
             <span className="music-name block truncate text-base text-ink">{t.title}</span>
             <span className="block truncate text-sm text-muted">{t.artist}</span>
           </span>
-          <PlayCount count={t.scrobbles} artist={t.artist} title={t.title} />
+          <span className="track-actions"><PreviewButton artist={t.artist} title={t.title} /><PlayCount count={t.scrobbles} artist={t.artist} title={t.title} /></span>
         </li>
       ))}
     </ol>

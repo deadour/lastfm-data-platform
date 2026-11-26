@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Sources } from "./components/Icons";
 import { NowPlayingHero } from "./components/NowPlayingHero";
+import { PreviewProvider } from "./components/PreviewPlayer";
 import { loadInsights } from "./data/insights";
 import { loadStats, type Loaded } from "./data/load";
 import { loadRecent, type RecentState } from "./data/recent";
@@ -45,7 +46,7 @@ export function App() {
   } : null;
 
   return (
-    <div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
+    <PreviewProvider><div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
       <header className="archive-topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-6">
         {route.page !== "home" && <Link href="/" className="archive-nav-link text-xs">inicio</Link>}
         <nav aria-label="secciones" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
@@ -73,11 +74,11 @@ export function App() {
               </section>
             )}
             {stats && <Home stats={stats} insights={insights} recent={recent} explore={explore} />}
+            <About stats={stats} insights={insights} />
           </>
         )}
         {route.page === "artists" && <Artists insights={insights} />}
         {route.page === "artist" && <Artist slug={route.slug} insights={insights} />}
-        {route.page === "about" && <About stats={stats} insights={insights} />}
       </main>
 
       <footer className="archive-footer">
@@ -92,8 +93,7 @@ export function App() {
           <span>otros proyectos</span>
           <strong>eduramirez.dev ↗</strong>
         </a>
-        <Link href="/como-esta-hecho" className="footer-about">sobre este proyecto</Link>
       </footer>
-    </div>
+    </div></PreviewProvider>
   );
 }

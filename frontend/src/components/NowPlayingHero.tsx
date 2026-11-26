@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { NowPlaying } from "../data/types";
 import { ago } from "../utils/format";
 import { Cover } from "./Cover";
+import { PreviewButton } from "./PreviewPlayer";
 
 /** keeps "hace x min" fresh between polls */
 function useNow(intervalMs = 30_000) {
@@ -38,6 +39,7 @@ export function NowPlayingHero({ data, fallback = false }: { data: NowPlaying; f
           {track.artist}
           {track.album && <span className="text-muted"> · {track.album}</span>}
         </p>
+        <PreviewButton artist={track.artist} title={track.title} />
       </div>
       {track.url && (
         <a href={track.url} target="_blank" rel="noreferrer" className="col-span-2 text-xs text-muted hover:text-ink md:col-span-1">

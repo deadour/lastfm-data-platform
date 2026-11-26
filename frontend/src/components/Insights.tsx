@@ -4,13 +4,16 @@ import { days, longDate, monthYear, n, pct } from "../utils/format";
 import { Link } from "../utils/router";
 import { Cover } from "./Cover";
 import { HourBars } from "./Charts";
+import { PreviewButton } from "./PreviewPlayer";
 
-function Reading({ label, value, detail, number }: { label: string; value: string; detail?: string; number: string }) {
+function Reading({ first }: { first: InsightsFile["first_ever"] }) {
   return (
     <article className="reading-card">
-      <div className="reading-card-top"><span>{label}</span><span>{number}</span></div>
-      <strong>{value}</strong>
-      {detail && <p>{detail}</p>}
+      <div className="reading-card-top"><span>el primer registro</span></div>
+      <div className="reading-record">
+        <Cover seed={first.album ?? first.title} image={first.cover?.url} label={`portada de ${first.album ?? first.title}`} compact />
+        <div><strong>{first.title}</strong><p>{first.artist} · {longDate(first.date)}</p><PreviewButton artist={first.artist} title={first.title} /></div>
+      </div>
     </article>
   );
 }
@@ -20,7 +23,7 @@ export function Readings({ data }: { data: InsightsFile }) {
   return (
     <div className="reading-layout">
       <div className="reading-grid" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
-        <Reading number="01" label="la primera" value={first.title} detail={first.artist + " · " + longDate(first.date)} />
+        <Reading first={first} />
       </div>
       <div className="reading-hours">
         <div className="reading-hours-header">
@@ -110,7 +113,7 @@ export function Movements({ data, linkFor }: { data: InsightsFile; linkFor: (art
     return href ? <Link href={href} className="hover:underline hover:underline-offset-4">{artist}</Link> : artist;
   };
   const columns = [
-    { title: "volvieron · desde 2020", rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: "lo volví a poner en " + monthYear(c.returned) + ", después de " + days(c.gap_days) })) },
+    { title: "volvieron · desde 2020", rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: "lo volví a escuchar en " + monthYear(c.returned) + ", después de " + days(c.gap_days) })) },
     { title: "fueron una época", rows: data.phases.map((p) => ({ key: p.artist, name: p.artist, detail: pct(p.share) + " de sus registros fueron en " + p.year })) },
     { title: "siempre ahí", rows: data.constants.map((c) => ({ key: c.artist, name: c.artist, detail: c.years + " años en mis registros · " + n(c.plays) + "e" })) },
   ].filter((c) => c.rows.length);

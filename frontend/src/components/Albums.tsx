@@ -12,7 +12,6 @@ export function Albums({ albums }: { albums: AlbumStat[] }) {
           <span className="min-w-0">
             <span className="music-name block truncate text-base text-ink">{album.title}</span>
             <span className="block truncate text-sm text-muted">{album.artist}</span>
-            {album.cover && <a href={album.cover.source_url} target="_blank" rel="noreferrer" className="text-xs text-muted underline">{album.cover.attribution}</a>}
           </span>
           <PlayCount count={album.scrobbles} artist={album.artist} title={album.title} />
         </li>

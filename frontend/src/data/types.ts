@@ -123,7 +123,7 @@ export interface InsightsFile {
   months: string[];
   /** total scrobbles per month, aligned to months */
   monthly: number[];
-  first_ever: { title: string; artist: string; date: string };
+  first_ever: { title: string; artist: string; date: string; album?: string | null; cover?: Cover | null };
   busiest_day: { date: string; scrobbles: number; top_artist: string };
   obsession: { title: string; artist: string; date: string; plays: number };
   binge: { artist: string; plays: number; date: string };

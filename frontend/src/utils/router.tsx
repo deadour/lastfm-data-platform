@@ -3,15 +3,13 @@ import { useEffect, useState, type AnchorHTMLAttributes, type MouseEvent } from 
 export type Route =
   | { page: "home" }
   | { page: "artists" }
-  | { page: "artist"; slug: string }
-  | { page: "about" };
+  | { page: "artist"; slug: string };
 
 export function parse(path: string): Route {
   const clean = path.replace(/\/+$/, "") || "/";
   const artist = /^\/artistas\/([a-z0-9-]{1,80})$/.exec(clean);
   if (artist) return { page: "artist", slug: artist[1] };
   if (clean === "/artistas") return { page: "artists" };
-  if (clean === "/como-esta-hecho") return { page: "about" };
   return { page: "home" };
 }
 
