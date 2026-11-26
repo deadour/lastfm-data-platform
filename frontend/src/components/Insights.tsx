@@ -4,6 +4,7 @@ import type { ArtistLink, InsightsFile, YearInsight } from "../data/types";
 import { days, longDate, monthYear, n, pct } from "../utils/format";
 import { Link } from "../utils/router";
 import { Cover } from "./Cover";
+import { Count } from "./Count";
 import { HourBars } from "./Charts";
 import { PreviewButton } from "./PreviewPlayer";
 
@@ -58,7 +59,7 @@ function YearRow({ year, linkFor }: { year: YearInsight; linkFor: (artist: strin
         <div>
           <dt className="text-xs text-muted">{translate("canción del año")}</dt>
           <dd className="mt-1 text-ink">{year.top_track.title}</dd>
-          <dd className="text-muted">{translate("de ")}{year.top_track.artist}, {n(year.top_track.plays)}{translate(" veces")}</dd>
+          <dd className="text-muted">{translate("de ")}{year.top_track.artist} · <Count value={year.top_track.plays} /></dd>
         </div>
         <div>
           <dt className="text-xs text-muted">{translate("descubrimiento")}</dt>
@@ -156,7 +157,7 @@ export function ArtistGrid({ artists, limit }: { artists: ArtistLink[]; limit?: 
               <span className="tabular text-xs text-muted">{String(a.rank).padStart(2, "0")}</span>
               <span className="truncate text-sm text-ink" title={a.name}>{a.name}</span>
             </span>
-            <span className="tabular block pl-6 text-xs text-muted">{n(a.scrobbles)}</span>
+            <span className="tabular block pl-6 text-xs text-muted"><Count value={a.scrobbles} /></span>
           </Link>
         </li>
       ))}
