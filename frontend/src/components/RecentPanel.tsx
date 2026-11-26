@@ -161,7 +161,7 @@ export interface Archive { months: string[]; monthly: number[]; yearArtists: Rec
 
 export function RecentPanel({ state, history, archive, albums = [], artistSlugs = new Map() }: { state: RecentState; history: MonthStat[]; archive?: Archive; albums?: AlbumStat[]; artistSlugs?: Map<string, string> }) {
   const language = useLanguage();
-  const [tab, setTab] = useState<Tab>("month");
+  const [tab, setTab] = useState<Tab>("week");
   const [year, setYear] = useState<number | null>(null);
   // years with records: 2016 and 2020 onwards (2017–2019 were not tracked)
   const years = useMemo(() => [...new Set((archive?.months ?? []).map((m) => Number(m.slice(0, 4))))]
