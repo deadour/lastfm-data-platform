@@ -985,3 +985,23 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
   .archive-nav-link { font-size: .68rem; }
   .language-switch { font-size: .72rem; }
 }
+
+
+/* Keep the mobile player attached to the visible browser viewport.
+   The player is portaled to <body> so scrolling/animated app containers
+   cannot redefine its fixed-position containing block. */
+@media (max-width: 640px) {
+  body > .winamp {
+    position: fixed;
+    inset: auto 0 var(--wa-visible-bottom, 0px) 0;
+    bottom: var(--wa-visible-bottom, 0px);
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    margin: 0;
+    z-index: 1000;
+  }
+}
