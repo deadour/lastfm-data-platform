@@ -6,7 +6,7 @@ ACTIVE = [line for line in WORKFLOW.splitlines() if not line.lstrip().startswith
 
 def test_single_daily_schedule_and_manual_dispatch():
     crons = [line.split("#")[0].strip() for line in ACTIVE if line.strip().startswith("- cron:")]
-    assert crons == ['- cron: "17 6 * * *"']  # exactly once a day, 06:17 UTC
+    assert crons == ['- cron: "17 3 * * *"']  # exactly once a day, 00:17 in argentina
     assert "workflow_dispatch:" in WORKFLOW
 
 

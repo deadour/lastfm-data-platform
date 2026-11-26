@@ -4,7 +4,8 @@ import { NowPlayingHero } from "./components/NowPlayingHero";
 import { loadInsights } from "./data/insights";
 import { loadStats, type Loaded } from "./data/load";
 import { loadRecent, type RecentState } from "./data/recent";
-import type { InsightsFile } from "./data/types";
+import { loadExplore, type ExploreFile } from "./data/explore";
+import type { InsightsFile, NowPlaying } from "./data/types";
 import { About } from "./pages/About";
 import { Artist } from "./pages/Artist";
 import { Artists } from "./pages/Artists";
@@ -25,16 +26,24 @@ export function App() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [insights, setInsights] = useState<InsightsFile | null>(null);
   const [recent, setRecent] = useState<RecentState>({ status: "loading" });
+  const [explore, setExplore] = useState<ExploreFile | null>(null);
   const nowPlaying = useNowPlaying();
 
   useEffect(() => {
     void loadStats().then(setLoaded);
     void loadInsights().then(setInsights);
     void loadRecent().then(setRecent);
+    void loadExplore().then(setExplore);
   }, []);
 
   const stats = loaded?.stats ?? null;
-  const liveTrack = nowPlaying?.source === "lastfm" && nowPlaying.track ? nowPlaying : null;
+  const live = nowPlaying?.source === "lastfm" && nowPlaying.track ? nowPlaying : null;
+  const last = recent.status === "ready" ? recent.data.last_scrobble : null;
+  // last.fm's live api sometimes fails; then show the last scrobble the pipeline processed, labelled as such
+  const fallbackTrack: NowPlaying | null = !live && last ? {
+    playing: false, source: "lastfm", played_at: Math.floor(Date.parse(last.played_at) / 1000),
+    track: { title: last.title, artist: last.artist, album: last.album, image: last.cover?.url ?? null, url: null },
+  } : null;
 
   return (
     <div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
@@ -57,14 +66,14 @@ export function App() {
                   alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
               </div>
             </section>
-            {liveTrack && <NowPlayingHero data={liveTrack} />}
+            {live ? <NowPlayingHero data={live} /> : fallbackTrack && <NowPlayingHero data={fallbackTrack} fallback />}
             {!loaded && <p role="status" className="py-24 text-sm text-muted">cargando…</p>}
             {loaded && !stats && (
               <section className="archive-empty">
                 <h2>todavía no hay datos publicados.</h2>
               </section>
             )}
-            {stats && <Home stats={stats} insights={insights} recent={recent} />}
+            {stats && <Home stats={stats} insights={insights} recent={recent} explore={explore} />}
           </>
         )}
         {route.page === "artists" && <Artists insights={insights} />}

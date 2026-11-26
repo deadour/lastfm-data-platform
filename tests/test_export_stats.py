@@ -11,6 +11,7 @@ import pytest
 from src.analytics.gold_builder import build_gold
 from src.artwork import enrich
 from src.artwork import artist_photos
+from src.enrichment import cloud_genres
 from src.jobs import export_stats as job
 from src.storage import checkpoint
 from src.transformation.transform_scrobbles import transform
@@ -54,9 +55,22 @@ class FakeDeezer:
         return self.results
 
 
+class FakeTags:
+    """Offline Last.fm tags: tests never reach the network even if a key is in the env."""
+
+    def __init__(self, tags=("rock argentino", "rock")):
+        self.calls = []
+        self.tags = tags
+
+    def get_top_tags(self, artist, mbid=None):
+        self.calls.append((artist, mbid))
+        return {"toptags": {"tag": [{"name": t, "count": 100 - i} for i, t in enumerate(self.tags)]}}
+
+
 def export(lake, tmp_path, **kwargs):
     out = tmp_path / "public/stats.json"
     kwargs.setdefault("deezer", FakeDeezer())
+    kwargs.setdefault("tags_client", FakeTags())
     summary = job.run_export(lake, tmp_path / "work", out, **kwargs)
     return summary, json.loads(out.read_text(encoding="utf-8"))
 
@@ -70,9 +84,9 @@ def test_exports_real_gold_without_local_inputs_or_remote_writes(lake, tmp_path)
     assert len(document["rhythm"]) == 168
     assert lake.blobs == before
     public = tmp_path / "public"
-    assert sorted(p.name for p in public.iterdir()) == ["artists", "insights.json", "stats.json"]
+    assert sorted(p.name for p in public.iterdir()) == ["artists", "explore.json", "insights.json", "recent.json", "stats.json"]
     assert [p.name for p in (public / "artists").iterdir()] == ["fictional-artist.json"]
-    for extra in (public / "insights.json", public / "artists/fictional-artist.json"):
+    for extra in (public / "insights.json", public / "recent.json", public / "explore.json", public / "artists/fictional-artist.json"):
         for private in ("fictional-user", "scrobble_id", "snapshot=", "watermark", str(tmp_path), "blob.core.windows.net"):
             assert private not in extra.read_text(encoding="utf-8")
     text = json.dumps(document)
@@ -93,7 +107,7 @@ def test_only_artwork_catalog_is_updated_and_checkpoint_stays_identical(lake, tm
     before, etags = dict(lake.blobs), dict(lake.etags)
     _, document = export(lake, tmp_path, enrich_fn=resolved_catalog)
     assert document["top_albums"][0]["cover"]["url"].startswith("https://")
-    assert set(lake.blobs) - set(before) == {job.CATALOG_BLOB, artist_photos.CATALOG_BLOB}
+    assert set(lake.blobs) - set(before) == {job.CATALOG_BLOB, artist_photos.CATALOG_BLOB, cloud_genres.CATALOG_BLOB}
     assert all(lake.blobs[key] == value and lake.etags[key] == etags[key] for key, value in before.items())
     assert not lake.lease_held
 
@@ -253,3 +267,22 @@ def test_ambiguous_or_placeholder_photos_are_never_shown(lake, tmp_path, results
     assert catalog[0]["status"] == status
     page = json.loads((tmp_path / "public/artists/fictional-artist.json").read_text(encoding="utf-8"))
     assert page["photo"] is None
+
+
+def test_recent_and_explore_ship_with_the_same_release(lake, tmp_path):
+    summary, document = export(lake, tmp_path)
+    recent = json.loads((tmp_path / "public/recent.json").read_text(encoding="utf-8"))
+    explore = json.loads((tmp_path / "public/explore.json").read_text(encoding="utf-8"))
+    assert recent["data_as_of"] == document["data_as_of"]
+    assert set(recent["periods"]) == {"today", "this_week", "last_week", "this_month", "last_month"}
+    assert explore["genres"]["families"][0]["family"] == "rock"
+    assert explore["year_ranks"][0]["top_artists"][0]["name"] == "Fictional Artist"
+
+
+def test_genres_are_cached_between_exports(lake, tmp_path):
+    first = FakeTags()
+    export(lake, tmp_path / "a", tags_client=first)
+    assert [name for name, _ in first.calls] == ["Fictional Artist"]
+    again = FakeTags()
+    export(lake, tmp_path / "b", tags_client=again)
+    assert again.calls == []

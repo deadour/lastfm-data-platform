@@ -33,8 +33,10 @@ class LastFMArtistTagsClient:
             self.sleep(max(0.0, self.interval_seconds - (now - self._last_request_at)))
         self._last_request_at = self.monotonic()
 
-    def get_top_tags(self, artist: str) -> dict[str, Any]:
-        params = {"method": "artist.getTopTags", "artist": artist, "api_key": self.api_key, "format": "json"}
+    def get_top_tags(self, artist: str, mbid: str | None = None) -> dict[str, Any]:
+        # an mbid pins the exact artist; names alone can match a namesake
+        params = {"method": "artist.getTopTags", "api_key": self.api_key, "format": "json",
+                  **({"mbid": mbid} if mbid else {"artist": artist})}
         for attempt in range(1, 4):
             self._wait_for_slot()
             try:

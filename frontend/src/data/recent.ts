@@ -38,8 +38,13 @@ export interface MonthPoint { month: string; scrobbles: number | null; complete:
 export type PeriodKey = "today" | "this_week" | "last_week" | "this_month" | "last_month";
 export const PERIOD_KEYS: PeriodKey[] = ["today", "this_week", "last_week", "this_month", "last_month"];
 
+export interface LastScrobble { artist: string; title: string; album: string | null; played_at: string; cover: RecentCover | null }
+
 export interface RecentFile {
   schema_version: 1;
+  /** last processed scrobble: fallback for the live widget when last.fm is down */
+  last_scrobble?: LastScrobble | null;
+  coverage_until?: string;
   generated_at: string;
   data_as_of: string;
   timezone: string;

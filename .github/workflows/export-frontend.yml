@@ -69,6 +69,8 @@ jobs:
         env:
           AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
           AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER }}
+          # only used for artist.getTopTags (genres); never written to outputs or logs
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           REFRESH_ARTWORK: ${{ inputs.refresh_artwork || github.event_name == 'workflow_run' }}
         shell: bash
         run: |
@@ -86,6 +88,7 @@ jobs:
         run: |
           node --experimental-strip-types frontend/scripts/check-stats.ts output/stats.json
           node --experimental-strip-types frontend/scripts/check-insights.ts output
+          node --experimental-strip-types frontend/scripts/check-recent.ts output
 
       - name: Save public statistics only
         uses: actions/upload-artifact@v4
@@ -95,6 +98,8 @@ jobs:
           path: |
             output/stats.json
             output/insights.json
+            output/recent.json
+            output/explore.json
             output/artists/*.json
           if-no-files-found: error
           retention-days: 1
@@ -145,11 +150,13 @@ jobs:
           npm run check:functions
           node --experimental-strip-types scripts/check-stats.ts public/data/stats.json
           node --experimental-strip-types scripts/check-insights.ts public/data
+          node --experimental-strip-types scripts/check-recent.ts public/data
           npm run build
           node --experimental-strip-types scripts/check-stats.ts dist/data/stats.json
           test -s dist/index.html
           cmp public/data/stats.json dist/data/stats.json
           cmp public/data/insights.json dist/data/insights.json
+          cmp public/data/recent.json dist/data/recent.json
 
       - name: Deploy to the existing Cloudflare Pages project
         uses: cloudflare/wrangler-action@v3
