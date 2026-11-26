@@ -523,7 +523,7 @@ body { padding-bottom: 5.5rem; }
 /* the e is green everywhere: title, subtitle and every count */
 :root { --color-e: #7f9c7d; }
 .archive-main-title, .e-green, .e-listen, .count-unit { color: var(--color-e) !important; }
-.album-year { color: var(--color-accent); }
+.album-year { color: var(--color-muted); }
 
 .back-home { position: fixed; z-index: 55; top: .9rem; left: .9rem; padding: .45rem .8rem; font-size: .78rem; color: var(--color-ink); background: #1d1a17; border: 1px solid #4a3d31; cursor: pointer; }
 .back-home:hover { border-color: var(--color-accent); }

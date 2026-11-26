@@ -289,3 +289,10 @@ def test_genres_are_cached_between_exports(lake, tmp_path):
     again = FakeTags()
     export(lake, tmp_path / "b", tags_client=again)
     assert again.calls == []
+
+
+def test_release_years_reach_top_albums(lake, tmp_path):
+    def years(catalog, keys):
+        return {k: 1998 for k in keys}
+    _, document = export(lake, tmp_path, release_years_fn=years)
+    assert document["top_albums"][0]["year"] == 1998

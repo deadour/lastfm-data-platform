@@ -10,8 +10,10 @@ export function Albums({ albums }: { albums: AlbumStat[] }) {
           <span className="tabular text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
           <Cover seed={album.title} image={album.cover?.url ?? album.image} label={`portada de ${album.title}`} compact />
           <span className="min-w-0">
-            <span className="music-name block truncate text-base text-ink">{album.title}</span>
-            <span className="album-year block truncate text-sm">{album.year ?? ""}{album.year ? " · " : ""}<span className="text-muted">{album.artist}</span></span>
+            <span className="music-name block truncate text-base text-ink">
+              {album.title}{album.year ? <span className="album-year"> ({album.year})</span> : null}
+            </span>
+            <span className="block truncate text-sm text-muted">{album.artist}</span>
             <span className="album-count block text-sm"><PlayCount count={album.scrobbles} artist={album.artist} title={album.title} /></span>
           </span>
         </li>

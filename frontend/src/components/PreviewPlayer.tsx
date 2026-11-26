@@ -140,7 +140,6 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           <button type="button" className="preview-main" onClick={turnOn} aria-label="activar sonido">▶</button>
           <div className="preview-body">
             <div className="preview-description"><strong>activar sonido</strong></div>
-            <p>después tocá un tema, una barra, un artista o un género y suena.</p>
           </div>
           <span />
         </>

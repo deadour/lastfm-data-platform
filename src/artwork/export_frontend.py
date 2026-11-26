@@ -73,7 +73,8 @@ def _partial(year: int, era: str, first: pd.Timestamp, last: pd.Timestamp) -> bo
             or (year == last.year and (last.month, last.day) != (12, 31)))
 
 
-def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 20) -> dict[str, Any]:
+def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 20,
+          release_years: dict[str, int] | None = None) -> dict[str, Any]:
     """Document matching frontend/src/data/types.ts ``StatsFile`` (schema_version 1)."""
     meta = json.loads((gold_root / "_metadata.json").read_text(encoding="utf-8"))
     yearly = pd.read_parquet(gold_root / "listening_yearly/listening_yearly.parquet").sort_values("year")
@@ -86,14 +87,9 @@ def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 
               .sort_values(["total_scrobbles", "artist_name", "track_name"], ascending=[False, True, True]))
     patterns = pd.read_parquet(gold_root / "listening_patterns/listening_patterns.parquet")
     streaks = pd.read_parquet(gold_root / "listening_patterns/streaks.parquet")
-    plays = pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid", "track_name", "scrobbled_at"])
+    plays = pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid", "track_name"])
     albums = albums_from_silver(plays)
-    # the year I played each album the most (release dates are not in the data)
-    dated = plays.assign(album_name=plays["album_name"].fillna("").str.strip()).query("album_name != ''")
-    dated = dated.assign(key=[album_key(a, b) for a, b in zip(dated.artist_name, dated.album_name)],
-                         year=pd.to_datetime(dated["scrobbled_at"], utc=True).dt.year)
-    peak_year = (dated.groupby(["key", "year"]).size().rename("n").reset_index()
-                 .sort_values(["n", "year"], ascending=[False, False]).drop_duplicates("key").set_index("key")["year"])
+    release = release_years or {}
     covers = catalog.set_index("album_key") if len(catalog) else pd.DataFrame(columns=catalog.columns)
 
     def album_cover(key: str) -> dict[str, Any] | None:
@@ -133,7 +129,7 @@ def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 
                         "image": (album_cover(track_album.get((r.artist_name, r.track_name), "")) or {}).get("url")}
                        for r in tracks.head(top).itertuples()],
         "top_albums": [{"key": r.album_key, "title": r.album_name, "artist": r.artist_name,
-                        "year": int(peak_year[r.album_key]) if r.album_key in peak_year.index else None,
+                        "year": release.get(r.album_key),
                         "scrobbles": _int(r.scrobbles), "image": (album_cover(r.album_key) or {}).get("url"),
                         "cover": album_cover(r.album_key)} for r in albums.head(top).itertuples()],
         "rhythm": [{"weekday": day, "hour": hour, "share": round(float(cells.get((day, hour), 0)) / total, 5)}

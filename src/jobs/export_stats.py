@@ -21,6 +21,7 @@ from src.artwork.export_frontend import build, write
 from src.artwork.export_explore import build_explore
 from src.artwork.export_insights import build_insights, load_events, top_artist_names, write_all
 from src.artwork.export_recent import build_recent
+from src.artwork.release_years import release_years
 from src.enrichment import cloud_genres
 from src.enrichment.lastfm_tags_client import LastFMArtistTagsClient
 from src.storage import checkpoint
@@ -82,7 +83,7 @@ def restore_catalog(storage, directory: Path) -> str | None:
 
 def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
                top: int = 20, refresh_artwork: bool = True, enrich_fn=None, deezer=None,
-               tags_client=None, genre_limit: int = 400, now=None) -> dict:
+               tags_client=None, genre_limit: int = 400, now=None, release_years_fn=None) -> dict:
     if not 1 <= top <= 100 or not 1 <= artwork_limit <= 500:
         raise ExportRejected("top must be 1–100 and artwork_limit must be 1–500")
     current = checkpoint.read(storage)
@@ -147,7 +148,12 @@ def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
     genres = cloud_genres.Genres(genre_catalog, taxonomy_path=root / "config/tag_taxonomy.json")
 
     catalog = enrich.read_catalog(catalog_dir)
-    document = build(gold, silver_path, catalog, top)
+    # release years for the top albums: ~20 lookups, only for resolved covers
+    if True:  # noqa: SIM108
+        top_keys = enrich.albums_from_silver(pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid"]))["album_key"].head(top)
+        ua = json.loads((root / "config/enrichment.json").read_text(encoding="utf-8"))["musicbrainz_user_agent"]
+        years = (release_years_fn or (lambda c, k: release_years(c, k, ua)))(catalog, list(top_keys))
+    document = build(gold, silver_path, catalog, top, years)
     insights, pages = build_insights(silver_path, catalog, {y["year"] for y in document["years"] if y["partial"]},
                                      photos=lambda name: artist_photos.photo(photos, name))
     recent = build_recent(silver_path, catalog, document["data_as_of"], now=now)
