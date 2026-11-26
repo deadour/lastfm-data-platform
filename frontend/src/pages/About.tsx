@@ -10,6 +10,7 @@ export function About({ stats }: { stats: StatsFile | null; insights: InsightsFi
   return <section id="about" className="about-page scroll-mt-6" aria-labelledby="about-title">
     <header className="about-header">
       <h2 id="about-title">{translate("sobre este proyecto")}</h2>
+      <p className="about-subtitle">{translate("proyecto personal para practicar ingeniería de datos")}</p>
     </header>
     <div className="about-copy">
       <p>{translate("empecé a registrar la música que escucho en abril de 2016 y, de forma ininterrumpida, desde 2020. lo hago a través de last.fm, un servicio que se conecta a mis cuentas de spotify y youtube y guarda mi historial musical.")}</p>

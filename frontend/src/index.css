@@ -1099,3 +1099,14 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 /* the title must scroll to be readable, so the marquee runs even with reduced motion (slower) */
 .wa-right .wa-marquee span { animation: wa-scroll 16s steps(80) infinite !important; }
 @media (prefers-reduced-motion: reduce) { .wa-right .wa-marquee span { animation: wa-scroll 26s linear infinite !important; } }
+
+/* header: fully opaque, covers the status-bar area too, logo and actions on one row */
+.archive-topbar, .archive-topbar.is-compact {
+  background: #0b0c0a !important; backdrop-filter: none !important;
+  padding-top: calc(.6rem + env(safe-area-inset-top)) !important;
+  flex-wrap: nowrap !important; align-items: center !important;
+}
+.archive-topbar-slot { min-height: calc(4rem + env(safe-area-inset-top)) !important; }
+.archive-header-logo { order: -1; flex: 0 0 auto; }
+.archive-header-actions { flex-wrap: nowrap !important; min-width: 0; }
+@media (max-width: 400px) { .archive-header-actions .archive-nav-link { font-size: .78rem; } }

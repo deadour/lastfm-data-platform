@@ -86,4 +86,5 @@ export const english: Record<string, string> = {
   " para automatizar las tareas. también aprendí a trabajar con ": " to automate the tasks. i also learned to work with ",
   ", donde armé un lago de datos privado en la nube que almacena las tres capas en archivos ": ", where i set up a private cloud data lake that stores the three layers as ",
   "la idea de este proyecto es poder recorrer todo lo que escuché durante estos años y, de paso, seguir aprendiendo ingeniería de datos.": "the idea of this project is to be able to go through everything i've listened to over these years and, along the way, keep learning data engineering.",
+  "proyecto personal para practicar ingeniería de datos": "a personal project to practice data engineering",
 };
