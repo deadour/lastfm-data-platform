@@ -44,6 +44,8 @@ export interface TrackStat {
 
 export interface AlbumStat {
   key: string;
+  /** year I played it the most */
+  year?: number | null;
   title: string;
   artist: string;
   scrobbles: number;

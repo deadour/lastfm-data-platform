@@ -4,6 +4,7 @@ import { Cover } from "../components/Cover";
 import { loadArtist } from "../data/insights";
 import type { ArtistPage, InsightsFile } from "../data/types";
 import { PreviewButton } from "../components/PreviewPlayer";
+import { PlayableTitle } from "../components/PreviewPlayer";
 import { n, pct, secureImage, shortDate } from "../utils/format";
 import { Link } from "../utils/router";
 
@@ -93,7 +94,7 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
             {page.top_tracks.map((t, i) => (
               <li key={`${t.title}-${i}`} className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-3 py-2.5">
                 <span className="tabular text-xs text-muted">{String(i + 1).padStart(2, "0")}</span>
-                <span className="truncate text-ink" title={t.title}>{t.title}</span>
+                <PlayableTitle artist={page.name} title={t.title} className="text-ink" />
                 <span className="track-actions"><PreviewButton artist={page.name} title={t.title} /><span className="tabular text-sm text-muted">{n(t.plays)}</span></span>
               </li>
             ))}

@@ -1,9 +1,11 @@
+import { Count } from "./Count";
 import { useMemo, useState } from "react";
 import { weekSoFarChange, type Period, type PeriodKey, type RecentFile, type RecentState } from "../data/recent";
 import type { MonthStat } from "../data/types";
 import { monthYear, n, secureImage } from "../utils/format";
 import { Cover } from "./Cover";
 import { ListenLinks } from "./ListenLinks";
+import { PlayableTitle, usePreview } from "./PreviewPlayer";
 import { PlayCount } from "./PlayCount";
 import { TimeChart, type TimePoint } from "./TimeChart";
 
@@ -28,7 +30,7 @@ function chartFor(tab: Tab, data: RecentFile): { points: TimePoint[]; kind: "bar
       kind: "bars", title: "los últimos 14 días",
       points: data.series.days.map((d) => {
         const date = parse(d.date);
-        return { key: d.date, value: d.scrobbles, complete: d.complete, title: `${weekdays[date.getUTCDay()]} ${dayMonth(d.date)}`,
+        return { key: d.date, value: d.scrobbles, complete: d.complete, track: d.top_track ?? null, title: `${weekdays[date.getUTCDay()]} ${dayMonth(d.date)}`,
           label: String(date.getUTCDate()) };
       }),
     };
@@ -36,13 +38,13 @@ function chartFor(tab: Tab, data: RecentFile): { points: TimePoint[]; kind: "bar
   if (tab === "week") {
     return {
       kind: "line", title: "las últimas 12 semanas",
-      points: data.series.weeks.map((w, i) => ({ key: w.start, value: w.scrobbles, complete: w.complete,
+      points: data.series.weeks.map((w, i) => ({ key: w.start, value: w.scrobbles, complete: w.complete, track: w.top_track ?? null,
         title: `semana del ${dayMonth(w.start)}`, label: (data.series.weeks.length - 1 - i) % 2 === 0 ? dayMonth(w.start) : "" })),
     };
   }
   return {
     kind: "line", title: "los últimos 12 meses",
-    points: data.series.months.map((m) => ({ key: m.month, value: m.scrobbles, complete: m.complete,
+    points: data.series.months.map((m) => ({ key: m.month, value: m.scrobbles, complete: m.complete, track: m.top_track ?? null,
       title: monthYear(m.month), label: months[Number(m.month.slice(5)) - 1] })),
   };
 }
@@ -56,7 +58,7 @@ function RankBars({ items }: { items: { name: string; scrobbles: number }[] }) {
         <li key={a.name}>
           <span className="rank-bars-label"><span className="tabular">{i + 1}</span>{a.name}</span>
           <span className="rank-bars-track" aria-hidden="true"><span style={{ width: `${(a.scrobbles / max) * 100}%` }} /></span>
-          <span className="rank-bars-value tabular">{n(a.scrobbles)}</span>
+          <span className="rank-bars-value"><Count value={a.scrobbles} /></span>
         </li>
       ))}
     </ol>
@@ -111,7 +113,7 @@ function PeriodView({ period, label, change }: { period: Period; label: string; 
               {period.top_tracks.map((t, i) => (
                 <li key={`${t.artist}-${t.title}`}>
                   <span className="tabular">{i + 1}</span>
-                  <span className="recent-track-name"><strong>{t.title}</strong><small>{t.artist} · <PlayCount count={t.scrobbles} artist={t.artist} title={t.title} /></small></span>
+                  <span className="recent-track-name"><strong><PlayableTitle artist={t.artist} title={t.title} /></strong><small>{t.artist} · <PlayCount count={t.scrobbles} artist={t.artist} title={t.title} /></small></span>
                   <ListenLinks artist={t.artist} title={t.title} />
                 </li>
               ))}
@@ -150,6 +152,7 @@ export function RecentPanel({ state, history }: { state: RecentState; history: M
   const [tab, setTab] = useState<Tab>("month");
   const [previous, setPrevious] = useState(false);
   const data = state.status === "ready" ? state.data : null;
+  const preview = usePreview();
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -187,7 +190,8 @@ export function RecentPanel({ state, history }: { state: RecentState; history: M
           <PeriodView period={view.period} label={view.label} change={view.change} />
           <div className="recent-chart">
             <p className="recent-chart-title">{view.chart.title}</p>
-            <TimeChart points={view.chart.points} kind={view.chart.kind} label={`e en ${view.chart.title}`} />
+            <TimeChart points={view.chart.points} kind={view.chart.kind} label={`e en ${view.chart.title}`}
+              onPick={preview ? (p) => p.track && preview.play(p.track.artist, p.track.title) : undefined} />
           </div>
         </>
       )}

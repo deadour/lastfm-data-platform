@@ -69,7 +69,7 @@ export function App() {
           <>
             <section className="archive-masthead" aria-labelledby="archive-title">
               <div className="archive-masthead-row">
-                <div><h1 id="archive-title" className="archive-main-title">e</h1><p className="archive-subtitle">lo que escucho</p></div>
+                <div><h1 id="archive-title" className="archive-main-title">e</h1><p className="archive-subtitle">lo que <span className="e-green">e</span>scucho</p></div>
                 <img className="archive-masthead-photo" src="/img/diego.jpg" width={720} height={621}
                   alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
               </div>

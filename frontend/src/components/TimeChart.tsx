@@ -1,3 +1,4 @@
+import { Count } from "./Count";
 import { useEffect, useId, useRef, useState } from "react";
 import { n } from "../utils/format";
 
@@ -13,6 +14,8 @@ export interface TimePoint {
   title: string;
   value: number | null;
   complete: boolean;
+  /** shown in the readout; the chart plays it when the bucket is tapped */
+  track?: { artist: string; title: string } | null;
 }
 
 interface Props {
@@ -20,6 +23,7 @@ interface Props {
   kind: "bars" | "line";
   label: string;
   height?: number;
+  onPick?: (point: TimePoint) => void;
 }
 
 const PAD = { top: 14, right: 26, bottom: 26, left: 34 };
@@ -45,7 +49,7 @@ function useWidth(fallback = 640) {
   return [ref, width] as const;
 }
 
-export function TimeChart({ points, kind, label, height = 190 }: Props) {
+export function TimeChart({ points, kind, label, height = 190, onPick }: Props) {
   const [active, setActive] = useState<number | null>(null);
   const [ref, W] = useWidth();
   const id = useId();
@@ -78,11 +82,12 @@ export function TimeChart({ points, kind, label, height = 190 }: Props) {
       <div className="time-chart-readout" aria-live="polite">
         {shown ? (
           <>
-            <strong>{shown.value === null ? "sin registro" : n(shown.value)}</strong>
+            <strong>{shown.value === null ? "sin registro" : <Count value={shown.value} />}</strong>
             <span>{shown.title}{!shown.complete && shown.value !== null ? " · en curso" : ""}</span>
+            {shown.track && <span className="time-chart-track">▶ {shown.track.title} · {shown.track.artist}</span>}
           </>
         ) : (
-          <span>tocá o pasá por encima para ver cada valor</span>
+          <span>{onPick ? "tocá una barra o un punto y suena lo que más escuché ahí" : "tocá o pasá por encima para ver cada valor"}</span>
         )}
       </div>
       <svg viewBox={`0 0 ${W} ${height}`} className="h-auto w-full" role="img" aria-labelledby={`${id}-desc`}
@@ -123,7 +128,9 @@ export function TimeChart({ points, kind, label, height = 190 }: Props) {
           <rect key={`h-${p.key}`} x={kind === "bars" ? barX(i) : x(i) - slot / 2} y={PAD.top} width={slot} height={innerH + PAD.bottom}
             fill="transparent" tabIndex={0} role="button"
             aria-label={`${p.title}: ${p.value === null ? "sin registro" : n(p.value) + " e"}`}
-            onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)} onClick={() => setActive(i)}
+            onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)}
+            onClick={() => { setActive(i); if (p.track && onPick) onPick(p); }}
+            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && p.track && onPick) { e.preventDefault(); onPick(p); } }}
             onBlur={() => setActive((a) => (a === i ? null : a))} className="time-chart-hit" />
         ))}
       </svg>

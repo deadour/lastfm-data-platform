@@ -47,6 +47,18 @@ export function selectPreview(data: unknown, artist: string, title: string) {
   return null;
 }
 
+/** artist-only mode: the first playable track whose artist matches exactly (deezer ranks by popularity) */
+export function selectArtistPreview(data: unknown, artist: string) {
+  const tracks = (data as { data?: Track[] } | null)?.data;
+  if (!Array.isArray(tracks)) return null;
+  for (const track of tracks) {
+    if (!track || typeof track.artist?.name !== "string" || fold(track.artist.name) !== fold(artist) || typeof track.title !== "string") continue;
+    const found = selectPreview({ data: [track] }, artist, track.title);
+    if (found) return { ...found, title: track.title };
+  }
+  return null;
+}
+
 const json = (body: unknown, status = 200, ttl = 120) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json", "cache-control": ttl ? `public, max-age=30, s-maxage=${ttl}` : "no-store", "x-content-type-options": "nosniff" },
 });
@@ -55,9 +67,9 @@ export const onRequestGet: PagesFunction = async ({ request, waitUntil }) => {
   const params = new URL(request.url).searchParams;
   const artist = params.get("artist")?.trim() ?? "";
   const title = params.get("title")?.trim() ?? "";
-  if (![artist, title].every((value) => value.length > 0 && value.length <= 200 && !/[\x00-\x1f]/.test(value))) {
-    return json({ preview: null }, 400, 0);
-  }
+  const valid = (value: string) => value.length > 0 && value.length <= 200 && !/[\x00-\x1f]/.test(value);
+  // title is optional: without it, any playable song by the artist
+  if (!valid(artist) || (title !== "" && !valid(title))) return json({ preview: null }, 400, 0);
   const key = new URL("/api/preview", request.url);
   key.search = new URLSearchParams({ artist, title }).toString();
   key.searchParams.set("version", "2");
@@ -68,7 +80,7 @@ export const onRequestGet: PagesFunction = async ({ request, waitUntil }) => {
   try {
     const clean = (value: string) => value.replace(/["\\]/g, " ");
     const upstream = new URL("https://api.deezer.com/search");
-    upstream.search = new URLSearchParams({ q: `artist:"${clean(artist)}" track:"${clean(title)}"`, limit: "10" }).toString();
+    upstream.search = new URLSearchParams({ q: title ? `artist:"${clean(artist)}" track:"${clean(title)}"` : `artist:"${clean(artist)}"`, limit: "15" }).toString();
     let preview = null;
     let providerWorked = false;
     try {
@@ -76,10 +88,10 @@ export const onRequestGet: PagesFunction = async ({ request, waitUntil }) => {
         headers: { accept: "application/json", "user-agent": "lastfm-data-platform/0.1 (+https://fm.eduramirez.dev)" } });
       if (response.ok) {
         const body = await response.json() as { error?: unknown };
-        if (!body?.error) { providerWorked = true; preview = selectPreview(body, artist, title); }
+        if (!body?.error) { providerWorked = true; preview = title ? selectPreview(body, artist, title) : selectArtistPreview(body, artist); }
       }
     } catch { /* Try the independent catalog below. */ }
-    if (!preview) {
+    if (!preview && title) {
       try {
         const apple = new URL("https://itunes.apple.com/search");
         apple.search = new URLSearchParams({ term: `${artist} ${title}`, entity: "song", media: "music", limit: "15", country: "US" }).toString();

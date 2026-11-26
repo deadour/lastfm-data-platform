@@ -102,6 +102,14 @@ def build_recent(silver_path: Path, catalog: pd.DataFrame, data_as_of: str, trac
             return None  # outside known tracking: unknown, not zero
         return int(per_day[(per_day.index >= start) & (per_day.index < end_exclusive)].sum())
 
+    def top_track(start: date, end_exclusive: date) -> dict[str, str] | None:
+        """the most played song in the bucket, so a tap on a bar can play it"""
+        window = events[(events["day"] >= start) & (events["day"] < end_exclusive)]
+        if window.empty or start > covered:
+            return None
+        (artist, title), _ = _ranked(window.groupby(["artist_name", "track_name"]).size(), 1)[0]
+        return {"artist": artist, "title": title}
+
     last = events.loc[pd.to_datetime(events["scrobbled_at"], utc=True).idxmax()] if len(events) else None
     last_scrobble = None if last is None else {
         "artist": last["artist_name"], "title": last["track_name"], "album": last["album_name"] or None,
@@ -127,8 +135,11 @@ def build_recent(silver_path: Path, catalog: pd.DataFrame, data_as_of: str, trac
             "last_month": period(events, previous_month, month, True, lookup, covered),
         },
         "series": {
-            "days": [{"date": d.isoformat(), "scrobbles": total(d, d + timedelta(days=1)), "complete": d < today} for d in days],
-            "weeks": [{"start": w.isoformat(), "scrobbles": total(w, w + timedelta(days=7)), "complete": w < week} for w in weeks],
-            "months": [{"month": m.strftime("%Y-%m"), "scrobbles": total(m, _next_month(m)), "complete": m < month} for m in months],
+            "days": [{"date": d.isoformat(), "scrobbles": total(d, d + timedelta(days=1)), "complete": d < today,
+                      "top_track": top_track(d, d + timedelta(days=1))} for d in days],
+            "weeks": [{"start": w.isoformat(), "scrobbles": total(w, w + timedelta(days=7)), "complete": w < week,
+                       "top_track": top_track(w, w + timedelta(days=7))} for w in weeks],
+            "months": [{"month": m.strftime("%Y-%m"), "scrobbles": total(m, _next_month(m)), "complete": m < month,
+                        "top_track": top_track(m, _next_month(m))} for m in months],
         },
     }

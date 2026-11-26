@@ -1,3 +1,4 @@
+import { Count } from "./Count";
 import { useMemo, useState } from "react";
 import type { ExploreFile, FamilyShare } from "../data/explore";
 import { monthYear, n, pct } from "../utils/format";
@@ -50,7 +51,12 @@ function squarify(items: FamilyShare[], x: number, y: number, w: number, h: numb
   return boxes;
 }
 
-export function GenreTreemap({ families, artists }: { families: FamilyShare[]; artists: Record<string, { name: string; plays: number }[]> }) {
+export function GenreTreemap({ families, artists, onPick }: {
+  families: FamilyShare[];
+  artists: Record<string, { name: string; plays: number }[]>;
+  /** tap a genre: open my most played artist of it */
+  onPick?: (artist: string) => void;
+}) {
   const main = families.slice(0, 7);
   const rest = families.slice(7).reduce((s, f) => s + f.share, 0);
   const items = rest > 0 ? [...main, { family: "otros", share: rest }] : main;
@@ -63,7 +69,10 @@ export function GenreTreemap({ families, artists }: { families: FamilyShare[]; a
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img"
         aria-label={`distribución por género: ${items.map((i) => `${i.family} ${pct(i.share)}`).join(", ")}`}>
         {boxes.map((b) => (
-          <g key={b.item.family} onMouseEnter={() => setHover(b.item.family)} onFocus={() => setHover(b.item.family)} tabIndex={0}>
+          <g key={b.item.family} className="genre-box-hit" onMouseEnter={() => setHover(b.item.family)} onFocus={() => setHover(b.item.family)} tabIndex={0}
+            role="button" aria-label={`${b.item.family}: abrir ${artists[b.item.family]?.[0]?.name ?? "este género"}`}
+            onClick={() => { const top = artists[b.item.family]?.[0]?.name; if (top && onPick) onPick(top); }}
+            onKeyDown={(ev) => { const top = artists[b.item.family]?.[0]?.name; if ((ev.key === "Enter" || ev.key === " ") && top && onPick) { ev.preventDefault(); onPick(top); } }}>
             <rect x={b.x + 1.5} y={b.y + 1.5} width={Math.max(0, b.w - 3)} height={Math.max(0, b.h - 3)}
               fill={familyColor(b.item.family)} fillOpacity={focus === b.item.family ? 0.95 : 0.7} className="genre-box" />
             {b.w > 70 && b.h > 34 && (
@@ -169,6 +178,7 @@ export function YearRanks({ ranks }: { ranks: ExploreFile["year_ranks"] }) {
           <button key={r.year} role="tab" aria-selected={r.year === year} className={r.year === year ? "on" : ""} onClick={() => setYear(r.year)}>{r.year}</button>
         ))}
       </div>
+      {current && <p className="year-ranks-year">{current.year}</p>}
       <ol className="dot-plot">
         {current?.top_artists.map((a, i) => (
           <li key={a.name}>
@@ -177,7 +187,7 @@ export function YearRanks({ ranks }: { ranks: ExploreFile["year_ranks"] }) {
               <span className="dot-plot-stem" style={{ width: `${(a.plays / max) * 100}%` }} />
               <span className="dot-plot-dot" style={{ left: `${(a.plays / max) * 100}%` }} />
             </span>
-            <span className="tabular dot-plot-value">{n(a.plays)}</span>
+            <span className="dot-plot-value"><Count value={a.plays} /></span>
           </li>
         ))}
       </ol>

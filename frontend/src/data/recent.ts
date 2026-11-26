@@ -31,9 +31,11 @@ export interface Period {
 }
 
 /** scrobbles is null when the bucket falls outside known tracking: no data, not zero */
-export interface DayPoint { date: string; scrobbles: number | null; complete: boolean }
-export interface WeekPoint { start: string; scrobbles: number | null; complete: boolean }
-export interface MonthPoint { month: string; scrobbles: number | null; complete: boolean }
+/** optional: the bucket's most played song, so a tap on the chart can play it */
+export interface BucketTrack { artist: string; title: string }
+export interface DayPoint { date: string; scrobbles: number | null; complete: boolean; top_track?: BucketTrack | null }
+export interface WeekPoint { start: string; scrobbles: number | null; complete: boolean; top_track?: BucketTrack | null }
+export interface MonthPoint { month: string; scrobbles: number | null; complete: boolean; top_track?: BucketTrack | null }
 
 export type PeriodKey = "today" | "this_week" | "last_week" | "this_month" | "last_month";
 export const PERIOD_KEYS: PeriodKey[] = ["today", "this_week", "last_week", "this_month", "last_month"];

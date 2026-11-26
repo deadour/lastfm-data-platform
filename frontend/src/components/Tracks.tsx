@@ -2,6 +2,7 @@ import type { TrackStat } from "../data/types";
 import { PlayCount } from "./PlayCount";
 import { Cover } from "./Cover";
 import { PreviewButton } from "./PreviewPlayer";
+import { PlayableTitle } from "./PreviewPlayer";
 
 export function Tracks({ tracks }: { tracks: TrackStat[] }) {
   return (
@@ -14,7 +15,7 @@ export function Tracks({ tracks }: { tracks: TrackStat[] }) {
           <span className="tabular text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
           <Cover seed={t.title} image={t.image} label={`portada de ${t.title}`} compact />
           <span className="min-w-0">
-            <span className="music-name block truncate text-base text-ink">{t.title}</span>
+            <PlayableTitle artist={t.artist} title={t.title} className="music-name block text-base text-ink" />
             <span className="block truncate text-sm text-muted">{t.artist}</span>
           </span>
           <span className="track-actions"><PreviewButton artist={t.artist} title={t.title} /><PlayCount count={t.scrobbles} artist={t.artist} title={t.title} /></span>

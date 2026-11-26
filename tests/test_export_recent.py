@@ -109,3 +109,11 @@ def test_last_scrobble_is_exported_for_the_live_fallback(tmp_path):
     doc = recent(tmp_path, [("2026-11-20T12:00:00Z", "a", "old", "x"), ("2026-11-25T12:00:00Z", "b", "newest", "")])
     assert doc["last_scrobble"] == {"artist": "b", "title": "newest", "album": None,
                                     "played_at": "2026-11-25T12:00:00Z", "cover": None}
+
+
+def test_each_bucket_names_its_most_played_song(tmp_path):
+    doc = recent(tmp_path, [("2026-11-25T12:00:00Z", "a", "uno", ""), ("2026-11-25T12:05:00Z", "b", "dos", ""),
+                            ("2026-11-25T12:10:00Z", "b", "dos", "")])
+    assert doc["series"]["days"][-1]["top_track"] == {"artist": "b", "title": "dos"}
+    assert doc["series"]["days"][0]["top_track"] is None  # nothing played that day
+    assert doc["series"]["weeks"][-1]["top_track"] == {"artist": "b", "title": "dos"}
