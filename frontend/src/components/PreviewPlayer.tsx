@@ -22,6 +22,24 @@ const SILENCE = "/silence.wav";
 const ALLOWED = (u: URL) => u.protocol === "https:" && !u.username && !u.password && !u.port &&
   (u.hostname.endsWith(".dzcdn.net") || u.hostname === "audio-ssl.itunes.apple.com" || u.hostname.endsWith(".mzstatic.com"));
 
+const fold = (v: string) => v.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+
+/** browser-side fallback: apple's search api allows cors, and answers browsers when it ignores cloudflare */
+async function applePreview(artist: string, title: string) {
+  const url = new URL("https://itunes.apple.com/search");
+  url.search = new URLSearchParams({ term: `${artist} ${title}`.trim(), entity: "song", media: "music", limit: "25" }).toString();
+  const response = await fetch(url.href, { signal: AbortSignal.timeout(6000) });
+  if (!response.ok) return null;
+  const body = await response.json() as { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] };
+  for (const r of body.results ?? []) {
+    if (!r.artistName || !r.trackName || !r.previewUrl) continue;
+    if (![r.artistName, r.artistName.split(",")[0]].some((a) => fold(a) === fold(artist))) continue;
+    if (title && fold(r.trackName) !== fold(title)) continue;
+    return { url: r.previewUrl, source_url: r.trackViewUrl, provider: "apple", title: r.trackName };
+  }
+  return null;
+}
+
 const clock = (s: number) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
 
 export function PreviewProvider({ children }: { children: ReactNode }) {
@@ -66,8 +84,9 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
         if (current !== sequence.current) return;
         const query: Record<string, string> = song ? { artist, title: song } : { artist };
         const response = await fetch(`/api/preview?${new URLSearchParams(query)}`, { signal: AbortSignal.timeout(8000) });
-        if (!response.ok) throw new Error("preview service unavailable");
-        const data = await response.json() as { preview?: { url?: string; source_url?: string; provider?: string; title?: string } | null };
+        let data: { preview?: { url?: string; source_url?: string; provider?: string; title?: string } | null } = { preview: null };
+        if (response.ok) data = await response.json();
+        if (!data?.preview?.url) data = { preview: await applePreview(artist, song).catch(() => null) };
         if (current !== sequence.current) return;
         const url = data?.preview?.url ? new URL(data.preview.url) : null;
         if (!url || !ALLOWED(url)) {

@@ -11,7 +11,7 @@ import { RetroIcon } from "../components/RetroIcon";
 import { Tracks } from "../components/Tracks";
 import type { InsightsFile, StatsFile } from "../data/types";
 import { n, pct } from "../utils/format";
-import { Link, navigate } from "../utils/router";
+import { Link } from "../utils/router";
 import { usePreview } from "../components/PreviewPlayer";
 
 const weekdays = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
@@ -49,7 +49,6 @@ export function Home({ stats, insights, recent, explore }: {
   const openArtist = (artist: string) => {
     const slug = slugs.get(artist) ?? null;
     preview?.play(artist, "", slug);
-    if (slug) navigate(`/artistas/${slug}`);
   };
   const monthly = insights ? null : stats.months;
 
