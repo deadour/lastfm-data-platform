@@ -80,7 +80,7 @@ export function App() {
       <div className="e-backdrop" aria-hidden="true" />
       <div className="archive-topbar-slot">
         <header className={`archive-topbar ${compactHeader ? "is-compact" : ""}`}>
-          {compactHeader && <Link href="/" className="archive-header-logo" aria-label={translate("e · inicio")}>e</Link>}
+          <Link href="/" className="archive-header-logo" aria-label={translate("e · inicio")}>e</Link>
           <nav aria-label={translate("secciones")} className="archive-header-actions">
             <RandomPlay />
             <Link href="/#about" className="archive-nav-link">{translate("sobre este proyecto")}</Link>

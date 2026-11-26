@@ -29,8 +29,8 @@ function WeekPreview({ data, tracks }: { data: InsightsFile; tracks?: ExploreFil
   return (
     <div className="week-preview">
       <div className="week-preview-heading">
-        <div><span className="eyebrow">{translate("mis horarios")}</span><h3 className="heading-with-icon"><RetroIcon kind="calendar" />{translate("mi semana")}</h3></div>
-        <span>{translate("promedio histórico")}</span>
+        <div><h3 className="heading-with-icon"><RetroIcon kind="calendar" />{translate("qué día escucho más")}</h3></div>
+        <span>{translate("sumando todos los años")}</span>
       </div>
       <div className="week-preview-chart" role="group" aria-label={translate("distribución histórica por día de la semana")}>
         {shares.map((share, i) => {
@@ -110,7 +110,7 @@ export function Home({ stats, insights, recent, explore }: {
 
       <div className="archive-divider" id="archivo">
         <span>{translate("el archivo")}</span>
-        <span>{translate("2016 y de 2020 en adelante · entre 2017 y 2019 no registré nada")}</span>
+        <span>{translate("2016 y de 2020 en adelante · entre 2017 y 2019 no hay datos")}</span>
       </div>
 
       {explore && (

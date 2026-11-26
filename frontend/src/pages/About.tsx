@@ -10,15 +10,14 @@ export function About({ stats }: { stats: StatsFile | null; insights: InsightsFi
   return <section id="about" className="about-page scroll-mt-6" aria-labelledby="about-title">
     <header className="about-header">
       <h2 id="about-title">{translate("sobre este proyecto")}</h2>
-      <p className="about-subtitle">{translate("proyecto personal que empecé para practicar ingeniería de datos, usando como base la música que escucho desde 2016.")}</p>
     </header>
     <div className="about-copy">
-      <p>{translate("comencé a registrar la música que escucho en abril de 2016 y de forma ininterrumpida desde 2020, utilizando un servicio llamado last.fm, que se conecta a mis cuentas de spotify y youtube para guardar mi historial musical.")}</p>
-      <p>{translate("con este escenario quise poner en práctica cosas que fui viendo en la facultad, usando herramientas que uso en el trabajo y otras que tenía ganas de aprender.")}</p>
-      <p>{translate("básicamente, lo que hago es automatizar la extracción de mis datos en crudo desde last.fm y los proceso con una arquitectura ")}<strong>{translate("medallón")}</strong>{translate(". la idea es que los datos van subiendo de medalla: en bronce están tal cual llegan, en plata ya están limpios y ordenados, y en oro quedan listos para mostrar. esos son los que usa esta web.")}</p>
-      <p>{translate("todo el proceso se repite diariamente en forma automática y actualiza lo que voy escuchando.")}</p>
-      <p>{translate("para armar esto combiné herramientas que ya uso: ")}<strong>python</strong>{translate(" y ")}<strong>sql</strong>{translate(" como lenguajes de programación; ")}<strong>react</strong>{translate(" y ")}<strong>typescript</strong>{translate(" para la interfaz de usuario y ")}<strong>github actions</strong>{translate(" para automatizar el proceso. después aprendí a usar ")}<strong>azure</strong>{translate(", donde armé un lago de datos privado en la nube que guarda las tres capas (bronce, plata y oro) en archivos ")}<strong>parquet</strong>.</p>
-      <p>{translate("la idea de esta web es tener una forma de ver todo lo que escuché estos años y, de paso, seguir aprendiendo ingeniería de datos.")}</p>
+      <p>{translate("empecé a registrar la música que escucho en abril de 2016 y, de forma ininterrumpida, desde 2020. lo hago a través de last.fm, un servicio que se conecta a mis cuentas de spotify y youtube y guarda mi historial musical.")}</p>
+      <p>{translate("con todos esos datos, se me ocurrió poner en práctica algunas cosas que aprendí en la facultad, combinando herramientas que ya uso en el trabajo con otras que tenía ganas de aprender.")}</p>
+      <p>{translate("básicamente, automaticé la extracción de mis datos desde last.fm y su procesamiento mediante una arquitectura ")}<strong>{translate("medallón")}</strong>{translate(": la idea es que los datos van subiendo de medalla: en bronce están tal cual llegan, en plata ya están limpios y ordenados, y en oro quedan listos para mostrar. esos son los que usa esta web.")}</p>
+      <p>{translate("este proceso se ejecuta automáticamente todos los días, incorporando lo que voy escuchando.")}</p>
+      <p>{translate("para desarrollarlo usé ")}<strong>python</strong>{translate(" y ")}<strong>sql</strong>{translate(" para procesar los datos; ")}<strong>react</strong>{translate(" y ")}<strong>typescript</strong>{translate(" para la interfaz; y ")}<strong>github actions</strong>{translate(" para automatizar las tareas. también aprendí a trabajar con ")}<strong>azure</strong>{translate(", donde armé un lago de datos privado en la nube que almacena las tres capas en archivos ")}<strong>parquet</strong>.</p>
+      <p>{translate("la idea de este proyecto es poder recorrer todo lo que escuché durante estos años y, de paso, seguir aprendiendo ingeniería de datos.")}</p>
     </div>
     <div className="about-medallion"><div className="about-medallion-chart"><Medallion scrobbles={stats?.totals.scrobbles ?? null} artists={stats?.totals.artists ?? null} years={stats?.years.length ?? null} /></div></div>
     <div className="about-pipeline-graphic"><Pipeline /></div>

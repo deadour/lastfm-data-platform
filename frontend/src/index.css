@@ -1046,3 +1046,27 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
     z-index: 1000;
   }
 }
+
+/* header always pinned (position: fixed works on every safari; sticky didn't on some iphones) */
+.archive-topbar-slot { position: static !important; min-height: 4rem !important; }
+.archive-topbar-slot::before { display: none !important; }
+.archive-topbar, .archive-topbar.is-compact {
+  position: fixed !important; inset: 0 0 auto !important; z-index: 50 !important; min-height: 4rem !important;
+  padding: .6rem max(1.25rem, calc((100vw - 1192px) / 2)) !important; justify-content: space-between !important;
+  background: rgb(14 18 14 / .94) !important; backdrop-filter: blur(14px); border-bottom: 1px solid var(--color-line) !important; }
+.archive-header-logo { font: 700 2rem/1 var(--font-serif); color: var(--color-e); letter-spacing: -.06em; }
+
+/* the e is the identity: huge, heavy, not a footnote */
+.archive-main-title { font-size: clamp(9rem, 34vw, 22rem) !important; line-height: .72 !important; font-weight: 700 !important; letter-spacing: -.08em !important; }
+.count-unit, .e-listen { font-size: 1em !important; font-weight: 700 !important; margin-left: .06em !important; }
+
+/* titles with weight */
+section > header h2, .home-section h2 { font-weight: 700 !important; font-size: clamp(2rem, 5.2vw, 3.6rem) !important; letter-spacing: -.05em; line-height: 1 !important; }
+
+/* the first record, front and centre */
+.reading-card:has(.reading-record) { grid-column: 1 / -1; }
+.reading-record { display: grid !important; grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr); gap: 1.4rem; align-items: center; }
+.reading-record strong { font: 700 clamp(1.8rem, 5vw, 3.4rem)/1 var(--font-serif) !important; letter-spacing: -.05em; }
+.reading-record p { font-size: 1rem !important; margin: .6rem 0 .8rem; }
+/* the e reads exactly like the number next to it */
+.count-unit, .e-listen { font-family: inherit !important; font-weight: inherit !important; font-size: 1em !important; letter-spacing: inherit !important; }
