@@ -447,5 +447,5 @@ export function PlayableTitle({ artist, title, className = "", slug, albumKey }:
 export function RandomPlay() {
   const context = useContext(PreviewContext);
   if (!context) return null;
-  return <button type="button" className="random-play" onClick={context.random}>{translate("▶ algo al azar")}</button>;
+  return <button type="button" className="random-play" onClick={context.random} aria-label={translate("▶ algo al azar")}><span className="random-desktop">{translate("▶ algo al azar")}</span><span className="random-mobile" aria-hidden="true">{translate("▶ azar")}</span></button>;
 }
