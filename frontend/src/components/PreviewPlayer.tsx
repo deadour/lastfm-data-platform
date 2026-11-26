@@ -190,14 +190,19 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     setSelection({ artist: plan.request.artist, title: plan.request.title || "…", status: "loading" });
     while (plan.cursor < plan.candidates.length) {
       // Try the exact requested song first, then batches of three alternatives.
-      const size = plan.cursor === 0 && plan.candidates[0]?.reason === "requested" ? 1 : 3;
-      const batch = plan.candidates.slice(plan.cursor, plan.cursor + size);
+      const reason = plan.candidates[plan.cursor].reason;
+      const batch = plan.candidates.slice(plan.cursor, plan.cursor + (reason === "requested" ? 1 : 3))
+        .filter((_, index, items) => items.slice(0, index + 1).every((item) => item.reason === reason));
       plan.cursor += batch.length;
-      const first = await Promise.any(batch.map(async (candidate) => {
-        const found = await findPreview(candidate.artist, candidate.title);
-        if (!found || failedUrls.current.has(found.url)) throw new Error("No usable preview");
+      const results = await Promise.all(batch.map(async (candidate) => {
+        const found = await findPreview(candidate.artist, candidate.title).catch(() => null);
+        if (!found || failedUrls.current.has(found.url)) return null;
+        const key = `${fold(candidate.artist)}\0${fold(found.title || candidate.title)}`;
+        if (playedInQueue.current.has(key)) return null;
         return { candidate, found };
-      })).catch(() => null);
+      }));
+      const first = results.find((result) => result !== null);
+      plan.candidates.splice(plan.cursor, 0, ...results.filter((result) => result && result !== first).map((result) => result!.candidate));
       if (requestId !== sequence.current || plan !== previewPlan.current) return;
       if (!first) continue;
       const { candidate, found } = first;
@@ -211,6 +216,9 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
       delete target.dataset.directRetry;
       plan.active = { url: found.url, provider: found.provider };
       const actualTitle = found.title || candidate.title;
+      const playedKey = `${fold(candidate.artist)}\0${fold(actualTitle)}`;
+      playedInQueue.current.add(playedKey);
+      playedAcrossQueues.current.add(playedKey);
       const note = candidate.reason === "requested" ? undefined
         : candidate.reason === "artist" || candidate.reason === "queue"
           ? translate("no encontré el tema; suena otro del mismo artista")
@@ -259,7 +267,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     }
     const current = ++sequence.current;
     previewPlan.current = null;
-    failedUrls.current.clear();
+    if (!continuation) failedUrls.current.clear();
     if (!continuation) customQueue.current = false;
     // artists of the same genre, set by playGenre just before this call; any other play has none
     const related = continuation ? relatedArtists.current : pendingRelated.current;
@@ -284,10 +292,9 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           // The public top-1000 catalog is already loaded. Use it immediately
           // instead of waiting for artist metadata before the first sound.
           const loadedTracks = tracks.filter((track) => fold(track.artist) === fold(artist));
-          const mine = slug || (loadedTracks.length ? null : await slugFor(artist));
-          const tops = loadedTracks.length
-            ? loadedTracks.map((track) => track.title)
-            : mine ? (await loadArtist(mine))?.top_tracks.map((track) => track.title) ?? [] : [];
+          const mine = slug ?? artists.find((item) => fold(item.name) === fold(artist))?.slug ?? await slugFor(artist);
+          const detail = mine ? await loadArtist(mine).catch(() => null) : null;
+          const tops = [...new Set([...loadedTracks.map((track) => track.title), ...(detail?.top_tracks.map((track) => track.title) ?? [])])];
           if (current !== sequence.current) return;
           queue.current = tops.map((title) => ({ artist, title }));
           queueScope.current = { slug: mine, albumKey: null };
@@ -297,7 +304,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         }
         // one in four artist plays goes to the artist's catalog instead of my archive: songs I may never have heard
         const discover = !song && !albumKey && !customQueue.current && Math.random() < 0.25;
-        if (!song && !discover) {
+        if (!song && !discover && !continuation) {
           // any of the artist's 50 most played, skipping what sounded recently, so the same tap
           // doesn't always open with the same hit
           const pool = queue.current.filter((track) => track.artist === artist && track.title !== lastSong);
@@ -318,7 +325,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           cursor: 0,
           active: null,
         };
-        failedUrls.current.clear();
+        if (!continuation) failedUrls.current.clear();
         void advancePreview(current);
       } catch {
         if (current === sequence.current) {
@@ -330,7 +337,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
               genres, related),
             cursor: 0, active: null,
           };
-          failedUrls.current.clear();
+          if (!continuation) failedUrls.current.clear();
           void advancePreview(current);
         }
       }
@@ -477,18 +484,16 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   };
 
   const next = async () => {
-    const list = queue.current.length ? queue.current : tracks;
-    if (!list.length) return;
-    const index = list.findIndex((track) => track.artist === selection?.artist && track.title === selection?.title);
-    let candidates = list.filter((track, i) => i !== index && !playedInQueue.current.has(`${track.artist}\0${track.title}`) &&
-      (!customQueue.current || !playedAcrossQueues.current.has(`${fold(track.artist)}\0${fold(track.title)}`)));
-    if (!candidates.length) {
-      playedInQueue.current.clear();
-      candidates = list.filter((track, i) => i !== index && (!customQueue.current || !playedAcrossQueues.current.has(`${fold(track.artist)}\0${fold(track.title)}`)));
-      if (!candidates.length) candidates = list.filter((_, i) => i !== index);
-    }
-    const chosen = shuffled ? candidates[Math.floor(Math.random() * candidates.length)] ?? list[0] : list[(index + 1) % list.length];
-    play(chosen.artist, chosen.title, queueScope.current.slug, queueScope.current.albumKey, true);
+    const artist = selection?.artist;
+    if (!artist) return;
+    const fresh = (track: { artist: string; title: string }) => !playedInQueue.current.has(`${fold(track.artist)}\0${fold(track.title)}`) &&
+      !(fold(track.artist) === fold(artist) && fold(track.title) === fold(selection?.title ?? ""));
+    const list = queue.current.filter(fresh);
+    const same = list.filter((track) => fold(track.artist) === fold(artist));
+    const pool = customQueue.current ? list : same;
+    const chosen = shuffled ? pool[Math.floor(Math.random() * pool.length)] : pool[0];
+    if (chosen) play(chosen.artist, chosen.title, queueScope.current.slug, queueScope.current.albumKey, true);
+    else play(artist, "", queueScope.current.slug, queueScope.current.albumKey, true);
   };
   /** a genre: one of its artists, and if nothing of them is found, another artist of the same genre */
   const playGenre = (names: string[]) => {
