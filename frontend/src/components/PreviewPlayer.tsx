@@ -39,19 +39,28 @@ async function fetchWithTimeout(url: string, ms: number): Promise<Response> {
   finally { window.clearTimeout(timer); }
 }
 
-/** browser-side fallback: apple's search api allows cors, and answers browsers when it ignores cloudflare */
+/** strip version noise so "golden brown - slowed down version" finds "golden brown" */
+const baseTitle = (t: string) => fold(t.replace(/\s[-–]\s.*$/, "").replace(/\s(remaster(ed)?|live|version|edit|mix|feat\.?)\b.*$/i, ""));
+
+/** browser-side fallback: apple's search api allows cors. tries the argentine store, then the us one,
+    and accepts the base title when the exact one isn't there */
 async function applePreview(artist: string, title: string) {
-  const url = new URL("https://itunes.apple.com/search");
-  url.search = new URLSearchParams({ term: `${artist} ${title}`.trim(), entity: "song", media: "music", limit: "25" }).toString();
-  const response = await fetchWithTimeout(url.href, 6000);
-  if (!response.ok) return null;
-  const body = await response.json() as { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] };
-  const results = title ? (body.results ?? []) : shuffle(body.results ?? []);
-  for (const r of results) {
-    if (!r.artistName || !r.trackName || !r.previewUrl) continue;
-    if (![r.artistName, r.artistName.split(",")[0]].some((a) => fold(a) === fold(artist))) continue;
-    if (title && fold(r.trackName) !== fold(title)) continue;
-    return { url: r.previewUrl, source_url: r.trackViewUrl, provider: "apple", title: r.trackName };
+  for (const country of ["AR", "US"]) {
+    const url = new URL("https://itunes.apple.com/search");
+    url.search = new URLSearchParams({ term: `${artist} ${title ? baseTitle(title) : ""}`.trim(), entity: "song", media: "music", limit: "50", country }).toString();
+    let body: { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] };
+    try {
+      const response = await fetchWithTimeout(url.href, 6000);
+      if (!response.ok) continue;
+      body = await response.json();
+    } catch { continue; }
+    const byArtist = (body.results ?? []).filter((r) => r.artistName && r.trackName && r.previewUrl &&
+      [r.artistName, r.artistName.split(",")[0], r.artistName.split(" & ")[0]].some((a) => fold(a) === fold(artist)));
+    const pick = !title ? shuffle(byArtist)[0]
+      : byArtist.find((r) => fold(r.trackName!) === fold(title))
+        ?? byArtist.find((r) => baseTitle(r.trackName!) === baseTitle(title))
+        ?? byArtist.find((r) => fold(r.trackName!).startsWith(baseTitle(title)));
+    if (pick) return { url: pick.previewUrl!, source_url: pick.trackViewUrl, provider: "apple", title: pick.trackName! };
   }
   return null;
 }
@@ -228,7 +237,12 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         if (albumKey || customQueue.current) {
           for (const track of queue.current) if (track.title !== song || track.artist !== artist) attempts.push([track.artist, track.title]);
         } else attempts.push([artist, ""]);
-        for (const [who, what] of attempts.slice(0, 6)) {
+        // never go silent: after the requested ones, songs I play a lot and some of my top artists
+        const backup = shuffle([
+          ...tracks.slice(0, 40).map((t) => [t.artist, t.title] as [string, string]),
+          ...artists.slice(0, 30).map((x) => [x.name, ""] as [string, string]),
+        ]).filter(([w, t]) => !(w === artist && t === song)).slice(0, 8);
+        for (const [who, what] of [...attempts.slice(0, 6), ...backup]) {
           const found = await findPreview(who, what);
           if (current !== sequence.current) return;
           if (!found) continue;
