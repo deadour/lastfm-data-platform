@@ -92,6 +92,8 @@ async function slugFor(artist: string): Promise<string | null> {
 
 const shuffle = <T,>(list: T[]) => [...list].sort(() => Math.random() - .5);
 
+const USE_JS_DOCK = false as boolean;
+
 const clock = (s: number) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
 
 export function PreviewProvider({ children, artists = [], albums = [], tracks = [] }: { children: ReactNode; artists?: { name: string; slug: string }[]; albums?: AlbumStat[]; tracks?: TrackStat[] }) {
@@ -105,7 +107,9 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
   useLayoutEffect(() => {
-    if (!enabled || !isIOSWebKit || !dockRef.current) return;
+    // disabled: tracking visualViewport lagged behind safari's momentum scroll and left
+    // the dock floating mid-screen. plain position: fixed to the bottom edge is steadier.
+    if (USE_JS_DOCK === false || !enabled || !isIOSWebKit || !dockRef.current) return;
     const node = dockRef.current;
     const mobile = window.matchMedia("(max-width: 640px)");
     let dockHeight = node.getBoundingClientRect().height;
@@ -468,7 +472,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         setPlaying(false);
         setSelection({ ...selection, status: "error" });
       }} />)}
-    {enabled && createPortal(<aside ref={dockRef} className={`winamp ${isIOSWebKit ? "wa-ios-absolute" : ""}`} aria-label={translate("reproductor de fragmentos")}>
+    {enabled && createPortal(<aside ref={dockRef} className="winamp" aria-label={translate("reproductor de fragmentos")}>
       <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("cerrar reproductor")} title={translate("cerrar reproductor")} onClick={mute}>×</button></div>
       <div className="wa-main">
         <div className="wa-display">

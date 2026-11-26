@@ -1070,3 +1070,12 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 .reading-record p { font-size: 1rem !important; margin: .6rem 0 .8rem; }
 /* the e reads exactly like the number next to it */
 .count-unit, .e-listen { font-family: inherit !important; font-weight: inherit !important; font-size: 1em !important; letter-spacing: inherit !important; }
+
+/* phone: dock glued to the bottom edge, handled by the browser (no js positioning) */
+@media (max-width: 640px) {
+  body > .winamp, .winamp {
+    position: fixed !important; top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+    width: 100% !important; margin: 0 !important; transform: none !important;
+    padding-bottom: env(safe-area-inset-bottom) !important; z-index: 1000 !important;
+  }
+}
