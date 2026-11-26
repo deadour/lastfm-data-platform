@@ -93,6 +93,7 @@ export function App() {
           <span>otros proyectos</span>
           <strong>eduramirez.dev ↗</strong>
         </a>
+        <Link href="/#ultimamente" className="footer-return">ver qué escucho</Link>
       </footer>
     </div></PreviewProvider>
   );

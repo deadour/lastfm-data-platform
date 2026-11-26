@@ -300,8 +300,9 @@ existing Pages Functions quota without adding a service or storage binding.
 ### Track fragments
 
 The play buttons request `/api/preview` only after a user clicks. The existing
-Pages Function searches Deezer's public API and accepts a fragment only when
-the normalized artist and title match. Full tracks still open through the
+Pages Function searches Deezer's public API with an Apple catalog fallback and
+accepts a fragment only when the normalized artist and title match. Apple samples
+link to the corresponding store page with its badge. Full tracks still open through the
 Spotify/YouTube links. There is no Spotify OAuth application or extra secret.
 Not every track has a fragment. One shared audio player handles playback and
 shows an unavailable state rather than substituting another recording.

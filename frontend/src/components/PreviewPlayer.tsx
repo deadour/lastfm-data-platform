@@ -1,7 +1,7 @@
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { spotifyUrl, youtubeUrl } from "../utils/listen";
 
-interface Selection { artist: string; title: string; status: "loading" | "ready" | "unavailable"; url?: string; source?: string }
+interface Selection { artist: string; title: string; status: "loading" | "ready" | "unavailable" | "error"; url?: string; source?: string; provider?: string }
 const PreviewContext = createContext<{ play: (artist: string, title: string) => void; selection: Selection | null; playing: boolean } | null>(null);
 
 export function PreviewProvider({ children }: { children: ReactNode }) {
@@ -22,17 +22,18 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
     setSelection({ artist, title, status: "loading" });
     try {
       const response = await fetch(`/api/preview?${new URLSearchParams({ artist, title })}`, { signal: AbortSignal.timeout(8000) });
-      const data = response.ok ? await response.json() as { preview?: { url?: string; source_url?: string } | null } : null;
+      if (!response.ok) throw new Error("Preview service unavailable");
+      const data = await response.json() as { preview?: { url?: string; source_url?: string; provider?: string } | null };
       if (current !== sequence.current) return;
       const url = data?.preview?.url;
       const parsed = url ? new URL(url) : null;
-      if (!parsed || parsed.protocol !== "https:" || !parsed.hostname.endsWith(".dzcdn.net") || parsed.username || parsed.password || parsed.port) {
+      if (!parsed || parsed.protocol !== "https:" || !(parsed.hostname.endsWith(".dzcdn.net") || parsed.hostname === "audio-ssl.itunes.apple.com" || parsed.hostname.endsWith(".mzstatic.com")) || parsed.username || parsed.password || parsed.port) {
         setSelection({ artist, title, status: "unavailable" });
         return;
       }
-      setSelection({ artist, title, status: "ready", url: parsed.href, source: data?.preview?.source_url });
+      setSelection({ artist, title, status: "ready", url: parsed.href, source: data.preview?.source_url, provider: data.preview?.provider });
     } catch {
-      if (current === sequence.current) setSelection({ artist, title, status: "unavailable" });
+      if (current === sequence.current) setSelection({ artist, title, status: "error" });
     }
   };
 
@@ -43,12 +44,13 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       <div className="preview-controls">
         {selection.status === "loading" && <p role="status">buscando un fragmento…</p>}
         {selection.status === "unavailable" && <p role="status">sin fragmento disponible · <a href={spotifyUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">spotify ↗</a> · <a href={youtubeUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">youtube ↗</a></p>}
+        {selection.status === "error" && <p role="status">no pude cargar el fragmento · <button onClick={() => play(selection.artist, selection.title)}>reintentar ↻</button></p>}
         {selection.status === "ready" && <>
           <audio key={selection.url} ref={audio} src={selection.url} controls autoPlay preload="none"
             aria-label={`fragmento de ${selection.title}, de ${selection.artist}`}
             onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
-            onError={() => { setPlaying(false); setSelection({ ...selection, status: "unavailable" }); }} />
-          <a href={selection.source} target="_blank" rel="noreferrer">fragmento · deezer ↗</a>
+            onError={() => { setPlaying(false); setSelection({ ...selection, status: "error" }); }} />
+          <a href={selection.source} target="_blank" rel="noreferrer">{selection.provider === "apple" ? <img src="/icons/apple-music-badge.svg" width="100" height="33" alt="escuchar en apple music" /> : "fragmento · deezer ↗"}</a>
         </>}
       </div>
       <button type="button" className="preview-close" aria-label="cerrar reproductor" onClick={() => { sequence.current++; setSelection(null); setPlaying(false); }}>×</button>

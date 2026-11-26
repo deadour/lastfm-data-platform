@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { onRequestGet, selectPreview } from "../../functions/api/preview";
+import { onRequestGet, selectPreview, selectApplePreview } from "../../functions/api/preview";
 
 const track = { title: "Get Lucky (Radio Edit)", title_short: "Get Lucky", artist: { name: "Daft Punk" },
   preview: "https://cdnt-preview.dzcdn.net/audio.mp3?expires=123", link: "https://www.deezer.com/track/123" };
@@ -33,6 +33,16 @@ describe("preview matching", () => {
 });
 
 describe("preview endpoint", () => {
+  it("uses an independent provider when Deezer is unavailable", async () => {
+    const apple = { artistName: "Daft Punk, Pharrell Williams & Nile Rodgers", trackName: "Get Lucky",
+      previewUrl: "https://audio-ssl.itunes.apple.com/clip.m4a", trackViewUrl: "https://music.apple.com/us/song/123" };
+    const fetcher = vi.fn().mockRejectedValueOnce(new Error("provider unavailable"))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [apple] })));
+    vi.stubGlobal("fetch", fetcher);
+    expect((await (await call()).json() as { preview: unknown }).preview).toMatchObject({ provider: "apple", url: apple.previewUrl });
+    expect(selectApplePreview({ results: [{ ...apple, trackName: "Get Lucky (Live)" }] }, "Daft Punk", "Get Lucky")).toBeNull();
+    expect(selectApplePreview({ results: [{ ...apple, previewUrl: "https://evil.example/clip.m4a" }] }, "Daft Punk", "Get Lucky")).toBeNull();
+  });
   it("shares metadata briefly so signed audio URLs do not outlive their validity", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ data: [track], private_internal_field: "not public" })));
     vi.stubGlobal("fetch", fetcher);

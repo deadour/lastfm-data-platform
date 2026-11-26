@@ -129,6 +129,7 @@ html {
 .archive-footer a { color: var(--color-muted); transition: color .2s; }
 .archive-footer a:hover { color: var(--color-ink); }
 .footer-project, .footer-links { display: flex; flex-direction: column; align-items: flex-start; gap: .65rem; }
+.footer-return { grid-column: 1 / -1; padding-top: 1rem; }
 .footer-sources { margin-top: .35rem; }
 .archive-portfolio { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
 .archive-portfolio strong { font-family: var(--font-serif); font-weight: 400; font-size: clamp(1.4rem, 2.6vw, 2.2rem); color: var(--color-ink); letter-spacing: -.02em; }
@@ -280,10 +281,17 @@ html {
 
 /* project story follows the listening archive, before the footer */
 .about-page { border-top: 1px solid var(--color-line); margin-top: 3rem; }
-.about-header { padding: clamp(3rem, 9vw, 8rem) 0 clamp(2.7rem, 7vw, 6rem); border-bottom: 1px solid var(--color-line); }
+.about-header { padding: 2.5rem 0 1.5rem; }
 .about-kicker { color: #e2a27b; font-size: .78rem; letter-spacing: .1em; }
-.about-header > h2 { font: 400 clamp(2rem, 5vw, 4.6rem)/1.05 var(--font-serif); letter-spacing: -.05em; margin: 1.8rem 0; }
-.about-header > p { font-size: clamp(1rem, 2.2vw, 1.55rem); max-width: 38rem; line-height: 1.45; color: #d0c5b8; }
+.about-header > h2 { font: 400 clamp(1.5rem, 3vw, 2.3rem)/1.15 var(--font-serif); letter-spacing: -.04em; margin: 0 0 .6rem; }
+.about-header > p { font-size: .9rem; color: var(--color-muted); }
+.about-copy { max-width: 46rem; }
+.about-copy p { color: #cdc2b7; font-size: 1rem; line-height: 1.75; margin: 0 0 1.25rem; }
+.about-copy strong { font-weight: 600; color: var(--color-ink); }
+.about-tools { margin: 2rem 0; }
+.about-tools h3 { font: 400 1.3rem var(--font-serif); margin-bottom: 1.4rem; }
+.about-tools ul { display: flex; flex-wrap: wrap; gap: 1.5rem 2rem; }
+.about-tools li { display: flex; align-items: center; gap: .65rem; color: var(--color-muted); font-size: .85rem; }
 .about-header-meta { display: block; color: var(--color-muted); font-size: .76rem; margin-top: 2rem; }
 .about-story { display: grid; grid-template-columns: minmax(180px,.6fr) minmax(0,1.4fr); gap: 2rem; padding: clamp(3rem,7vw,6rem) 0; border-bottom: 1px solid var(--color-line); }
 .about-story-label, .about-section-label { display: flex; gap: 1rem; justify-content: space-between; align-items: flex-start; color: #b9aea0; font-size: .7rem; letter-spacing: .065em; }
@@ -292,7 +300,7 @@ html {
 .about-story h2, .about-medallion h2, .about-pipeline h2 { font: 400 clamp(2rem, 5vw, 4.6rem)/1.02 var(--font-serif); letter-spacing: -.05em; margin-bottom: 2rem; }
 .about-story p { color: #cdc2b7; font-size: clamp(.95rem, 1.4vw, 1.07rem); line-height: 1.72; max-width: 42rem; margin: 0 0 1.1rem; }
 .about-github { display: inline-flex; margin-top: 1rem; border-bottom: 1px solid #b95e47; font-size: .9rem; padding-bottom: .3rem; }
-.about-medallion { margin: 3.5rem 0; padding: clamp(1.5rem, 5vw, 4rem); background: #e7dcc9; color: #251d19; }
+.about-medallion { margin: 2rem 0; padding: 0; background: transparent; color: var(--color-ink); }
 .about-medallion .about-section-label { color: #6b594f; margin-bottom: clamp(2rem, 4vw, 4rem); }
 .about-medallion h2 { color: #251d19; }
 .about-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .75rem; border-top: 1px solid #ac9c8a; padding-top: 1.5rem; }
@@ -300,7 +308,7 @@ html {
 .about-step small { color: #a04a37; font: .75rem var(--font-serif); }
 .about-step strong { font: 400 clamp(1.2rem,2.2vw,2.1rem)/1.1 var(--font-serif); }
 .about-step p { font-size: .76rem; line-height: 1.5; color: #6b594f; max-width: 13rem; }
-.about-medallion-chart { overflow-x: auto; padding: 1.5rem 0 0; margin-top: 2rem; border-top: 1px solid #ac9c8a; }
+.about-medallion-chart { overflow-x: auto; padding: 1.5rem 0 0; margin-top: 2rem; border-top: 1px solid var(--color-line); }
 .about-medallion-chart svg { max-width: 100%; }
 .about-pipeline { padding: clamp(3rem,7vw,6rem) 0; border-bottom: 1px solid var(--color-line); }
 .about-pipeline .about-section-label { margin-bottom: 2rem; }

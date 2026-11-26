@@ -120,6 +120,20 @@ def test_albums_merge_spellings_and_skip_missing_titles(silver):
     assert len(albums) == 3
 
 
+def test_first_record_album_is_enriched_outside_the_popularity_limit(tmp_path):
+    path = tmp_path / "silver.parquet"
+    events = silver_frame([("First Artist", "First Album", ""), ("Popular", "Popular Album", ""), ("Popular", "Popular Album", "")])
+    events["scrobbled_at"] = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"], utc=True)
+    events.to_parquet(path)
+    out = tmp_path / "covers"
+    deezer = FakeDeezer([deezer_item("First Artist", "First Album")])
+    counts = enrich.run(path, 1, 30, "ua", 0, out, clients=(FakeCAA({}), FakeMB(), deezer))
+    result = enrich.read_catalog(out)
+    assert counts["checked"] == 1
+    assert result.iloc[0].album_name == "First Album"
+    assert result.iloc[0].status == "resolved"
+
+
 def fake_clients(**deezer):
     return (FakeCAA({("release", MBID): "https://caa/500.jpg"}), FakeMB(),
             FakeDeezer([deezer_item("Unclear", "Maybe?"), deezer_item("Unclear", "Maybe Not", 2)], **deezer))

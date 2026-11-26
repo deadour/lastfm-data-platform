@@ -147,9 +147,16 @@ def review(catalog: pd.DataFrame, key: str, accept: bool) -> pd.DataFrame:
 
 def run(silver_path: Path, limit: int, retry_days: int, user_agent: str, interval: float,
         directory: Path = CATALOG_DIR, clients=None, save_every: int = 20) -> dict[str, int]:
-    albums = albums_from_silver(pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid"]))
+    events = pd.read_parquet(silver_path)
+    albums = albums_from_silver(events)
+    selected = albums.head(limit)
+    if "scrobbled_at" in events.columns and len(events):
+        first = events.sort_values("scrobbled_at", kind="stable").iloc[0]
+        if isinstance(first.album_name, str) and first.album_name.strip():
+            first_key = album_key(first.artist_name, first.album_name)
+            selected = pd.concat([albums[albums["album_key"] == first_key], selected]).drop_duplicates("album_key").head(limit)
     catalog = read_catalog(directory)
-    todo = due(catalog, albums.head(limit), retry_days, datetime.now(timezone.utc))
+    todo = due(catalog, selected, retry_days, datetime.now(timezone.utc))
     caa, mb, deezer = clients or (CoverArtArchive(user_agent, interval), MusicBrainzReleases(user_agent, interval),
                                   Deezer(user_agent))
     counts: dict[str, int] = {}

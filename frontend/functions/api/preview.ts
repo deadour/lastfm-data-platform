@@ -8,6 +8,26 @@ interface Track {
 
 const fold = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
+export function selectApplePreview(data: unknown, artist: string, title: string) {
+  const tracks = (data as { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] } | null)?.results;
+  if (!Array.isArray(tracks)) return null;
+  for (const track of tracks) {
+    if (typeof track.artistName !== "string" || typeof track.trackName !== "string") continue;
+    const mainArtist = track.artistName.split(",")[0];
+    if (![track.artistName, mainArtist].some((name) => fold(name) === fold(artist))) continue;
+    const name = track.trackName.replace(/\s*[\[(](?:feat\.?|featuring|ft\.)[^\])]*[\])]/gi, "");
+    if (![track.trackName, name].some((value) => fold(value) === fold(title))) continue;
+    try {
+      const url = new URL(track.previewUrl ?? "");
+      const link = new URL(track.trackViewUrl ?? "");
+      if (url.protocol !== "https:" || (url.hostname !== "audio-ssl.itunes.apple.com" && !url.hostname.endsWith(".mzstatic.com")) || url.username || url.password || url.port) continue;
+      if (link.protocol !== "https:" || !["music.apple.com", "itunes.apple.com"].includes(link.hostname) || link.username || link.password || link.port) continue;
+      return { url: url.href, source_url: link.href, provider: "apple" };
+    } catch { /* Ignore invalid provider metadata. */ }
+  }
+  return null;
+}
+
 export function selectPreview(data: unknown, artist: string, title: string) {
   const tracks = (data as { data?: Track[] } | null)?.data;
   if (!Array.isArray(tracks)) return null;
@@ -40,6 +60,7 @@ export const onRequestGet: PagesFunction = async ({ request, waitUntil }) => {
   }
   const key = new URL("/api/preview", request.url);
   key.search = new URLSearchParams({ artist, title }).toString();
+  key.searchParams.set("version", "2");
   const cacheKey = new Request(key.href);
   const cache = caches.default;
   const hit = await cache.match(cacheKey);
@@ -48,15 +69,35 @@ export const onRequestGet: PagesFunction = async ({ request, waitUntil }) => {
     const clean = (value: string) => value.replace(/["\\]/g, " ");
     const upstream = new URL("https://api.deezer.com/search");
     upstream.search = new URLSearchParams({ q: `artist:"${clean(artist)}" track:"${clean(title)}"`, limit: "10" }).toString();
-    const response = await fetch(upstream.href, { signal: AbortSignal.timeout(6000), redirect: "error" });
-    if (!response.ok) return json({ preview: null }, 503, 0);
-    const body = await response.json() as { error?: unknown };
-    if (body?.error) return json({ preview: null }, 503, 0);
-    const result = json({ preview: selectPreview(body, artist, title) });
+    let preview = null;
+    let providerWorked = false;
+    try {
+      const response = await fetch(upstream.href, { signal: AbortSignal.timeout(2500), redirect: "follow",
+        headers: { accept: "application/json", "user-agent": "lastfm-data-platform/0.1 (+https://fm.eduramirez.dev)" } });
+      if (response.ok) {
+        const body = await response.json() as { error?: unknown };
+        if (!body?.error) { providerWorked = true; preview = selectPreview(body, artist, title); }
+      }
+    } catch { /* Try the independent catalog below. */ }
+    if (!preview) {
+      try {
+        const apple = new URL("https://itunes.apple.com/search");
+        apple.search = new URLSearchParams({ term: `${artist} ${title}`, entity: "song", media: "music", limit: "15", country: "US" }).toString();
+        const response = await fetch(apple.href, { signal: AbortSignal.timeout(4000), headers: { accept: "application/json" } });
+        if (response.ok) {
+          const body = await response.json();
+          if (Array.isArray((body as { results?: unknown })?.results)) { providerWorked = true; preview = selectApplePreview(body, artist, title); }
+        }
+      } catch { /* Do not substitute a different recording or leak provider errors. */ }
+    }
+    if (!preview && !providerWorked) return json({ preview: null }, 503, 0);
+    const result = json({ preview });
     // Deezer preview URLs are signed and short-lived; do not retain them for days.
     waitUntil(cache.put(cacheKey, result.clone()).catch(() => undefined));
     return result;
-  } catch {
-    return json({ preview: null }, 503, 0);
+  } catch (error) {
+    const result = json({ preview: null }, 503, 0);
+    result.headers.set("x-preview-failure", error instanceof SyntaxError ? "invalid-response" : "request-failed");
+    return result;
   }
 };
