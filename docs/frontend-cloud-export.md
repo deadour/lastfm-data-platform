@@ -14,7 +14,7 @@ existing daily-pipeline → committed Azure Gold + Silver snapshots
                    existing Cloudflare Pages /data/stats.json
 ```
 
-This change prepares the workflow; it does not activate it or deploy the site.
+The publishing workflow is operational. After a successful manual, hash-verified production deployment, relevant pushes to `main` automatically build and publish the latest frontend with real exported statistics. Daily pipeline refresh remains separately gated.
 The production checkpoint, leases, snapshots, ingestion code and
 `daily-pipeline.yml` are unchanged. There is no new cron.
 
@@ -225,7 +225,13 @@ stale builds, preview-only uploads and raw-source deployments fail verification.
 It retries briefly for propagation but never enables automation. It does not
 automatically roll back; the owner must inspect/roll back a failed deployment.
 
-## Automatic refresh, when explicitly enabled
+## Deployment on relevant main pushes
+
+A push to `main` that changes `frontend/**`, `src/jobs/**`, `src/artwork/**` or `.github/workflows/export-frontend.yml` now runs both export and publish automatically. This intentionally uses the same protected `lastfm-prod` environment, pinned trusted SHA, Cloudflare preflight, frontend tests and public-content hash verification as manual production publication. It does **not** create an independent Cloudflare Git deployment and does not execute PR code with production secrets.
+
+The first automatic trigger after this change is the merge commit that changes `.github/workflows/export-frontend.yml`; check its Actions result and public URL. If there is a failed verification, investigate the failing job rather than turning on Cloudflare Git autobuild, which lacks generated private-lake statistics.
+
+## Automatic daily data refresh, when explicitly enabled
 
 Only after the manual publication and public verification succeed, set the two
 **repository-level** variables `FRONTEND_PUBLICATION_VERIFIED=true`, then
@@ -235,7 +241,7 @@ This additional guard also prevents an old automatic flag from activating the
 new workflow before its first manual verification. Both variables must be
 repository-level because job conditions precede environment availability.
 
-The new workflow then reacts to successful `daily-pipeline` completions from
+These flags gate **daily-pipeline completion triggers only**, not trusted `main` push publications. The workflow then reacts to successful `daily-pipeline` completions from
 `main` in this same repository, only for scheduled or manually dispatched runs.
 It checks out trusted `main` code; it never executes triggering PR code or
 downloads artifacts from the triggering workflow. It reads whatever consistent
