@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import { hash, secureImage } from "../utils/format";
+import { cachedArtwork } from "../utils/artwork";
 
 interface Props {
   seed: string;
@@ -9,12 +10,15 @@ interface Props {
   /** small thumbnail: no name overlay */
   compact?: boolean;
   style?: CSSProperties;
+  priority?: boolean;
 }
 
 // real artwork when there is a url; otherwise a quiet gradient derived from the name.
-export function Cover({ seed, image, label, className = "", compact = false, style }: Props) {
-  const [failed, setFailed] = useState(false);
-  const src = secureImage(image);
+export function Cover({ seed, image, label, className = "", compact = false, style, priority = false }: Props) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const [direct, setDirect] = useState<string | null>(null);
+  const original = secureImage(image);
+  const src = direct === original ? original : cachedArtwork(original);
   const h = hash(seed);
   const hue = h % 360;
   const second = (hue + 25 + ((h >> 9) % 70)) % 360;
@@ -23,12 +27,14 @@ export function Cover({ seed, image, label, className = "", compact = false, sty
 
   return (
     <div className={`relative aspect-square overflow-hidden bg-neutral-900 ${className}`} style={style}>
-      {src && !failed ? (
+      {src && failed !== src ? (
         <img
           src={src}
           alt={label}
-          loading="lazy"
-          onError={() => setFailed(true)}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          decoding="async"
+          onError={() => src !== original ? setDirect(original) : setFailed(src)}
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
         />
       ) : (

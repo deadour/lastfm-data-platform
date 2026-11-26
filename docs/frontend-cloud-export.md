@@ -279,3 +279,20 @@ reads, download egress and the small private catalog still consume existing
 storage usage/credit. Artifact retention is one day; only dependency files are
 cached, never private snapshots. There is no claim that all Azure operations
 are free.
+
+### Shared artwork cache
+
+`/api/artwork?url=...` serves public cover and artist images through the existing
+Pages Functions deployment. Successful raster images are cached for up to seven
+days at the Cloudflare edge and one day in the browser. The Cache API is shared
+between visitors at the same Cloudflare location; entries can be evicted and do
+not replicate automatically to other locations. The first uncached request still
+depends on the artwork provider. No Azure files or credentials enter this cache.
+
+Only HTTPS URLs on the artwork provider allowlist are accepted, including every
+redirect destination. Credentials, query strings, SVG/HTML responses and images
+over 3 MiB are rejected. Failed responses are not cached. `x-artwork-cache` reports
+`MISS` or `HIT`; request the same image twice to verify a warmed location. The
+frontend falls back to the original provider if the cache request fails. Visible
+lead images load eagerly; other images retain lazy loading. This uses the
+existing Pages Functions quota without adding a service or storage binding.

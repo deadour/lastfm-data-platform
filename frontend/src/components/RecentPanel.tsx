@@ -93,7 +93,7 @@ function PeriodView({ period, label, change }: { period: Period; label: string; 
       <div className="recent-cover">
         {coverAlbum ? (
           <figure className="group">
-            <Cover seed={coverAlbum.title} image={coverUrl} label={`portada de ${coverAlbum.title}`} className="recent-cover-art" />
+            <Cover seed={coverAlbum.title} image={coverUrl} label={`portada de ${coverAlbum.title}`} className="recent-cover-art" priority />
             <figcaption><span>el disco que más sonó</span><strong>{coverAlbum.title}</strong><span>{coverAlbum.artist}</span></figcaption>
           </figure>
         ) : <p className="recent-empty-line">sin discos en este período.</p>}
@@ -147,7 +147,7 @@ function Unavailable({ months: history }: { months: MonthStat[] }) {
 }
 
 export function RecentPanel({ state, history }: { state: RecentState; history: MonthStat[] }) {
-  const [tab, setTab] = useState<Tab>("week");
+  const [tab, setTab] = useState<Tab>("month");
   const [previous, setPrevious] = useState(false);
   const data = state.status === "ready" ? state.data : null;
 

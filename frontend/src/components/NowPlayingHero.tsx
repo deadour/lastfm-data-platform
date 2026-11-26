@@ -26,7 +26,7 @@ export function NowPlayingHero({ data, fallback = false }: { data: NowPlaying; f
   return (
     <section aria-label="qué estoy escuchando" className="fade-in grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-5 border-b border-line py-6 md:grid-cols-[5.5rem_minmax(0,1fr)_auto] md:gap-7">
       <div className="group">
-        <Cover seed={coverName} image={track.image} label={`portada de ${coverName}`} compact />
+        <Cover seed={coverName} image={track.image} label={`portada de ${coverName}`} compact priority />
       </div>
       <div className="min-w-0">
         <p className="mb-1.5 flex items-center gap-2.5 text-xs tracking-wide text-muted">
