@@ -4,6 +4,7 @@ import type { MonthStat } from "../data/types";
 import { monthYear, n, secureImage } from "../utils/format";
 import { Cover } from "./Cover";
 import { ListenLinks } from "./ListenLinks";
+import { PlayCount } from "./PlayCount";
 import { TimeChart, type TimePoint } from "./TimeChart";
 
 type Tab = "today" | "week" | "month";
@@ -63,6 +64,9 @@ function RankBars({ items }: { items: { name: string; scrobbles: number }[] }) {
 }
 
 function PeriodView({ period, label, change }: { period: Period; label: string; change: number | null }) {
+  if (period.status === "unknown") {
+    return <div className="recent-unavailable"><p>todavía no hay registros procesados para este período.</p><p>se actualiza con la próxima ejecución del pipeline.</p></div>;
+  }
   const album = period.top_albums[0];
   const coverUrl = secureImage(period.top_albums.find((a) => a.cover)?.cover?.url ?? null);
   const coverAlbum = period.top_albums.find((a) => a.cover) ?? album;
@@ -73,7 +77,7 @@ function PeriodView({ period, label, change }: { period: Period; label: string; 
           {label} · {range(period)}
           {!period.complete && <span className="recent-running">en curso</span>}
         </p>
-        <p className="recent-big"><span className="tabular">{n(period.scrobbles)}</span><small>escuchas</small></p>
+        <p className="recent-big"><span className="tabular">{n(period.scrobbles)}</span><small>e</small></p>
         <dl className="recent-counts">
           <div><dt>artistas</dt><dd className="tabular">{n(period.unique_artists)}</dd></div>
           <div><dt>canciones</dt><dd className="tabular">{n(period.unique_tracks)}</dd></div>
@@ -107,7 +111,7 @@ function PeriodView({ period, label, change }: { period: Period; label: string; 
               {period.top_tracks.map((t, i) => (
                 <li key={`${t.artist}-${t.title}`}>
                   <span className="tabular">{i + 1}</span>
-                  <span className="recent-track-name"><strong>{t.title}</strong><small>{t.artist} · {n(t.scrobbles)}</small></span>
+                  <span className="recent-track-name"><strong>{t.title}</strong><small>{t.artist} · <PlayCount count={t.scrobbles} artist={t.artist} title={t.title} /></small></span>
                   <ListenLinks artist={t.artist} title={t.title} />
                 </li>
               ))}
@@ -121,7 +125,7 @@ function PeriodView({ period, label, change }: { period: Period; label: string; 
               {period.top_albums.map((a) => (
                 <li key={`${a.artist}-${a.title}`} className="group">
                   <Cover seed={a.title} image={secureImage(a.cover?.url ?? null)} label={`portada de ${a.title}`} compact />
-                  <span><strong>{a.title}</strong><small>{a.artist} · {n(a.scrobbles)}</small></span>
+                  <span><strong>{a.title}</strong><small>{a.artist} · <PlayCount count={a.scrobbles} artist={a.artist} title={a.title} /></small></span>
                 </li>
               ))}
             </ol>
@@ -137,7 +141,7 @@ function Unavailable({ months: history }: { months: MonthStat[] }) {
   return (
     <div className="recent-unavailable">
       <p>esta parte todavía no está publicada.</p>
-      {last && <p>lo último que tengo es {monthYear(last.month)}: <strong className="tabular">{n(last.scrobbles)}</strong> escuchas.</p>}
+      {last && <p>lo último que tengo es {monthYear(last.month)}: <strong className="tabular">{n(last.scrobbles)}</strong> e.</p>}
     </div>
   );
 }
@@ -183,7 +187,7 @@ export function RecentPanel({ state, history }: { state: RecentState; history: M
           <PeriodView period={view.period} label={view.label} change={view.change} />
           <div className="recent-chart">
             <p className="recent-chart-title">{view.chart.title}</p>
-            <TimeChart points={view.chart.points} kind={view.chart.kind} label={`escuchas en ${view.chart.title}`} />
+            <TimeChart points={view.chart.points} kind={view.chart.kind} label={`e en ${view.chart.title}`} />
           </div>
         </>
       )}

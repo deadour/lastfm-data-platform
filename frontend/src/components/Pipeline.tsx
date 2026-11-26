@@ -144,7 +144,7 @@ export function Pipeline() {
 const run = [
   ["00:17", "arranca", "github actions levanta el job"],
   ["+1 min", "lee el checkpoint", "y toma un candado para correr solo"],
-  ["+2 min", "baja lo nuevo", "de last.fm, desde la última escucha"],
+  ["+2 min", "baja lo nuevo", "de last.fm, desde el último registro"],
   ["+3 min", "silver y gold", "se rearman y se suben con hash"],
   ["+4 min", "avanza el checkpoint", "solo si todo salió completo"],
   ["+6 min", "publica", "exporta, despliega y verifica la web"],

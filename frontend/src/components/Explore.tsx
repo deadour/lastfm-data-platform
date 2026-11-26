@@ -61,7 +61,7 @@ export function GenreTreemap({ families, artists }: { families: FamilyShare[]; a
   return (
     <div className="genre-map">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img"
-        aria-label={`géneros por escuchas: ${items.map((i) => `${i.family} ${pct(i.share)}`).join(", ")}`}>
+        aria-label={`géneros por e: ${items.map((i) => `${i.family} ${pct(i.share)}`).join(", ")}`}>
         {boxes.map((b) => (
           <g key={b.item.family} onMouseEnter={() => setHover(b.item.family)} onFocus={() => setHover(b.item.family)} tabIndex={0}>
             <rect x={b.x + 1.5} y={b.y + 1.5} width={Math.max(0, b.w - 3)} height={Math.max(0, b.h - 3)}
@@ -137,15 +137,15 @@ export function MonthsVsAverage({ months, monthly, show = 24 }: { months: string
       <div className="time-chart-readout" aria-live="polite">
         {shown ? (
           <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))} contra mi promedio</span></>
-        ) : <span>mi promedio mensual es de {n(Math.round(avg))} escuchas</span>}
+        ) : <span>mi promedio mensual es de {n(Math.round(avg))} e</span>}
       </div>
-      <div className="diverge-bars" role="img" aria-label={`diferencia de cada mes contra el promedio de ${n(Math.round(avg))} escuchas`}>
+      <div className="diverge-bars" role="img" aria-label={`diferencia de cada mes contra el promedio de ${n(Math.round(avg))} e`}>
         {recent.map((m, i) => {
           const dev = m.value - avg;
           const running = i === recent.length - 1;
           return (
             <button key={m.month} className={`diverge-col ${running ? "running" : ""}`} onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)}
-              onClick={() => setActive(i)} aria-label={`${monthYear(m.month)}: ${n(m.value)} escuchas`}>
+              onClick={() => setActive(i)} aria-label={`${monthYear(m.month)}: ${n(m.value)} e`}>
               <span className={dev >= 0 ? "up" : "down"} style={{ height: `${(Math.abs(dev) / maxDev) * 50}%` }} />
             </button>
           );
@@ -209,13 +209,13 @@ export function CalendarHeatmap({ calendar }: { calendar: ExploreFile["calendar"
   return (
     <figure className="calendar">
       <svg viewBox={`0 0 ${L + cols * (S + G)} ${T + 7 * (S + G)}`} className="h-auto w-full" role="img"
-        aria-label={`escuchas por día, del ${calendar.start} al ${calendar.end}`}>
+        aria-label={`e por día, del ${calendar.start} al ${calendar.end}`}>
         {months.map((c) => <text key={c.col} x={L + c.col * (S + G)} y={11} className="time-chart-axis">{monthNames[c.date.getUTCMonth()]}</text>)}
         {weekdayNames.map((d, i) => d && <text key={d} x={0} y={T + i * (S + G) + 10} className="time-chart-axis">{d}</text>)}
         {cells.map((c) => (
           <rect key={c.date.toISOString()} x={L + c.col * (S + G)} y={T + c.row * (S + G)} width={S} height={S} rx="2"
             className={c.count === 0 ? "cal-empty" : "cal-day"} style={{ opacity: c.count === 0 ? 1 : level(c.count) }}>
-            <title>{`${c.date.getUTCDate()} ${monthNames[c.date.getUTCMonth()]}: ${c.count} escuchas`}</title>
+            <title>{`${c.date.getUTCDate()} ${monthNames[c.date.getUTCMonth()]}: ${c.count} e`}</title>
           </rect>
         ))}
       </svg>

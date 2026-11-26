@@ -48,7 +48,7 @@ export function App() {
   return (
     <div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
       <header className="archive-topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-6">
-        <Link href="/" className="archive-wordmark" aria-label="fm, inicio">fm<span className="archive-wordmark-dot">.</span></Link>
+        <Link href="/" className="archive-wordmark" aria-label="e, inicio">e</Link>
         <nav aria-label="secciones" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
           {nav.map(([label, href]) => (
             <Link key={href} href={href} className="archive-nav-link">{label}</Link>
@@ -61,7 +61,7 @@ export function App() {
           <>
             <section className="archive-masthead" aria-labelledby="archive-title">
               <div className="archive-masthead-row">
-                <h1 id="archive-title" className="archive-main-title">lo que<br /><em>escucho</em></h1>
+                <div><h1 id="archive-title" className="archive-main-title">e</h1><p className="archive-subtitle">lo que escucho</p></div>
                 <img className="archive-masthead-photo" src="/img/diego.jpg" width={720} height={621}
                   alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
               </div>
@@ -82,16 +82,18 @@ export function App() {
       </main>
 
       <footer className="archive-footer">
-        <div className="flex flex-col gap-2">
-          <span className="flex items-center gap-3">fm. <Sources /></span>
+        <div className="footer-project">
+          <Link href="/" className="archive-wordmark" aria-label="e, inicio">e</Link>
+          <span><strong>e</strong>scuchas registradas. de acá en adelante, e.</span>
           {stats && <span>actualizado {shortDate(stats.data_as_of ?? stats.generated_at)}</span>}
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <Link href="/como-esta-hecho">cómo está hecho</Link>
+        <nav className="footer-links" aria-label="enlaces del proyecto">
+          <Link href="/como-esta-hecho">sobre este proyecto</Link>
           <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">código en github ↗</a>
-        </div>
+          <span className="footer-sources"><Sources /></span>
+        </nav>
         <a href="https://eduramirez.dev" className="archive-portfolio">
-          <span>más cosas mías</span>
+          <span>otros proyectos</span>
           <strong>eduramirez.dev ↗</strong>
         </a>
       </footer>

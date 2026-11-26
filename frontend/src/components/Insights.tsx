@@ -16,22 +16,19 @@ function Reading({ label, value, detail, number }: { label: string; value: strin
 }
 
 export function Readings({ data }: { data: InsightsFile }) {
-  const { first_ever: first, busiest_day: day, obsession, session, habits } = data;
+  const { first_ever: first, habits } = data;
   return (
     <div className="reading-layout">
-      <div className="reading-grid">
+      <div className="reading-grid" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
         <Reading number="01" label="la primera" value={first.title} detail={first.artist + " · " + longDate(first.date)} />
-        <Reading number="02" label="mi día récord" value={n(day.scrobbles) + " temas"} detail={longDate(day.date) + " · " + day.top_artist} />
-        <Reading number="03" label="en loop" value={obsession.title} detail={n(obsession.plays) + " veces en un día · " + longDate(obsession.date)} />
-        <Reading number="04" label="sesión más larga" value={session.hours.toLocaleString("es-AR") + " horas"} detail={n(session.plays) + " canciones · " + longDate(session.date)} />
       </div>
       <div className="reading-hours">
         <div className="reading-hours-header">
           <span>mi horario</span>
           <strong>{String(habits.peak_hour).padStart(2, "0")}:00</strong>
         </div>
-        <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label="distribución histórica de escuchas según la hora local" />
-        <p>escuchas por hora · todo el historial</p>
+        <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label="distribución histórica de e según la hora local" />
+        <p>e por hora · todo el historial</p>
       </div>
     </div>
   );
@@ -43,7 +40,7 @@ function YearRow({ year, linkFor }: { year: YearInsight; linkFor: (artist: strin
     <li className="year-detail grid gap-6 py-8 md:grid-cols-[8rem_minmax(0,1fr)_9rem] md:gap-10">
       <div>
         <span className="font-serif text-4xl text-ink">{year.year}</span>
-        <span className="tabular mt-2 block text-sm text-muted">{n(year.scrobbles)} escuchas</span>
+        <span className="tabular mt-2 block text-sm text-muted">{n(year.scrobbles)} e</span>
         {year.partial && <span className="mt-1 block text-xs text-muted/70">año incompleto</span>}
       </div>
       <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
@@ -52,7 +49,7 @@ function YearRow({ year, linkFor }: { year: YearInsight; linkFor: (artist: strin
           <dd className="mt-1 font-serif text-xl text-ink">
             {top ? <Link href={top} className="hover:underline hover:decoration-white/30 hover:underline-offset-4">{year.top_artist}</Link> : year.top_artist}
           </dd>
-          <dd className="text-muted">{pct(year.top_artist_share)} de mis escuchas</dd>
+          <dd className="text-muted">{pct(year.top_artist_share)} de mis e</dd>
         </div>
         <div>
           <dt className="text-xs text-muted">canción del año</dt>
@@ -114,8 +111,8 @@ export function Movements({ data, linkFor }: { data: InsightsFile; linkFor: (art
   };
   const columns = [
     { title: "volvieron · desde 2020", rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: "lo volví a poner en " + monthYear(c.returned) + ", después de " + days(c.gap_days) })) },
-    { title: "fueron una época", rows: data.phases.map((p) => ({ key: p.artist, name: p.artist, detail: pct(p.share) + " de mis escuchas de este artista fueron en " + p.year })) },
-    { title: "siempre ahí", rows: data.constants.map((c) => ({ key: c.artist, name: c.artist, detail: c.years + " años en mis registros · " + n(c.plays) + " escuchas" })) },
+    { title: "fueron una época", rows: data.phases.map((p) => ({ key: p.artist, name: p.artist, detail: pct(p.share) + " de mis e de este artista fueron en " + p.year })) },
+    { title: "siempre ahí", rows: data.constants.map((c) => ({ key: c.artist, name: c.artist, detail: c.years + " años en mis registros · " + n(c.plays) + " e" })) },
   ].filter((c) => c.rows.length);
 
   return (

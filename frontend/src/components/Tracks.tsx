@@ -1,5 +1,5 @@
 import type { TrackStat } from "../data/types";
-import { n } from "../utils/format";
+import { PlayCount } from "./PlayCount";
 import { Cover } from "./Cover";
 
 export function Tracks({ tracks }: { tracks: TrackStat[] }) {
@@ -16,7 +16,7 @@ export function Tracks({ tracks }: { tracks: TrackStat[] }) {
             <span className="block truncate font-serif text-xl text-ink">{t.title}</span>
             <span className="block truncate text-sm text-muted">{t.artist}</span>
           </span>
-          <span className="tabular text-sm text-ink/70">{n(t.scrobbles)}</span>
+          <PlayCount count={t.scrobbles} artist={t.artist} title={t.title} />
         </li>
       ))}
     </ol>

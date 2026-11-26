@@ -43,6 +43,14 @@ def verify(expected: Path, index: Path, *, fetcher=fetch) -> None:
     remote, content_type = fetcher(f"/data/stats.json?v={digest}")
     if "json" not in content_type.lower() or hashlib.sha256(remote).hexdigest() != digest:
         raise ValueError("The public domain does not serve the expected stats.json")
+    for name in ("insights.json", "recent.json", "explore.json"):
+        extra = expected.parent / name
+        if not extra.exists():
+            continue
+        extra_digest = hashlib.sha256(extra.read_bytes()).hexdigest()
+        remote, content_type = fetcher(f"/data/{name}?v={extra_digest}")
+        if "json" not in content_type.lower() or hashlib.sha256(remote).hexdigest() != extra_digest:
+            raise ValueError(f"The public domain does not serve the expected {name}")
     modules = Modules()
     modules.feed(index.read_text(encoding="utf-8"))
     if not modules.paths:

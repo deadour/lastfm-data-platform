@@ -61,5 +61,5 @@ def test_both_jobs_pin_the_same_reviewed_revision_and_gate_deployment_ownership(
 
 
 def test_insights_are_validated_before_upload_and_before_build():
-    assert ACTIVE.count("check-insights.ts") == 2 and ACTIVE.count("check-recent.ts") == 2
+    assert ACTIVE.count("check-insights.ts") == 3 and ACTIVE.count("check-recent.ts") == 3
     assert "cmp public/data/insights.json dist/data/insights.json" in ACTIVE

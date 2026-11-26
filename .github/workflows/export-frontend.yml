@@ -153,10 +153,13 @@ jobs:
           node --experimental-strip-types scripts/check-recent.ts public/data
           npm run build
           node --experimental-strip-types scripts/check-stats.ts dist/data/stats.json
+          node --experimental-strip-types scripts/check-insights.ts dist/data
+          node --experimental-strip-types scripts/check-recent.ts dist/data
           test -s dist/index.html
           cmp public/data/stats.json dist/data/stats.json
           cmp public/data/insights.json dist/data/insights.json
           cmp public/data/recent.json dist/data/recent.json
+          cmp public/data/explore.json dist/data/explore.json
 
       - name: Deploy to the existing Cloudflare Pages project
         uses: cloudflare/wrangler-action@v3

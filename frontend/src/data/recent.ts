@@ -64,7 +64,7 @@ function httpsUrl(v: unknown): boolean {
   if (!text(v)) return false;
   try {
     const url = new URL(v);
-    return url.protocol === "https:" && !url.username && !url.password;
+    return url.protocol === "https:" && !url.username && !url.password && !url.search && !url.hash;
   } catch {
     return false;
   }
@@ -91,6 +91,11 @@ const ascending = (keys: string[]) => keys.every((k, i) => i === 0 || keys[i - 1
 
 export function isRecentFile(v: unknown): v is RecentFile {
   if (!object(v) || v.schema_version !== 1 || !stamp(v.generated_at) || !stamp(v.data_as_of) || !text(v.timezone)) return false;
+  if (v.last_scrobble !== undefined && v.last_scrobble !== null) {
+    const last = v.last_scrobble;
+    if (!object(last) || !real(last.artist) || !real(last.title) || !stamp(last.played_at) ||
+        !(last.album === null || text(last.album)) || !cover(last.cover)) return false;
+  }
   const { periods, series } = v;
   if (!object(periods) || !PERIOD_KEYS.every((key) => isPeriod(periods[key]))) return false;
   if (!object(series) || !Array.isArray(series.days) || !Array.isArray(series.weeks) || !Array.isArray(series.months)) return false;

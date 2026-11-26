@@ -122,7 +122,7 @@ export function TimeChart({ points, kind, label, height = 190 }: Props) {
         {points.map((p, i) => (
           <rect key={`h-${p.key}`} x={kind === "bars" ? barX(i) : x(i) - slot / 2} y={PAD.top} width={slot} height={innerH + PAD.bottom}
             fill="transparent" tabIndex={0} role="button"
-            aria-label={`${p.title}: ${p.value === null ? "sin registro" : n(p.value) + " escuchas"}`}
+            aria-label={`${p.title}: ${p.value === null ? "sin registro" : n(p.value) + " e"}`}
             onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)} onClick={() => setActive(i)}
             onBlur={() => setActive((a) => (a === i ? null : a))} className="time-chart-hit" />
         ))}

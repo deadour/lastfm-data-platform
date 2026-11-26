@@ -9,7 +9,7 @@ export function Rhythm({ cells }: { cells: RhythmCell[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] border-separate border-spacing-1.5">
-        <caption className="sr-only">escuchas por día de la semana y hora</caption>
+        <caption className="sr-only">e por día de la semana y hora</caption>
         <thead>
           <tr>
             <th />
