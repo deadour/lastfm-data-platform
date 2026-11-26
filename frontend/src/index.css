@@ -1079,3 +1079,11 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
     padding-bottom: env(safe-area-inset-bottom) !important; z-index: 1000 !important;
   }
 }
+/* iOS safari mispaints bottom-anchored fixed boxes while its toolbar shrinks.
+   anchor from the top instead: start at the dynamic viewport height and pull up by the dock's own height. */
+@media (max-width: 640px) {
+  body > .winamp, .winamp {
+    top: 100dvh !important; bottom: auto !important;
+    transform: translateY(-100%) !important;
+  }
+}
