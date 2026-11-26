@@ -1087,3 +1087,15 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
     transform: translateY(-100%) !important;
   }
 }
+/* phone: sticky at the end of the page instead of fixed. ios safari paints fixed
+   bottom boxes in the wrong place while its toolbar collapses; sticky scrolls with
+   the content, so it stays glued to the visible bottom edge. */
+@media (max-width: 640px) {
+  body > .winamp, .winamp {
+    position: sticky !important; top: auto !important; bottom: 0 !important;
+    transform: none !important; left: auto !important; right: auto !important;
+  }
+}
+/* the title must scroll to be readable, so the marquee runs even with reduced motion (slower) */
+.wa-right .wa-marquee span { animation: wa-scroll 16s steps(80) infinite !important; }
+@media (prefers-reduced-motion: reduce) { .wa-right .wa-marquee span { animation: wa-scroll 26s linear infinite !important; } }
