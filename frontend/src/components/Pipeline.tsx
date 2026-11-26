@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LastfmIcon, SpotifyIcon, YoutubeIcon } from "./Icons";
+import { AzureIcon, CloudflareIcon, GithubActionsIcon, LastfmIcon, MedalIcon, SpotifyIcon, YoutubeIcon } from "./Icons";
 
 // an animated map of the pipeline: data pulses travel along the arrows,
 // stages light up in order. static when the visitor prefers reduced motion.
@@ -10,7 +10,7 @@ interface Node {
   y: number;
   label: string;
   sub: string;
-  icon?: "spotify" | "youtube" | "lastfm";
+  icon?: keyof typeof icons;
   small?: boolean;
 }
 
@@ -22,12 +22,12 @@ const nodes: Node[] = [
   { id: "spotify", x: 20, y: 74, label: "spotify", sub: "", icon: "spotify", small: true },
   { id: "youtube", x: 20, y: 150, label: "youtube", sub: "", icon: "youtube", small: true },
   { id: "lastfm", x: 215, y: 104, label: "last.fm", sub: "registra todo", icon: "lastfm" },
-  { id: "bronze", x: 405, y: 104, label: "bronze", sub: "json crudo" },
-  { id: "silver", x: 595, y: 104, label: "silver", sub: "parquet limpio" },
-  { id: "gold", x: 785, y: 104, label: "gold", sub: "agregados" },
-  { id: "export", x: 975, y: 104, label: "export", sub: "json público" },
-  { id: "web", x: 975, y: 280, label: "esta web", sub: "cloudflare pages" },
-  { id: "now", x: 405, y: 280, label: "ahora suena", sub: "function · 30 s" },
+  { id: "bronze", x: 405, y: 104, label: "bronze", sub: "tal cual llega", icon: "bronze" },
+  { id: "silver", x: 595, y: 104, label: "silver", sub: "limpio", icon: "silver" },
+  { id: "gold", x: 785, y: 104, label: "gold", sub: "los números", icon: "gold" },
+  { id: "export", x: 975, y: 104, label: "export", sub: "json público", icon: "actions" },
+  { id: "web", x: 975, y: 280, label: "esta web", sub: "cloudflare", icon: "cloudflare" },
+  { id: "now", x: 405, y: 280, label: "ahora suena", sub: "cada 30 s", icon: "cloudflare" },
 ];
 
 const edges: [string, string][] = [
@@ -52,10 +52,19 @@ function path(from: Node, to: Node): string {
   return `M${from.x + W},${fromMid} C${mid},${fromMid} ${mid},${toMid} ${to.x - 6},${toMid}`;
 }
 
+const Bronze = ({ size }: { size?: number }) => <MedalIcon size={size} color="#b0703f" title="bronze" />;
+const Silver = ({ size }: { size?: number }) => <MedalIcon size={size} color="#c9c6c0" title="silver" />;
+const Gold = ({ size }: { size?: number }) => <MedalIcon size={size} color="#d9a83a" title="gold" />;
+
 const icons = {
-  spotify: { color: "#1db954", Icon: SpotifyIcon },
-  youtube: { color: "#e0473c", Icon: YoutubeIcon },
-  lastfm: { color: "", Icon: LastfmIcon },
+  spotify: { color: "#1db954", stroke: "#1db954", Icon: SpotifyIcon },
+  youtube: { color: "#e0473c", stroke: "#e0473c", Icon: YoutubeIcon },
+  lastfm: { color: "", stroke: "#b9392f", Icon: LastfmIcon },
+  bronze: { color: "", stroke: "#b0703f", Icon: Bronze },
+  silver: { color: "", stroke: "#c9c6c0", Icon: Silver },
+  gold: { color: "", stroke: "#d9a83a", Icon: Gold },
+  actions: { color: "", stroke: "#2da44e", Icon: GithubActionsIcon },
+  cloudflare: { color: "", stroke: "#f38020", Icon: CloudflareIcon },
 };
 
 function useReducedMotion() {
@@ -86,8 +95,9 @@ export function Pipeline() {
       </defs>
 
       <rect x="385" y="66" width="580" height="132" rx="4" fill="none" stroke="currentColor" strokeDasharray="3 6" className="text-white/18" />
-      <text x="400" y="88" fontSize="12" className="fill-current text-muted">azure data lake · privado</text>
-      <text x="20" y="34" fontSize="12" className="fill-current text-muted">github actions · cada día 06:17 utc · login sin claves (oidc)</text>
+      <g transform="translate(400, 74)"><AzureIcon size={16} /></g>
+      <text x="422" y="88" fontSize="12" className="fill-current text-muted">azure data lake · privado</text>
+      <text x="20" y="34" fontSize="12" className="fill-current text-muted">github actions · todos los días a las 00:17 · sin claves guardadas</text>
       <line x1="20" y1="44" x2="1115" y2="44" stroke="currentColor" className="text-white/10" />
 
       {edges.map(([a, b], i) => {
@@ -116,7 +126,7 @@ export function Pipeline() {
         const anchor = icon ? "start" : "middle";
         return (
           <g key={n.id} className={reduced ? "" : "pipe-node"} style={{ animationDelay: `${i * 0.5}s` }}>
-            <rect x={n.x} y={n.y} width={W} height={h} rx="3" className="pipe-box" />
+            <rect x={n.x} y={n.y} width={W} height={h} rx="3" className="pipe-box" style={icon ? { stroke: icon.stroke, strokeOpacity: 0.7 } : undefined} />
             {icon && (
               <g transform={`translate(${n.x + 12}, ${n.y + h / 2 - 10})`} style={{ color: icon.color || undefined }}>
                 <icon.Icon size={20} />
@@ -132,9 +142,9 @@ export function Pipeline() {
 }
 
 const run = [
-  ["06:17", "arranca", "github actions levanta el job"],
+  ["00:17", "arranca", "github actions levanta el job"],
   ["+1 min", "lee el checkpoint", "y toma un candado para correr solo"],
-  ["+2 min", "baja lo nuevo", "de last.fm, desde la última escucha"],
+  ["+2 min", "baja lo nuevo", "de last.fm, desde el último registro"],
   ["+3 min", "silver y gold", "se rearman y se suben con hash"],
   ["+4 min", "avanza el checkpoint", "solo si todo salió completo"],
   ["+6 min", "publica", "exporta, despliega y verifica la web"],

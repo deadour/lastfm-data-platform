@@ -22,13 +22,16 @@ def test_exporter_uses_oidc_without_ingestion_secrets_or_checkpoint_commands():
     assert "azure/login@v2" in ACTIVE and "id-token: write" in ACTIVE
     assert "environment: lastfm-prod" in ACTIVE and "persist-credentials: false" in ACTIVE
     assert "python -m src.jobs.export_stats" in ACTIVE
-    for forbidden in ("cloud_run", "seed", "LASTFM_API_KEY", "LASTFM_USERNAME", "AZURE_CLIENT_SECRET", "creds:", "AccountKey"):
+    for forbidden in ("cloud_run", "seed", "LASTFM_USERNAME", "AZURE_CLIENT_SECRET", "creds:", "AccountKey"):
         assert forbidden not in ACTIVE
+    # the read-only api key is allowed once, for artist tag lookups in the export step only
+    assert ACTIVE.count("LASTFM_API_KEY:") == 1
+    assert "LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}" in ACTIVE
 
 
 def test_only_the_allowlisted_public_json_is_uploaded_as_an_artifact():
     allowlist = ("path: |\n            output/stats.json\n            output/insights.json\n"
-                 "            output/artists/*.json\n")
+                 "            output/recent.json\n            output/explore.json\n            output/artists/*.json\n")
     assert allowlist in ACTIVE
     assert "retention-days: 1" in ACTIVE
     assert "path: site/frontend/public/data" in ACTIVE
@@ -58,5 +61,5 @@ def test_both_jobs_pin_the_same_reviewed_revision_and_gate_deployment_ownership(
 
 
 def test_insights_are_validated_before_upload_and_before_build():
-    assert ACTIVE.count("check-insights.ts") == 2
+    assert ACTIVE.count("check-insights.ts") == 3 and ACTIVE.count("check-recent.ts") == 3
     assert "cmp public/data/insights.json dist/data/insights.json" in ACTIVE

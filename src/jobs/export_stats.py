@@ -7,6 +7,7 @@ artwork catalog can be updated remotely; publication happens outside this job.
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 import re
 import tempfile
@@ -17,7 +18,11 @@ import pyarrow.parquet as pq
 from src.artwork import artist_photos, enrich
 from src.artwork.clients import Deezer
 from src.artwork.export_frontend import build, write
-from src.artwork.export_insights import build_insights, top_artist_names, write_all
+from src.artwork.export_explore import build_explore
+from src.artwork.export_insights import build_insights, load_events, top_artist_names, write_all
+from src.artwork.export_recent import build_recent
+from src.enrichment import cloud_genres
+from src.enrichment.lastfm_tags_client import LastFMArtistTagsClient
 from src.storage import checkpoint
 from src.storage.azure import AzureStorage, load_settings, sha256_file
 
@@ -76,7 +81,8 @@ def restore_catalog(storage, directory: Path) -> str | None:
 
 
 def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
-               top: int = 20, refresh_artwork: bool = True, enrich_fn=None, deezer=None) -> dict:
+               top: int = 20, refresh_artwork: bool = True, enrich_fn=None, deezer=None,
+               tags_client=None, genre_limit: int = 400, now=None) -> dict:
     if not 1 <= top <= 100 or not 1 <= artwork_limit <= 500:
         raise ExportRejected("top must be 1–100 and artwork_limit must be 1–500")
     current = checkpoint.read(storage)
@@ -124,14 +130,35 @@ def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
             # Same rule as the album catalog: a lost ETag race fails the export.
             storage.write_bytes_conditional(artist_photos.CATALOG_BLOB, artist_photos.dump(photos), etag=photo_etag)
 
+    found = storage.read_bytes(cloud_genres.CATALOG_BLOB)
+    genre_etag = found[1] if found else None
+    try:
+        genre_catalog = cloud_genres.load(found[0] if found else None)
+    except ValueError as exc:
+        raise ExportRejected(str(exc)) from None
+    api_key = os.getenv("LASTFM_API_KEY", "").strip()
+    if refresh_artwork and (tags_client or api_key):
+        client = tags_client or LastFMArtistTagsClient(api_key)
+        if cloud_genres.refresh(genre_catalog, top_artist_names(silver_path, limit=1000), client, limit=genre_limit,
+                                mbids=cloud_genres.artist_mbids(silver_path)):
+            # same rule as the other catalogs: a lost ETag race fails the export
+            storage.write_bytes_conditional(cloud_genres.CATALOG_BLOB, cloud_genres.dump(genre_catalog), etag=genre_etag)
+    root = Path(__file__).resolve().parents[2]
+    genres = cloud_genres.Genres(genre_catalog, taxonomy_path=root / "config/tag_taxonomy.json")
+
     catalog = enrich.read_catalog(catalog_dir)
     document = build(gold, silver_path, catalog, top)
     insights, pages = build_insights(silver_path, catalog, {y["year"] for y in document["years"] if y["partial"]},
                                      photos=lambda name: artist_photos.photo(photos, name))
+    recent = build_recent(silver_path, catalog, document["data_as_of"], now=now)
+    explore = build_explore(load_events(silver_path, root / "config/timezone_periods.json"), genres)
     write(document, out)
     write_all(insights, pages, out.parent)
+    write(recent, out.parent / "recent.json")
+    write(explore, out.parent / "explore.json")
     return {"scrobbles": document["totals"]["scrobbles"], "data_as_of": document["data_as_of"],
-            "bytes": out.stat().st_size, "artist_pages": len(pages)}
+            "bytes": out.stat().st_size, "artist_pages": len(pages),
+            "genre_coverage": (explore.get("genres") or {}).get("coverage")}
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -56,11 +56,11 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
         </div>
         <div>
           <h1 className="font-serif text-5xl leading-[0.95] tracking-tight text-ink md:text-7xl">{page.name}</h1>
-          <p className="tabular mt-6 text-lg text-ink/80">{n(page.scrobbles)} escuchas · {pct(page.share, 1)} de todo</p>
+          <p className="tabular mt-6 text-lg text-ink/80">{n(page.scrobbles)} e · {pct(page.share, 1)} de todo</p>
           <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 text-sm">
             <div><dt className="text-xs text-muted">la primera vez</dt><dd className="mt-1 text-ink">{shortDate(page.first.date)}</dd><dd className="text-muted">{page.first.title}</dd></div>
-            <div><dt className="text-xs text-muted">su año</dt><dd className="mt-1 text-ink">{page.peak_year}</dd><dd className="text-muted">{page.active_years} años con escuchas</dd></div>
-            <div><dt className="text-xs text-muted">el día que más</dt><dd className="mt-1 text-ink">{shortDate(page.best_day.date)}</dd><dd className="text-muted">{n(page.best_day.plays)} escuchas</dd></div>
+            <div><dt className="text-xs text-muted">su año</dt><dd className="mt-1 text-ink">{page.peak_year}</dd><dd className="text-muted">{page.active_years} años con e</dd></div>
+            <div><dt className="text-xs text-muted">el día que más</dt><dd className="mt-1 text-ink">{shortDate(page.best_day.date)}</dd><dd className="text-muted">{n(page.best_day.plays)} e</dd></div>
             <div><dt className="text-xs text-muted">repertorio</dt><dd className="mt-1 text-ink">{n(page.tracks)} temas</dd><dd className="text-muted">en {n(page.albums)} discos</dd></div>
           </dl>
           {page.photo && (
@@ -71,17 +71,17 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
 
       <section className="border-t border-line py-12">
         <h2 className="mb-8 font-serif text-2xl text-ink">mes a mes</h2>
-        <Line values={series} ticks={yearTicks(seriesMonths)} label={`escuchas de ${page.name} por mes`} />
+        <Line values={series} ticks={yearTicks(seriesMonths)} label={`e de ${page.name} por mes`} />
       </section>
 
       <section className="grid gap-12 border-t border-line py-12 md:grid-cols-2">
         <div>
           <h2 className="mb-8 font-serif text-2xl text-ink">por año</h2>
-          <Bars values={page.years.map((y) => y.scrobbles)} labels={page.years.map((y) => String(y.year).slice(2))} label="escuchas por año" showValues />
+          <Bars values={page.years.map((y) => y.scrobbles)} labels={page.years.map((y) => String(y.year).slice(2))} label="e por año" showValues />
         </div>
         <div>
           <h2 className="mb-8 font-serif text-2xl text-ink">a qué hora</h2>
-          <HourBars values={page.hours} label="escuchas por hora del día" />
+          <HourBars values={page.hours} label="e por hora del día" />
         </div>
       </section>
 

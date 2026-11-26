@@ -13,11 +13,14 @@ function useNow(intervalMs = 30_000) {
   return now;
 }
 
-export function NowPlayingHero({ data }: { data: NowPlaying }) {
+/** fallback: the last processed scrobble, used while last.fm's live api is down */
+export function NowPlayingHero({ data, fallback = false }: { data: NowPlaying; fallback?: boolean }) {
   const now = useNow();
   if (!data.track) return null;
   const { track } = data;
-  const status = data.playing ? "sonando ahora" : data.played_at ? `lo último, ${ago(data.played_at, now)}` : "lo último";
+  const status = data.playing ? "sonando ahora"
+    : fallback ? `lo último que quedó registrado${data.played_at ? `, ${ago(data.played_at, now)}` : ""}`
+    : data.played_at ? `lo último, ${ago(data.played_at, now)}` : "lo último";
   const coverName = track.album ?? track.title;
 
   return (
