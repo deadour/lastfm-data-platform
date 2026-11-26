@@ -53,15 +53,9 @@ function OddPhoto({ name, url }: { name: string; url?: string }) {
   return <span className="odd-photo"><Cover seed={name} image={url ?? null} label={name} compact /></span>;
 }
 
-/** opens "más del archivo" (the gold extras: loyal artists, evergreen songs, streaks) and scrolls to it */
-function MoreFromArchive() {
-  const open = () => {
-    const box = document.getElementById("mas-del-archivo") as HTMLDetailsElement | null;
-    if (!box) return;
-    box.open = true;
-    box.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  return <button type="button" className="more-from-archive" onClick={open}>{translate("ver más ↓")}</button>;
+/** "ver más" under a home section: goes to the full page of that list */
+function SeeMore({ href }: { href: string }) {
+  return <Link href={href} className="more-from-archive">{translate("ver más →")}</Link>;
 }
 
 function GoldMore({ gold, play }: { gold: NonNullable<ExploreFile["gold"]>; play: (artist: string) => void }) {
@@ -152,7 +146,7 @@ export function Home({ stats, insights, recent, explore }: {
       {insights && insights.artists.length > 0 && (
         <Section id={translate("artistas")} title={translate("artistas")} icon={<RetroIcon kind="person" />} aside={<Link href="/artistas" className="hover:text-ink">{translate("ver todos ↗")}</Link>}>
           <ArtistGrid artists={insights.artists} limit={15} />
-          <MoreFromArchive />
+          <SeeMore href="/artistas" />
         </Section>
       )}
 
@@ -185,7 +179,7 @@ export function Home({ stats, insights, recent, explore }: {
       {stats.top_albums && stats.top_albums.length > 0 && (
         <Section id={translate("discos")} title={translate("los discos de siempre")} icon={<RetroIcon kind="drive" />}>
           <Albums albums={stats.top_albums} />
-          <MoreFromArchive />
+          <SeeMore href="/discos" />
         </Section>
       )}
 
@@ -199,7 +193,7 @@ export function Home({ stats, insights, recent, explore }: {
         <div>
           <Section id={translate("canciones")} title={translate("en loop")} icon={<RetroIcon kind="speaker" />}>
             <Tracks tracks={stats.top_tracks} />
-            <MoreFromArchive />
+            <SeeMore href="/canciones" />
           </Section>
         </div>
         {insights && <WeekPreview data={insights} tracks={explore?.weekday_tracks} />}
@@ -233,7 +227,7 @@ export function Home({ stats, insights, recent, explore }: {
       )}
 
 
-      <details id="mas-del-archivo" className="archive-deep-dive">
+      <details className="archive-deep-dive">
         <summary><span className="deep-title heading-with-icon"><RetroIcon kind="folder" size={44} />{translate("más del archivo")}</span><span className="big-plus" aria-hidden="true">+</span></summary>
         <div className="archive-deep-dive-body">
           {explore?.gold && <GoldMore gold={explore.gold} play={openArtist} />}

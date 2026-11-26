@@ -200,5 +200,5 @@ export const english: Record<string, string> = {
   "copias del checkpoint, por si hay que recuperar el estado": "checkpoint copies, in case the state needs recovering",
   "cada archivo se sube con su hash sha-256 guardado como metadato. si ya hay uno igual no lo vuelvo a subir, y si hay uno distinto el pipeline se niega a pisarlo salvo que se lo pida. para entrar no uso claves de la cuenta: tanto yo como github actions usamos identidades de azure que solo tienen permiso para leer y escribir datos.": "every file is uploaded with its sha-256 hash stored as metadata. if an identical one already exists i don't upload it again, and if a different one exists the pipeline refuses to overwrite it unless i ask. to get in i don't use account keys: both github actions and i use azure identities that can only read and write data.",
   "no encontré nada de ese artista; suena otro del mismo género": "couldn't find anything by that artist; playing another one from the same genre",
-  "ver más ↓": "see more ↓",
+  "ver más →": "see more →",
 };
