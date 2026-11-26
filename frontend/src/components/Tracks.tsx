@@ -13,7 +13,7 @@ export function Tracks({ tracks }: { tracks: TrackStat[] }) {
           <span className="tabular text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
           <Cover seed={t.title} image={t.image} label={`portada de ${t.title}`} compact />
           <span className="min-w-0">
-            <span className="block truncate font-serif text-xl text-ink">{t.title}</span>
+            <span className="music-name block truncate text-base text-ink">{t.title}</span>
             <span className="block truncate text-sm text-muted">{t.artist}</span>
           </span>
           <PlayCount count={t.scrobbles} artist={t.artist} title={t.title} />

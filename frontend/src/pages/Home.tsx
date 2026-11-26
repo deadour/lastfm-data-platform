@@ -84,7 +84,7 @@ export function Home({ stats, insights, recent, explore }: {
       )}
 
       {explore && explore.year_ranks.length > 0 && (
-        <Section id="quien-mando" title="quién mandó cada año">
+        <Section id="quien-mando" title="lo que más escuché">
           <YearRanks ranks={explore.year_ranks} />
         </Section>
       )}
@@ -95,7 +95,7 @@ export function Home({ stats, insights, recent, explore }: {
             {explore.rarities.off_genre.length > 0 && (
               <div>
                 <p className="explore-sub">fuera de lo que suelo escuchar</p>
-                <ol>{explore.rarities.off_genre.map((a) => <li key={a.name}><strong>{a.name}</strong><small>{a.style ?? a.family} · {n(a.plays)}<small className="count-unit">e</small></small></li>)}</ol>
+                <ol>{explore.rarities.off_genre.map((a) => <li key={a.name}><strong>{a.name}</strong><small>{a.style ?? a.family} · <span className="count-value">{n(a.plays)}<small className="count-unit">e</small></span></small></li>)}</ol>
               </div>
             )}
             {explore.rarities.one_day.length > 0 && (

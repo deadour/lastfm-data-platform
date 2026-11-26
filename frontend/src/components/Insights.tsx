@@ -40,13 +40,13 @@ function YearRow({ year, linkFor }: { year: YearInsight; linkFor: (artist: strin
     <li className="year-detail grid gap-6 py-8 md:grid-cols-[8rem_minmax(0,1fr)_9rem] md:gap-10">
       <div>
         <span className="font-serif text-4xl text-ink">{year.year}</span>
-        <span className="tabular mt-2 block text-sm text-muted">{n(year.scrobbles)}<small className="count-unit">e</small></span>
+        <span className="tabular mt-2 block text-sm text-muted"><span className="count-value">{n(year.scrobbles)}<small className="count-unit">e</small></span></span>
         {year.partial && <span className="mt-1 block text-xs text-muted/70">año incompleto</span>}
       </div>
       <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-xs text-muted">artista del año</dt>
-          <dd className="mt-1 font-serif text-xl text-ink">
+          <dd className="music-name mt-1 text-lg text-ink">
             {top ? <Link href={top} className="hover:underline hover:decoration-white/30 hover:underline-offset-4">{year.top_artist}</Link> : year.top_artist}
           </dd>
           <dd className="text-muted">{pct(year.top_artist_share)} del total</dd>

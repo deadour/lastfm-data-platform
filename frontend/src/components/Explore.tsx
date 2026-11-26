@@ -137,7 +137,7 @@ export function MonthsVsAverage({ months, monthly, show = 24 }: { months: string
       <div className="time-chart-readout" aria-live="polite">
         {shown ? (
           <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))} contra mi promedio</span></>
-        ) : <span>mi promedio mensual es de {n(Math.round(avg))}<small className="count-unit">e</small></span>}
+        ) : <span>mi promedio mensual es de <span className="count-value">{n(Math.round(avg))}<small className="count-unit">e</small></span></span>}
       </div>
       <div className="diverge-bars" role="img" aria-label={`diferencia de cada mes contra el promedio de ${n(Math.round(avg))}e`}>
         {recent.map((m, i) => {

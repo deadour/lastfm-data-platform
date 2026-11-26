@@ -24,7 +24,7 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
         <h1>sobre este<br /><em>proyecto.</em></h1>
         <p>automaticé la extracción y el procesamiento de mi historial musical para armar esta web.</p>
         {stats && (
-          <span className="about-header-meta">{n(stats.totals.scrobbles)}<small className="count-unit">e</small> · desde {shortDate(stats.range.first)}{insights ? " · " + n(insights.session.sessions) + " sesiones" : ""}</span>
+          <span className="about-header-meta"><span className="count-value">{n(stats.totals.scrobbles)}<small className="count-unit">e</small></span> · desde {shortDate(stats.range.first)}{insights ? " · " + n(insights.session.sessions) + " sesiones" : ""}</span>
         )}
       </header>
 

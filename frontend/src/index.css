@@ -21,7 +21,7 @@
   --color-paper: #0e0d0c;
   /* clean typewriter for anything with a voice; system sans stays for small print */
   --font-serif: "Courier Prime", "Courier New", ui-monospace, monospace;
-  --font-sans: "Courier Prime", "Courier New", ui-monospace, monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 html {
@@ -41,8 +41,11 @@ html {
   font-variant-numeric: tabular-nums;
 }
 .archive-subtitle { margin-top: .75rem; font-size: clamp(1rem, 2.2vw, 1.5rem); color: var(--color-muted); letter-spacing: -.03em; }
-.play-count { white-space: nowrap; color: var(--color-muted); font-size: .85rem; }
-.e-listen, .count-unit { font-size: .7em; font-weight: 400; color: var(--color-muted); }
+.play-count, .recent-albums .play-count { display: inline-flex; flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: .08em; white-space: nowrap; color: var(--color-muted); font-size: .85rem; }
+.count-value { display: inline-block; white-space: nowrap; }
+.count-unit { margin-left: .08em; }
+.music-name { font-family: var(--font-sans); font-weight: 400; letter-spacing: -.025em; }
+.e-listen, .count-unit { font-size: .85em; font-weight: 500; color: var(--color-muted); }
 .e-listen { position: relative; text-decoration: none; }
 .e-listen::after { content: ""; position: absolute; inset: -.45rem -.2rem; }
 .e-listen:hover, .e-listen:focus-visible { color: var(--color-accent); }
@@ -182,7 +185,7 @@ html {
 .reading-card:nth-child(4) { background: #292424; }
 .reading-card-top { display: flex; justify-content: space-between; gap: 1rem; color: #bfb4a6; font-size: .72rem; letter-spacing: .02em; }
 .reading-card-top span:last-child { opacity: .6; font-variant-numeric: tabular-nums; }
-.reading-card strong { font: 400 clamp(1.3rem, 2.4vw, 2rem)/1.1 var(--font-serif); overflow-wrap: anywhere; letter-spacing: -.03em; }
+.reading-card strong { font: 400 clamp(1.15rem, 2vw, 1.7rem)/1.25 var(--font-sans); overflow-wrap: anywhere; letter-spacing: -.025em; }
 .reading-card p { color: #b7afa6; margin-top: auto; font-size: .75rem; }
 .reading-hours { min-width: 0; background: #1c1a17; border: 1px solid #2a2622; color: var(--color-ink); padding: clamp(1.25rem, 2vw, 2rem); display: flex; flex-direction: column; justify-content: space-between; }
 .reading-hours-header { display: grid; gap: .7rem; }
@@ -231,7 +234,7 @@ html {
 .movement-column:nth-child(3) { background: #222923; }
 .movement-column h3 { color: #e7b48c; font: 400 1.1rem var(--font-serif); margin-bottom: 1rem; }
 .movement-list li { padding: 1rem 0; border-top: 1px solid #403a34; display: grid; gap: .35rem; }
-.movement-list li > span { font: 400 1rem var(--font-serif); line-height: 1.25; overflow-wrap: anywhere; }
+.movement-list li > span { font: 400 1rem var(--font-sans); letter-spacing: -.025em; line-height: 1.25; overflow-wrap: anywhere; }
 .movement-list li small { color: #aaa196; font-size: .73rem; line-height: 1.4; }
 .movement-more summary { color: #ddd0bf; cursor: pointer; padding: 1rem 0; font-size: .77rem; }
 
@@ -328,9 +331,9 @@ html {
 .recent-period { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .8fr) minmax(0, 1.15fr); gap: clamp(1.5rem, 3.5vw, 3rem); margin-top: clamp(1.6rem, 3.5vw, 2.6rem); }
 .recent-range { font-size: .78rem; color: var(--color-muted); display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .recent-running { border: 1px dashed #c4563f; color: #e08a72; font-size: .66rem; padding: .15rem .45rem; letter-spacing: .06em; }
-.recent-big { display: flex; align-items: baseline; gap: 0; margin: .8rem 0 1.4rem; }
+.recent-big { display: inline-flex; flex-wrap: nowrap; align-items: baseline; gap: .12rem; white-space: nowrap; margin: .8rem 0 1.4rem; }
 .recent-big span { font: 700 clamp(3.6rem, 9vw, 7.4rem)/.82 var(--font-serif); letter-spacing: -.08em; }
-.recent-big small { font-size: clamp(1rem, 2vw, 1.5rem); font-weight: 400; color: var(--color-muted); }
+.recent-big small { font-size: clamp(1.5rem, 3.3vw, 2.5rem); font-weight: 500; color: var(--color-muted); }
 .recent-counts { display: flex; flex-wrap: wrap; gap: 1.4rem 2rem; }
 .recent-counts dt { font-size: .7rem; color: var(--color-muted); }
 .recent-counts dd { font: 700 1.6rem/1.1 var(--font-serif); letter-spacing: -.04em; }
@@ -341,7 +344,7 @@ html {
 .recent-cover figure:hover .recent-cover-art { transform: rotate(0deg) translateY(-3px); }
 .recent-cover figcaption { display: grid; gap: .15rem; margin-top: 1.3rem; }
 .recent-cover figcaption span { font-size: .72rem; color: var(--color-muted); }
-.recent-cover figcaption strong { font: 700 clamp(1.2rem, 2vw, 1.6rem)/1.1 var(--font-serif); letter-spacing: -.03em; overflow-wrap: anywhere; }
+.recent-cover figcaption strong { font: 400 clamp(1.1rem, 2vw, 1.4rem)/1.25 var(--font-sans); letter-spacing: -.025em; overflow-wrap: anywhere; }
 
 .recent-lists { display: grid; gap: 1.6rem; align-content: start; }
 .recent-lists h3 { font-size: .7rem; letter-spacing: .1em; color: var(--color-muted); margin-bottom: .6rem; }
@@ -360,7 +363,7 @@ html {
 .recent-tracks li { display: grid; grid-template-columns: 1.2rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; }
 .recent-tracks li > .tabular { color: #6f675e; font-size: .8rem; }
 .recent-track-name, .recent-albums span { display: grid; min-width: 0; }
-.recent-track-name strong, .recent-albums strong { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-track-name strong, .recent-albums strong { font-weight: 400; letter-spacing: -.025em; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-track-name small, .recent-albums small { font-size: .74rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-albums li { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: .7rem; align-items: center; }
 
@@ -455,7 +458,7 @@ html {
 .odd-ones { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; }
 .odd-ones ol { display: grid; gap: .6rem; }
 .odd-ones li { display: grid; gap: .1rem; border-top: 1px solid #2a2622; padding-top: .6rem; }
-.odd-ones strong { font: 700 1.05rem var(--font-serif); }
+.odd-ones strong { font: 400 1.05rem var(--font-sans); letter-spacing: -.025em; }
 .odd-ones small { color: var(--color-muted); font-size: .78rem; }
 
 @media (max-width: 760px) {

@@ -55,12 +55,12 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
           )}
         </div>
         <div>
-          <h1 className="font-serif text-5xl leading-[0.95] tracking-tight text-ink md:text-7xl">{page.name}</h1>
-          <p className="tabular mt-6 text-lg text-ink/80">{n(page.scrobbles)}<small className="count-unit">e</small> · {pct(page.share, 1)} de todo</p>
+          <h1 className="music-name text-5xl leading-tight text-ink md:text-7xl">{page.name}</h1>
+          <p className="tabular mt-6 text-lg text-ink/80"><span className="count-value">{n(page.scrobbles)}<small className="count-unit">e</small></span> · {pct(page.share, 1)} de todo</p>
           <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 text-sm">
             <div><dt className="text-xs text-muted">la primera vez</dt><dd className="mt-1 text-ink">{shortDate(page.first.date)}</dd><dd className="text-muted">{page.first.title}</dd></div>
             <div><dt className="text-xs text-muted">su año</dt><dd className="mt-1 text-ink">{page.peak_year}</dd><dd className="text-muted">{page.active_years} años en el archivo</dd></div>
-            <div><dt className="text-xs text-muted">el día que más</dt><dd className="mt-1 text-ink">{shortDate(page.best_day.date)}</dd><dd className="text-muted">{n(page.best_day.plays)}<small className="count-unit">e</small></dd></div>
+            <div><dt className="text-xs text-muted">el día que más</dt><dd className="mt-1 text-ink">{shortDate(page.best_day.date)}</dd><dd className="text-muted"><span className="count-value">{n(page.best_day.plays)}<small className="count-unit">e</small></span></dd></div>
             <div><dt className="text-xs text-muted">repertorio</dt><dd className="mt-1 text-ink">{n(page.tracks)} temas</dd><dd className="text-muted">en {n(page.albums)} discos</dd></div>
           </dl>
           {page.photo && (

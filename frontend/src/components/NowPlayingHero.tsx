@@ -33,7 +33,7 @@ export function NowPlayingHero({ data, fallback = false }: { data: NowPlaying; f
           {data.playing && <span className="pulse inline-block h-1.5 w-1.5 rounded-full bg-[#bd533e]" aria-hidden />}
           {status}
         </p>
-        <p className="truncate font-serif text-2xl leading-tight text-ink md:text-3xl">{track.title}</p>
+        <p className="music-name truncate text-xl leading-tight text-ink md:text-2xl">{track.title}</p>
         <p className="truncate text-sm text-ink/70">
           {track.artist}
           {track.album && <span className="text-muted"> · {track.album}</span>}
