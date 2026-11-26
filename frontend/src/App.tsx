@@ -18,7 +18,6 @@ const nav = [
   ["últimamente", "/#ultimamente"],
   ["discos", "/#discos"],
   ["artistas", "/artistas"],
-  ["sobre", "/como-esta-hecho"],
 ] as const;
 
 export function App() {
@@ -48,7 +47,7 @@ export function App() {
   return (
     <div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
       <header className="archive-topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-6">
-        <Link href="/" className="archive-wordmark" aria-label="e, inicio">e</Link>
+        {route.page !== "home" && <Link href="/" className="archive-nav-link text-xs">inicio</Link>}
         <nav aria-label="secciones" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
           {nav.map(([label, href]) => (
             <Link key={href} href={href} className="archive-nav-link">{label}</Link>
@@ -83,12 +82,9 @@ export function App() {
 
       <footer className="archive-footer">
         <div className="footer-project">
-          <Link href="/" className="archive-wordmark" aria-label="e, inicio">e</Link>
-          <span><strong>e</strong>scuchas registradas. de acá en adelante, e.</span>
           {stats && <span>actualizado {shortDate(stats.data_as_of ?? stats.generated_at)}</span>}
         </div>
         <nav className="footer-links" aria-label="enlaces del proyecto">
-          <Link href="/como-esta-hecho">sobre este proyecto</Link>
           <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">código en github ↗</a>
           <span className="footer-sources"><Sources /></span>
         </nav>
@@ -96,6 +92,7 @@ export function App() {
           <span>otros proyectos</span>
           <strong>eduramirez.dev ↗</strong>
         </a>
+        <Link href="/como-esta-hecho" className="footer-about">sobre este proyecto</Link>
       </footer>
     </div>
   );

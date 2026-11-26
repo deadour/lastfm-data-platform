@@ -21,11 +21,10 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
   return (
     <article className="about-page fade-in">
       <header className="about-header">
-        <span className="about-kicker">e</span>
         <h1>sobre este<br /><em>proyecto.</em></h1>
         <p>un proyecto personal de ingeniería de datos, usando mi propio historial musical.</p>
         {stats && (
-          <span className="about-header-meta">{n(stats.totals.scrobbles)} e registradas · desde {shortDate(stats.range.first)}{insights ? " · " + n(insights.session.sessions) + " sesiones" : ""}</span>
+          <span className="about-header-meta">{n(stats.totals.scrobbles)}<small className="count-unit">e</small> · desde {shortDate(stats.range.first)}{insights ? " · " + n(insights.session.sessions) + " sesiones" : ""}</span>
         )}
       </header>
 

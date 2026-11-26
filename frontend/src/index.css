@@ -42,7 +42,9 @@ html {
 }
 .archive-subtitle { margin-top: .75rem; font-size: clamp(1rem, 2.2vw, 1.5rem); color: var(--color-muted); letter-spacing: -.03em; }
 .play-count { white-space: nowrap; color: var(--color-muted); font-size: .85rem; }
-.e-listen { display: inline-flex; align-items: center; justify-content: center; min-width: 1.5rem; min-height: 1.8rem; color: var(--color-ink); text-decoration: underline; text-underline-offset: .2em; }
+.e-listen, .count-unit { font-size: .7em; font-weight: 400; color: var(--color-muted); }
+.e-listen { position: relative; text-decoration: none; }
+.e-listen::after { content: ""; position: absolute; inset: -.45rem -.2rem; }
 .e-listen:hover, .e-listen:focus-visible { color: var(--color-accent); }
 
 @keyframes fade-in {
@@ -111,7 +113,7 @@ html {
 .archive-footer a { color: var(--color-muted); transition: color .2s; }
 .archive-footer a:hover { color: var(--color-ink); }
 .footer-project, .footer-links { display: flex; flex-direction: column; align-items: flex-start; gap: .65rem; }
-.footer-project .archive-wordmark { color: var(--color-ink); font-size: 2.3rem; line-height: 1; }
+.footer-about { grid-column: 1 / -1; padding-top: 1rem; }
 .footer-sources { margin-top: .35rem; }
 .archive-portfolio { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
 .archive-portfolio strong { font-family: var(--font-serif); font-weight: 400; font-size: clamp(1.4rem, 2.6vw, 2.2rem); color: var(--color-ink); letter-spacing: -.02em; }
@@ -326,9 +328,9 @@ html {
 .recent-period { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .8fr) minmax(0, 1.15fr); gap: clamp(1.5rem, 3.5vw, 3rem); margin-top: clamp(1.6rem, 3.5vw, 2.6rem); }
 .recent-range { font-size: .78rem; color: var(--color-muted); display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .recent-running { border: 1px dashed #c4563f; color: #e08a72; font-size: .66rem; padding: .15rem .45rem; letter-spacing: .06em; }
-.recent-big { display: flex; align-items: flex-end; gap: .7rem; margin: .8rem 0 1.4rem; }
+.recent-big { display: flex; align-items: baseline; gap: 0; margin: .8rem 0 1.4rem; }
 .recent-big span { font: 700 clamp(3.6rem, 9vw, 7.4rem)/.82 var(--font-serif); letter-spacing: -.08em; }
-.recent-big small { font-size: .85rem; color: var(--color-muted); padding-bottom: .4rem; }
+.recent-big small { font-size: clamp(1rem, 2vw, 1.5rem); font-weight: 400; color: var(--color-muted); }
 .recent-counts { display: flex; flex-wrap: wrap; gap: 1.4rem 2rem; }
 .recent-counts dt { font-size: .7rem; color: var(--color-muted); }
 .recent-counts dd { font: 700 1.6rem/1.1 var(--font-serif); letter-spacing: -.04em; }

@@ -20,7 +20,7 @@ const tiers = [
 
 export function Medallion({ scrobbles, artists, years, fluid = false }: Props) {
   const counts: Record<string, string> = {
-    bronze: scrobbles ? `${n(scrobbles)} e en json` : "json crudo",
+    bronze: scrobbles ? `${n(scrobbles)}e en json` : "json crudo",
     silver: scrobbles ? `${n(scrobbles)} filas` : "parquet",
     gold: artists && years ? `${n(artists)} artistas · ${years} años` : "agregados",
   };
