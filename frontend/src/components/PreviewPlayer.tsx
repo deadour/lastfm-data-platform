@@ -1,4 +1,5 @@
 import { t as translate } from "../i18n";
+import { createPortal } from "react-dom";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { loadArtist } from "../data/insights";
 import { spotifyUrl, youtubeUrl } from "../utils/listen";
@@ -384,7 +385,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         setPlaying(false);
         setSelection({ ...selection, status: "error" });
       }} />)}
-    {enabled && <aside className="winamp" aria-label={translate("reproductor de fragmentos")}>
+    {enabled && createPortal(<aside className="winamp" aria-label={translate("reproductor de fragmentos")}>
       <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("cerrar reproductor")} title={translate("cerrar reproductor")} onClick={mute}>×</button></div>
       <div className="wa-main">
         <div className="wa-display">
@@ -421,7 +422,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           <button type="button" className="wa-shuffle wa-mode" aria-pressed={shuffled} onClick={() => setShuffled((v) => !v)}>shuffle</button>
         </div>
       </div>
-    </aside>}
+    </aside>, document.body)}
   </PreviewContext.Provider>;
 }
 
