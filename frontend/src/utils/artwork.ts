@@ -6,7 +6,7 @@ export function artworkSource(value: string | null): URL | null {
     if (url.protocol !== "https:" || url.username || url.password || url.port || url.search || url.hash) return null;
     const host = url.hostname;
     const allowed = host === "coverartarchive.org" || host === "archive.org" || host.endsWith(".archive.org") ||
-      host === "cdn-images.dzcdn.net" || host === "e-cdns-images.dzcdn.net" || host === "lastfm.freetls.fastly.net";
+      host === "cdn-images.dzcdn.net" || host === "e-cdns-images.dzcdn.net" || host === "lastfm.freetls.fastly.net" || host === "lastfm-img.freetls.fastly.net";
     return allowed ? url : null;
   } catch {
     return null;

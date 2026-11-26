@@ -13,6 +13,8 @@ interface Props {
   priority?: boolean;
   /** when there is no image (or it fails), look the album up on apple */
   album?: { artist: string; title: string };
+  /** a song: its cover is looked up on apple when there is no image */
+  song?: { artist: string; title: string };
 }
 
 const found = new Map<string, string | null>();
@@ -35,6 +37,22 @@ function artistPhotos(): Promise<Map<string, string>> {
 }
 
 /** album artwork from apple's search (cors allowed), cached per page load */
+async function appleSongArt(artist: string, title: string): Promise<string | null> {
+  const key = `song|${fold(artist)}|${fold(title)}`;
+  if (found.has(key)) return found.get(key)!;
+  let art: string | null = null;
+  try {
+    const url = new URL("https://itunes.apple.com/search");
+    url.search = new URLSearchParams({ term: `${artist} ${fold(title)}`, entity: "song", limit: "15" }).toString();
+    const body = await (await fetch(url.href)).json() as { results?: { artistName?: string; trackName?: string; artworkUrl100?: string }[] };
+    const byArtist = body.results?.filter((r) => r.artworkUrl100 && fold(r.artistName ?? "").includes(fold(artist).split(" ")[0])) ?? [];
+    const hit = byArtist.find((r) => fold(r.trackName ?? "").includes(fold(title))) ?? byArtist[0];
+    art = hit?.artworkUrl100?.replace("100x100bb", "600x600bb") ?? null;
+  } catch { art = null; }
+  found.set(key, art);
+  return art;
+}
+
 async function appleAlbumArt(artist: string, title: string): Promise<string | null> {
   const key = `${fold(artist)}|${fold(title)}`;
   if (found.has(key)) return found.get(key)!;
@@ -53,20 +71,20 @@ async function appleAlbumArt(artist: string, title: string): Promise<string | nu
 }
 
 // real artwork when there is a url; otherwise a quiet gradient derived from the name.
-export function Cover({ seed, image, label, className = "", compact = false, style, priority = false, album }: Props) {
+export function Cover({ seed, image, label, className = "", compact = false, style, priority = false, album, song }: Props) {
   const [failed, setFailed] = useState<string | null>(null);
   const [direct, setDirect] = useState<string | null>(null);
   const [extra, setExtra] = useState<string | null>(null);
-  const needsExtra = !!album && (!secureImage(image) || failed !== null);
+  const needsExtra = (!!album || !!song) && (!secureImage(image) || failed !== null);
   useEffect(() => {
-    if (!needsExtra || !album) return;
+    if (!needsExtra) return;
     let live = true;
     // album cover from apple; if there is none, at least the artist's photo
-    void appleAlbumArt(album.artist, album.title)
-      .then(async (art) => art ?? (await artistPhotos()).get(fold(album.artist)) ?? null)
+    void (album ? appleAlbumArt(album.artist, album.title) : appleSongArt(song!.artist, song!.title))
+      .then(async (art) => art ?? (await artistPhotos()).get(fold((album ?? song)!.artist)) ?? null)
       .then((art) => { if (live) setExtra(art); });
     return () => { live = false; };
-  }, [needsExtra, album?.artist, album?.title]);
+  }, [needsExtra, album?.artist, album?.title, song?.artist, song?.title]);
   const original = secureImage(image) && failed === null ? secureImage(image) : extra ?? secureImage(image);
   const src = direct === original ? original : cachedArtwork(original);
   const h = hash(seed);

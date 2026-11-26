@@ -47,7 +47,7 @@ export function NowPlayingHero({ data, fallback = false }: { data: NowPlaying; f
   return (
     <section aria-label={translate("qué estoy escuchando")} className="now-playing fade-in grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-5 border-b border-line py-8 md:grid-cols-[9rem_minmax(0,1fr)_auto] md:gap-8">
       <div className="group">
-        <Cover seed={coverName} image={art} label={translate(`portada de ${coverName}`)} compact priority />
+        <Cover seed={coverName} image={art} label={translate(`portada de ${coverName}`)} song={{ artist: track.artist, title: track.title }} album={track.album ? { artist: track.artist, title: track.album } : undefined} compact priority />
       </div>
       <div className="min-w-0">
         <p className="mb-1.5 flex items-center gap-2.5 text-xs tracking-wide text-muted">
