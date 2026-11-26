@@ -113,7 +113,7 @@ export function Movements({ data, linkFor }: { data: InsightsFile; linkFor: (art
     return href ? <Link href={href} className="hover:underline hover:underline-offset-4">{artist}</Link> : artist;
   };
   const columns = [
-    { title: "volvieron", rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: "de vuelta en " + monthYear(c.returned) + " · " + days(c.gap_days) + " sin registros" })) },
+    { title: "volvieron · desde 2020", rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: "lo volví a poner en " + monthYear(c.returned) + ", después de " + days(c.gap_days) })) },
     { title: "fueron una época", rows: data.phases.map((p) => ({ key: p.artist, name: p.artist, detail: pct(p.share) + " de mis escuchas de este artista fueron en " + p.year })) },
     { title: "siempre ahí", rows: data.constants.map((c) => ({ key: c.artist, name: c.artist, detail: c.years + " años en mis registros · " + n(c.plays) + " escuchas" })) },
   ].filter((c) => c.rows.length);

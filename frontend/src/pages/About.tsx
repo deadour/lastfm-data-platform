@@ -34,7 +34,7 @@ export function About({ stats, insights }: { stats: StatsFile | null; insights: 
         <div>
           <h2 id="about-story-title">todo arrancó con last.fm.</h2>
           <p>este es un proyecto personal que empecé para practicar ingeniería de datos con el historial de música que escucho desde 2016.</p>
-          <p>tenía años de registros guardados en last.fm, conectado a spotify y youtube. entre 2017 y 2019 no registré nada; volví a conectarlo en 2020.</p>
+          <p>tenía años de registros guardados en mi cuenta de last.fm, conectada a spotify y youtube. entre 2017 y 2019 no registré nada; volví a conectarlo en 2020.</p>
           <p>con esos datos quise probar cosas que vi en la facultad y que también uso en el trabajo. armé un pipeline en python y azure con arquitectura medallón: bronze guarda lo original, silver lo limpia y gold genera las estadísticas.</p>
           <p>github actions ejecuta el procesamiento todos los días. y bueno, de ahí salió esta web. quería ver todo lo que fui escuchando y seguir aprendiendo de paso.</p>
           <a className="about-github" href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">código en github ↗</a>

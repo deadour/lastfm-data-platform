@@ -1,60 +1,17 @@
 import { Albums } from "../components/Albums";
+import { RecentPanel } from "../components/RecentPanel";
+import type { RecentState } from "../data/recent";
 import { Medallion } from "../components/Medallion";
-import { Bars, Line, yearTicks } from "../components/Charts";
+import { Line, yearTicks } from "../components/Charts";
 import { ArtistGrid, Movements, Readings, YearStory } from "../components/Insights";
 import { Rhythm } from "../components/Rhythm";
 import { Section } from "../components/Section";
 import { Tracks } from "../components/Tracks";
 import type { InsightsFile, StatsFile } from "../data/types";
-import { monthLabel, monthYear, n, pct } from "../utils/format";
+import { pct } from "../utils/format";
 import { Link } from "../utils/router";
 
 const weekdays = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
-
-function RecentListening({ stats, insights }: { stats: StatsFile; insights: InsightsFile | null }) {
-  const recent = stats.months.slice(-12);
-  const latest = recent[recent.length - 1];
-  const year = insights?.years.slice().sort((a, b) => b.year - a.year)[0];
-  const top = year?.top_album;
-
-  return (
-    <section id="ahora-en-numeros" className="listening-board scroll-mt-6" aria-labelledby="listening-title">
-      <div className="listening-board-main">
-        <div className="listening-kicker"><span className="listening-signal" /> el registro sigue</div>
-        <h2 id="listening-title">últimamente<span>.</span></h2>
-        <div className="listening-stat">
-          <span className="listening-stat-number">{latest ? n(latest.scrobbles) : "—"}</span>
-          <div className="listening-stat-caption">
-            <span>escuchas</span>
-            <span>{latest ? monthYear(latest.month) : "último mes registrado"}</span>
-          </div>
-        </div>
-        <div className="listening-mini-chart">
-          <div className="listening-chart-heading"><span>últimos 12 meses</span><span>cada barra, un mes</span></div>
-          <Bars
-            values={recent.map((m) => m.scrobbles)}
-            labels={recent.map((m, i) => (i % 3 === 0 || i === recent.length - 1 ? monthLabel(m.month) : ""))}
-            label="escuchas registradas en los últimos doce meses"
-            height={94}
-          />
-        </div>
-      </div>
-      <div className="listening-board-side">
-        <div className="listening-side-top">el año / {year?.year ?? stats.years[stats.years.length - 1]?.year ?? "—"}</div>
-        {top?.cover?.url ? (
-          <div className="listening-art-frame">
-            <img src={top.cover.url} alt={"portada de " + top.title} loading="lazy" />
-          </div>
-        ) : <div className="listening-vinyl" aria-hidden="true"><span /></div>}
-        <div className="listening-side-bottom">
-          <span>el disco que más repetí</span>
-          <strong>{top?.title ?? stats.top_albums?.[0]?.title ?? "—"}</strong>
-          <span>{top?.artist ?? stats.top_albums?.[0]?.artist ?? ""}</span>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function WeekPreview({ data }: { data: InsightsFile }) {
   const shares = data.habits.weekdays;
@@ -79,17 +36,22 @@ function WeekPreview({ data }: { data: InsightsFile }) {
   );
 }
 
-export function Home({ stats, insights }: { stats: StatsFile; insights: InsightsFile | null }) {
+export function Home({ stats, insights, recent }: { stats: StatsFile; insights: InsightsFile | null; recent: RecentState }) {
   const slugs = new Map((insights?.artists ?? []).map((a) => [a.name, a.slug]));
   const linkFor = (artist: string) => (slugs.has(artist) ? "/artistas/" + slugs.get(artist) : null);
   const monthly = insights ? null : stats.months;
 
   return (
     <>
-      <RecentListening stats={stats} insights={insights} />
+      <RecentPanel state={recent} history={stats.months} />
+
+      <div className="archive-divider" id="archivo">
+        <span>el archivo</span>
+        <span>2016 y de 2020 en adelante · entre 2017 y 2019 no registré nada</span>
+      </div>
 
       {stats.top_albums && stats.top_albums.length > 0 && (
-        <Section id="discos" title="discos">
+        <Section id="discos" title="los discos de siempre">
           <Albums albums={stats.top_albums} />
         </Section>
       )}

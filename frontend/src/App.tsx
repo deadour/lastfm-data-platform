@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { LastfmIcon, Sources } from "./components/Icons";
+import { Sources } from "./components/Icons";
 import { NowPlayingHero } from "./components/NowPlayingHero";
 import { loadInsights } from "./data/insights";
 import { loadStats, type Loaded } from "./data/load";
+import { loadRecent, type RecentState } from "./data/recent";
 import type { InsightsFile } from "./data/types";
 import { About } from "./pages/About";
 import { Artist } from "./pages/Artist";
@@ -13,7 +14,7 @@ import { Link, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
 
 const nav = [
-  ["últimamente", "/#ahora-en-numeros"],
+  ["últimamente", "/#ultimamente"],
   ["discos", "/#discos"],
   ["artistas", "/artistas"],
   ["sobre", "/como-esta-hecho"],
@@ -23,11 +24,13 @@ export function App() {
   const route = useRoute();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [insights, setInsights] = useState<InsightsFile | null>(null);
+  const [recent, setRecent] = useState<RecentState>({ status: "loading" });
   const nowPlaying = useNowPlaying();
 
   useEffect(() => {
     void loadStats().then(setLoaded);
     void loadInsights().then(setInsights);
+    void loadRecent().then(setRecent);
   }, []);
 
   const stats = loaded?.stats ?? null;
@@ -59,10 +62,9 @@ export function App() {
             {loaded && !stats && (
               <section className="archive-empty">
                 <h2>todavía no hay datos publicados.</h2>
-                <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer">mi last.fm ↗</a>
               </section>
             )}
-            {stats && <Home stats={stats} insights={insights} />}
+            {stats && <Home stats={stats} insights={insights} recent={recent} />}
           </>
         )}
         {route.page === "artists" && <Artists insights={insights} />}
@@ -72,13 +74,12 @@ export function App() {
 
       <footer className="archive-footer">
         <div className="flex flex-col gap-2">
-          <span className="flex items-center gap-3">fm. / eduramirez87 <Sources /></span>
+          <span className="flex items-center gap-3">fm. <Sources /></span>
           {stats && <span>actualizado {shortDate(stats.data_as_of ?? stats.generated_at)}</span>}
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           <Link href="/como-esta-hecho">cómo está hecho</Link>
-          <a href="https://www.last.fm/user/eduramirez87" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5"><LastfmIcon size={13} /> last.fm ↗</a>
-          <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">github ↗</a>
+          <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">código en github ↗</a>
         </div>
         <a href="https://eduramirez.dev" className="archive-portfolio">
           <span>más cosas mías</span>
