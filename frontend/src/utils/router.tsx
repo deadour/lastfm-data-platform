@@ -1,5 +1,6 @@
 import { useEffect, useState, type AnchorHTMLAttributes, type MouseEvent } from "react";
 import { getLanguage } from "../i18n";
+import { readingScrollTop, scrollArchiveTo } from "./scrollContainer";
 
 export type Route =
   | { page: "home" }
@@ -29,18 +30,18 @@ const onHome = () => (window.location.pathname.replace(/\/+$/, "") || "/") === "
 
 export function restoreHome() {
   const target = homeScroll;
-  for (const delay of [0, 120, 350, 800]) setTimeout(() => window.scrollTo({ top: target, behavior: "instant" }), delay);
+  for (const delay of [0, 120, 350, 800]) setTimeout(() => scrollArchiveTo(target), delay);
 }
 
 export function navigate(href: string) {
-  if (onHome()) homeScroll = window.scrollY;
+  if (onHome()) homeScroll = readingScrollTop();
   const target = new URL(href, window.location.href);
   if (getLanguage() === "en") target.searchParams.set("lang", "en");
   window.history.pushState(null, "", target);
   window.dispatchEvent(new Event(EVENT));
   const hash = href.split("#")[1];
   if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView());
-  else window.scrollTo({ top: 0, behavior: "instant" });
+  else scrollArchiveTo(0);
 }
 
 export function useRoute(): Route {

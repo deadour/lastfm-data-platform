@@ -20,6 +20,7 @@ import { shortDate } from "./utils/format";
 import { Link, navigate, restoreHome, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
 import { scrollToHashWhenSettled } from "./utils/hashScroll";
+import { getScrollContainer, readingScrollTop } from "./utils/scrollContainer";
 
 export function App() {
   const language = useLanguage();
@@ -39,12 +40,25 @@ export function App() {
   }, [route.page]);
   useEffect(() => {
     let frame = 0;
-    const onScroll = () => {
+    const mobile = window.matchMedia("(max-width: 640px)");
+    let listening: Window | HTMLElement | null = null;
+    const update = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => document.documentElement.style.setProperty("--scroll", String(Math.round(window.scrollY))));
+      frame = requestAnimationFrame(() => document.documentElement.style.setProperty("--scroll", String(Math.round(readingScrollTop()))));
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+    const bind = () => {
+      listening?.removeEventListener("scroll", update);
+      listening = getScrollContainer();
+      listening.addEventListener("scroll", update, { passive: true });
+      update();
+    };
+    bind();
+    mobile.addEventListener("change", bind);
+    return () => {
+      mobile.removeEventListener("change", bind);
+      listening?.removeEventListener("scroll", update);
+      cancelAnimationFrame(frame);
+    };
   }, []);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [insights, setInsights] = useState<InsightsFile | null>(null);
@@ -76,9 +90,10 @@ export function App() {
   } : null;
 
   return (
-    <PreviewProvider artists={insights?.artists} albums={stats?.top_albums} tracks={stats?.top_tracks} genres={explore?.genres?.artists_by_family ?? {}}><div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
-      <div className="e-backdrop" aria-hidden="true" />
-      <div className="archive-topbar-slot">
+    <PreviewProvider artists={insights?.artists} albums={stats?.top_albums} tracks={stats?.top_tracks} genres={explore?.genres?.artists_by_family ?? {}}>
+      <div className="app-viewport">
+        <div className="e-backdrop" aria-hidden="true" />
+        <div className="archive-topbar-slot">
         <header className={`archive-topbar ${compactHeader ? "is-compact" : ""}`}>
           <Link href="/" className="archive-header-logo" aria-label={translate("e · inicio")}>e</Link>
           <nav aria-label={translate("secciones")} className="archive-header-actions">
@@ -93,6 +108,7 @@ export function App() {
         </header>
       </div>
 
+      <div id="app-scroll" className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
       <main>
         {route.page === "home" && (
           <>
@@ -140,6 +156,8 @@ export function App() {
         <button type="button" className="footer-return" onClick={() => { navigate("/"); requestAnimationFrame(() => document.getElementById("ultimamente")?.scrollIntoView({ behavior: "smooth" })); }}>{translate(" ↑ ver qué escucho ")}</button>
         <a href="https://eduramirez.dev" className="archive-portfolio"><strong>eduramirez.dev ↗</strong></a>
       </footer>
-    </div></PreviewProvider>
+      </div>
+      </div>
+    </PreviewProvider>
   );
 }

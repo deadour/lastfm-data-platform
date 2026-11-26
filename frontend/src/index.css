@@ -731,7 +731,7 @@ img { transition: filter .4s; }
 .archive-topbar { display: flex; align-items: center; justify-content: flex-end; min-height: 5rem; gap: 1rem; }
 .archive-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: clamp(.75rem, 3vw, 2rem); font-size: .875rem; }
 .archive-header-actions .random-play { font-size: .875rem; }
-.archive-topbar.is-compact { position: fixed; inset: 0 0 auto; z-index: 50; min-height: 4rem; padding: .6rem max(1.25rem, calc((100vw - 1192px) / 2)); justify-content: space-between; background: rgb(14 18 14 / .94); backdrop-filter: blur(14px); border-bottom: 1px solid var(--color-line); box-shadow: 0 8px 24px #0002; }
+
 .archive-header-logo { font: 700 2.5rem/.9 var(--font-serif); letter-spacing: -.08em; color: #3f704b; padding-right: .4rem; }
 .language-switch { display: inline-flex; align-items: center; gap: .25rem; white-space: nowrap; font-size: .8rem; color: var(--color-muted); }
 .language-switch button { cursor: pointer; padding: .4rem .1rem; }
@@ -798,40 +798,32 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
 }
 
 
-/* fixed-in-view header: an opaque layer, not text scrolling through glass */
+/* The header lives outside the scrolling region, and stays visible in both directions. */
+.app-viewport { min-height: 100%; }
 .archive-topbar-slot {
   position: sticky;
   top: 0;
-  z-index: 120;
-  min-height: 4rem;
+  z-index: 1100;
   isolation: isolate;
-  background: #101511;
-}
-.archive-topbar-slot::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0 auto 0 50%;
-  width: 100vw;
-  transform: translateX(-50%);
-  background: #101511;
+  background: #0b0c0a;
   border-bottom: 1px solid #344037;
-  pointer-events: none;
 }
-.archive-topbar,
-.archive-topbar.is-compact {
+.archive-topbar, .archive-topbar.is-compact {
   position: relative;
   inset: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-height: 4rem;
-  padding: .55rem 0;
-  background: #101511;
+  padding: .55rem max(1.25rem, calc((100vw - 1192px) / 2));
+  margin: 0 auto;
+  max-width: 1320px;
+  background: #0b0c0a;
   box-shadow: none;
   backdrop-filter: none;
-  border-bottom: 1px solid #344037;
+  border: 0;
 }
-.archive-topbar-slot:has(.archive-topbar.is-compact) {
-  box-shadow: 0 5px 18px #0006;
-}
+.archive-topbar-slot:has(.archive-topbar.is-compact) { box-shadow: 0 5px 18px #0006; }
 .random-mobile { display: none; }
 
 /* subtitle sits ON the Diego photograph in either language */
@@ -873,13 +865,9 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
   font: 700 18px/1 "Courier New", monospace;
 }
 @media (max-width: 640px) {
-  .archive-topbar-slot {
+  .archive-topbar, .archive-topbar.is-compact {
     min-height: 3.45rem;
-  }
-  .archive-topbar,
-  .archive-topbar.is-compact {
-    min-height: 3.45rem;
-    padding: .35rem 0;
+    padding-block: .35rem;
   }
   .archive-header-actions { gap: .5rem; font-size: .7rem; }
   .archive-header-logo { font-size: 2rem; }
@@ -922,7 +910,7 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
     overflow-wrap: normal;
   }
   .winamp {
-    position: fixed;
+    position: absolute;
     inset: auto 0 0 0;
     z-index: 200;
     width: 100%;
@@ -1029,15 +1017,6 @@ body:has(.winamp) .archive-shell { padding-bottom: 12rem; }
   }
   .play-count { font-size: .95rem; }
 }
-/* Keep the header in normal document flow so Safari can pin it reliably. */
-.archive-topbar-slot { position: sticky; top: 0; z-index: 1100; background: #0b0c0a; }
-.archive-topbar-slot::before { background: #0b0c0a; }
-.archive-topbar, .archive-topbar.is-compact {
-  position: relative; inset: auto; min-height: 4rem; padding: .55rem 0;
-  justify-content: space-between; background: #0b0c0a; backdrop-filter: none;
-}
-.archive-header-logo { font: 700 2rem/1 var(--font-serif); color: var(--color-e); letter-spacing: -.06em; }
-
 /* the e is the identity: huge, heavy, not a footnote */
 .archive-main-title { font-size: clamp(9rem, 34vw, 22rem) !important; line-height: .72 !important; font-weight: 700 !important; letter-spacing: -.08em !important; }
 .count-unit, .e-listen { font-size: 1em !important; font-weight: 700 !important; margin-left: .06em !important; }
@@ -1053,32 +1032,9 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 /* the e reads exactly like the number next to it */
 .count-unit, .e-listen { font-family: inherit !important; font-weight: inherit !important; font-size: 1em !important; letter-spacing: inherit !important; }
 
-/* A portaled player must stay fixed, never sticky in the document flow. */
-@media (max-width: 640px) {
-  body > .winamp {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    top: auto !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    transform: none !important;
-    margin: 0 !important;
-    z-index: 1200 !important;
-  }
-}
 /* the title must scroll to be readable, so the marquee runs even with reduced motion (slower) */
 .wa-right .wa-marquee span { animation: wa-scroll 16s steps(80) infinite !important; }
 @media (prefers-reduced-motion: reduce) { .wa-right .wa-marquee span { animation: wa-scroll 26s linear infinite !important; } }
-
-/* The header stays opaque and on one row while its wrapper sticks to the top. */
-.archive-topbar, .archive-topbar.is-compact {
-  background: #0b0c0a !important; backdrop-filter: none !important;
-  flex-wrap: nowrap !important; align-items: center !important;
-}
-.archive-header-logo { order: -1; flex: 0 0 auto; }
-.archive-header-actions { flex-wrap: nowrap !important; min-width: 0; }
-@media (max-width: 400px) { .archive-header-actions .archive-nav-link { font-size: .78rem; } }
 
 /* technical notes in "sobre este proyecto" */
 .tech { margin-top: 3.5rem; display: grid; gap: 1.2rem; }
@@ -1174,3 +1130,49 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 /* "ver más" under artists, albums and songs: goes to the full page of each list */
 .more-from-archive { display: inline-block; margin-top: 1.4rem; padding: .45rem .9rem; border: 1px solid var(--color-line); color: var(--color-muted); font-size: .8rem; cursor: pointer; background: transparent; }
 .more-from-archive:hover, .more-from-archive:focus-visible { color: var(--color-ink); border-color: var(--color-accent); }
+
+/* iOS Safari: keep the document stationary; only the archive moves.
+   The header and the portaled player sit outside this scrolling layer. */
+@media (max-width: 640px) {
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { position: relative; height: 100dvh; background: #0b0c0a; }
+  #root { height: 100%; overflow: hidden; }
+  .app-viewport {
+    height: 100%; min-height: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .archive-topbar-slot {
+    position: relative;
+    top: auto;
+    flex: 0 0 auto;
+    z-index: 1100;
+    width: 100%;
+    background: #0b0c0a;
+  }
+  .archive-topbar, .archive-topbar.is-compact {
+    position: relative; inset: auto;
+    min-height: 3.45rem;
+    padding: .35rem 1.25rem;
+    flex-wrap: nowrap;
+  }
+  .archive-header-logo { order: -1; flex: 0 0 auto; }
+  .archive-header-actions { flex-wrap: nowrap; min-width: 0; }
+  #app-scroll {
+    width: 100%; height: auto; min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto; overflow-x: clip;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-top: 1rem;
+  }
+  body > .winamp {
+    position: absolute;
+    inset: auto 0 0 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    margin: 0;
+    z-index: 1200;
+  }
+}

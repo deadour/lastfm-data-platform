@@ -1,3 +1,5 @@
+import { getScrollContainer } from "./scrollContainer";
+
 // jump to the #section in the url once the page is really there.
 // data, covers and reveal animations keep changing the page height for a
 // moment after load, and the browser restores its own scroll on top of that,
@@ -15,7 +17,11 @@ export function scrollToHashWhenSettled(win: Window = window, attempts = [0, 150
   const timers = attempts.map((delay) => win.setTimeout(() => {
     if (cancelled) return;
     const target = win.document.getElementById(id);
-    if (target && Math.abs(target.getBoundingClientRect().top) > 2) target.scrollIntoView({ block: "start" });
+    if (target) {
+      const scrollRoot = getScrollContainer();
+      const anchorTop = scrollRoot === win ? 0 : (scrollRoot as HTMLElement).getBoundingClientRect().top;
+      if (Math.abs(target.getBoundingClientRect().top - anchorTop) > 2) target.scrollIntoView({ block: "start" });
+    }
   }, delay));
   return () => {
     stop();
