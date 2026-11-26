@@ -9,6 +9,7 @@ import { PreviewButton } from "../components/PreviewPlayer";
 import { PlayableTitle } from "../components/PreviewPlayer";
 import { n, pct, secureImage, shortDate } from "../utils/format";
 import { Link } from "../utils/router";
+import { Count } from "../components/Count";
 
 export function Artist({ slug, insights }: { slug: string; insights: InsightsFile | null }) {
   const [page, setPage] = useState<ArtistPage | null | undefined>(undefined);
@@ -97,7 +98,7 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
               <li key={`${t.title}-${i}`} className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-3 py-2.5">
                 <span className="tabular text-xs text-muted">{String(i + 1).padStart(2, "0")}</span>
                 <PlayableTitle artist={page.name} title={t.title} slug={page.slug} className="text-ink" />
-                <span className="track-actions"><PreviewButton artist={page.name} title={t.title} slug={page.slug} /><span className="tabular text-sm text-muted">{n(t.plays)}</span></span>
+                <span className="track-actions"><PreviewButton artist={page.name} title={t.title} slug={page.slug} /><span className="tabular text-sm text-muted"><Count value={t.plays} /></span></span>
               </li>
             ))}
           </ol>
@@ -109,7 +110,7 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
               <li key={`${a.title}-${i}`} className="group min-w-0">
                 <Cover seed={a.title} image={a.cover?.url} label={translate(`portada de ${a.title}`)} album={{ artist: page.name, title: a.title }} compact />
                 <span className="mt-2 block truncate text-sm text-ink" title={a.title}>{a.title}</span>
-                <span className="tabular block text-xs text-muted">{n(a.plays)}</span>
+                <span className="tabular block text-xs text-muted"><Count value={a.plays} /></span>
               </li>
             ))}
           </ol>

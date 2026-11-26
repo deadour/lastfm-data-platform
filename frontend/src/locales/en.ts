@@ -11,6 +11,7 @@ export const english: Record<string, string> = {
   "la actualización está programada todos los días. si last.fm no responde, se conserva la última versión completa. lo que suena ahora se consulta por separado, cada 30 segundos.": "updates are scheduled daily. if last.fm is unavailable, the last complete version is preserved. now playing is checked separately, every 30 seconds.",
   "azure · lago de datos privado": "azure · private data lake",
   "sobre este proyecto": "about this project",
+  "escuchas registradas": "recorded plays",
   "algo al azar": "play something random",
   "lo que escucho": "what I listen to",
   "artistas": "artists",
