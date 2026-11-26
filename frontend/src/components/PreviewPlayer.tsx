@@ -107,14 +107,18 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   useLayoutEffect(() => {
     if (!enabled || !isIOSWebKit || !dockRef.current) return;
     const node = dockRef.current;
+    const mobile = window.matchMedia("(max-width: 640px)");
+    let dockHeight = node.getBoundingClientRect().height;
+    const size = new ResizeObserver(() => { dockHeight = node.getBoundingClientRect().height; });
+    size.observe(node);
     let frame = 0;
     let lastTop = Number.NaN;
     const place = () => {
-      if (window.matchMedia("(max-width: 640px)").matches) {
+      if (mobile.matches) {
         const vv = window.visualViewport;
         const pageTop = vv?.pageTop ?? window.scrollY;
         const height = vv?.height ?? window.innerHeight;
-        const top = mobileDockTop(pageTop, height, node.offsetHeight);
+        const top = mobileDockTop(pageTop, height, dockHeight);
         if (top !== lastTop) {
           node.style.top = `${top}px`;
           lastTop = top;
@@ -128,6 +132,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     place();
     return () => {
       window.cancelAnimationFrame(frame);
+      size.disconnect();
       node.style.removeProperty("top");
     };
   }, [enabled, isIOSWebKit]);
