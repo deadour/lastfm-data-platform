@@ -1,63 +1,65 @@
 import { t as translate } from "../i18n";
 import { n } from "../utils/format";
+import { MedalIcon } from "./Icons";
 
-// medallion architecture as three tiers: raw records settle into bronze, get
-// cleaned into silver, and are summarised into gold. small dots drift upward
-// between tiers; the svg stays static when reduced motion is requested (css).
+// medallion architecture read top to bottom: the api feeds bronze, bronze is cleaned into
+// silver, silver is aggregated into gold, gold is exported to the web. each layer shows its
+// format and size; each step between layers lists what actually happens there.
 
 interface Props {
-  /** allow shrinking to the container instead of scrolling */
-  fluid?: boolean;
   scrobbles: number | null;
   artists: number | null;
   years: number | null;
 }
 
-const tiers = [
-  { key: "gold", y: 20, color: "#c9a24a", title: "gold", what: "estadísticas", detail: "años, artistas, discos, rachas, horarios" },
-  { key: "silver", y: 132, color: "#b9b9b4", title: "silver", what: "datos limpios", detail: "una fila por registro, sin duplicados" },
-  { key: "bronze", y: 244, color: "#a8714a", title: "bronze", what: "registros originales", detail: "en formato crudo (json)" },
+const layers = [
+  { key: "bronze", color: "#c08552", title: "bronze", what: "registros originales", format: "json · 160 mb", detail: "una página de la api por archivo, sin tocar" },
+  { key: "silver", color: "#c9c6c0", title: "silver", what: "datos limpios", format: "parquet · 11,4 mb", detail: "una fila por escucha, 20 columnas tipadas" },
+  { key: "gold", color: "#d9a83a", title: "gold", what: "estadísticas", format: "parquet → json", detail: "7 tablas: años, meses, días, artistas, temas, horarios, rachas" },
 ] as const;
 
-export function Medallion({ scrobbles, artists, years, fluid = false }: Props) {
+const steps = [
+  { label: "transformar", items: ["descarta “now playing”", "id con sha-256", "elimina duplicados", "fechas y números tipados"] },
+  { label: "agregar", items: ["utc → hora local", "agrega por año, mes y día", "rankings y rachas", "cruza portadas y géneros"] },
+];
+
+export function Medallion({ scrobbles, artists, years }: Props) {
   const counts: Record<string, string> = {
-    bronze: scrobbles ? translate(`${scrobbles} registros en lastfm`) : translate("registros en lastfm"),
+    bronze: scrobbles ? translate(`${n(scrobbles)} registros en lastfm`) : translate("registros en lastfm"),
     silver: scrobbles ? `${n(scrobbles)} ${translate("filas")}` : "parquet",
     gold: artists && years ? translate(`${n(artists)} artistas · ${years} años`) : translate("agregados"),
   };
   return (
-    <svg viewBox="0 0 760 340" className={`w-full ${fluid ? "" : "min-w-[560px]"}`} role="img"
-      aria-label={translate("arquitectura medallion: bronze guarda los registros originales, silver los limpia, gold genera las estadísticas")}>
-      <rect x="20" y="4" width="720" height="330" rx="10" fill="#073b65" fillOpacity="0.4" stroke="#38a8ed" strokeOpacity="0.25" />
-      {tiers.map((t, i) => {
-        // a pyramid: gold is the narrowest tier, less data and more meaning
-        const width = 420 - (2 - i) * 84;
-        const left = 40 + (420 - width) / 2;
-        return (
-          <g key={t.key} className="medal-tier" style={{ animationDelay: `${(2 - i) * 0.35}s` }}>
-            <rect x={left} y={t.y} width={width} height="76" rx="4" fill={t.color} fillOpacity="0.1" stroke={t.color} strokeOpacity="0.65" />
-            <circle cx={left + 26} cy={t.y + 38} r="9" fill={t.color} fillOpacity="0.85" />
-            <text x={left + 46} y={t.y + 34} fontSize="20" fontFamily="var(--font-serif)" fontWeight="700" fill={t.color}>{t.title}</text>
-            <text x={left + 46} y={t.y + 56} fontSize="12.5" className="fill-current text-ink/80">{translate(t.what)}</text>
-            <text x={500} y={t.y + 34} fontSize="12.5" className="fill-current text-ink">{counts[t.key]}</text>
-            <text x={500} y={t.y + 54} fontSize="11.5" className="fill-current text-muted">{translate(t.detail)}</text>
-            <line x1={left + width + 8} y1={t.y + 38} x2="488" y2={t.y + 38} stroke="currentColor" strokeDasharray="2 4" className="text-white/20" />
-          </g>
-        );
-      })}
-      {[0, 1].map((gap) => {
-        const fromY = tiers[2 - gap].y; // bronze → silver, silver → gold
-        const toY = tiers[1 - gap].y + 76;
-        return (
-          <g key={gap}>
-            <line x1="250" y1={fromY - 2} x2="250" y2={toY + 4} stroke="currentColor" className="text-white/25" />
-            {[0, 1, 2].map((k) => (
-              <circle key={k} r="2.6" cx="250" cy={fromY - 4} fill={tiers[1 - gap].color} className="medal-dot"
-                style={{ ["--rise" as string]: `${toY + 6 - (fromY - 4)}px`, animationDelay: `${k * 0.6 + gap * 0.3}s` }} />
-            ))}
-          </g>
-        );
-      })}
-    </svg>
+    <figure className="medal" aria-label={translate("arquitectura medallion: bronze guarda los registros originales, silver los limpia, gold genera las estadísticas")}>
+      <div className="medal-end medal-in">{translate("api de last.fm · cada día")}</div>
+      <div className="medal-lake">
+        <p className="medal-lake-label">{translate("azure data lake gen2 · privado · un snapshot por ejecución, con hash sha-256")}</p>
+        {layers.map((layer, i) => (
+          <div key={layer.key} className="medal-block">
+            <article className="medal-layer" style={{ ["--m" as string]: layer.color, animationDelay: `${i * 0.15}s` }}>
+              <header>
+                <span className="medal-coin"><MedalIcon size={34} color={layer.color} title="" /></span>
+                <div>
+                  <h4>{translate(`capa ${layer.title}`)}</h4>
+                  <p>{translate(layer.what)}</p>
+                </div>
+              </header>
+              <dl>
+                <dt className="tabular">{counts[layer.key]}</dt>
+                <dd className="medal-format">{translate(layer.format)}</dd>
+                <dd>{translate(layer.detail)}</dd>
+              </dl>
+            </article>
+            {i < steps.length && (
+              <div className="medal-step" style={{ ["--from" as string]: layer.color, ["--to" as string]: layers[i + 1].color }}>
+                <span className="medal-step-label">{translate(steps[i].label)}</span>
+                <ul>{steps[i].items.map((item) => <li key={item}>{translate(item)}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="medal-end medal-out">{translate("esta web · cloudflare")}</div>
+    </figure>
   );
 }
