@@ -43,6 +43,8 @@ html {
 .archive-subtitle { margin-top: .75rem; font-size: clamp(1rem, 2.2vw, 1.5rem); color: var(--color-muted); letter-spacing: -.03em; }
 .play-count, .recent-albums .play-count { display: inline-flex; flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: .08em; white-space: nowrap; color: var(--color-muted); font-size: .85rem; }
 .track-actions { display: inline-flex; align-items: center; gap: .7rem; white-space: nowrap; }
+.retro-icon { flex-shrink: 0; image-rendering: pixelated; }
+.heading-with-icon { display: flex; align-items: center; gap: .75rem; }
 .preview-button { display: inline-flex; align-items: center; justify-content: center; width: 1.8rem; height: 1.8rem; border: 1px solid #4a433c; border-radius: 50%; color: #c4b7a4; font-size: .65rem; cursor: pointer; flex-shrink: 0; }
 .preview-button:hover, .preview-button:focus-visible { color: var(--color-ink); border-color: var(--color-accent); }
 .preview-button:disabled { cursor: progress; }

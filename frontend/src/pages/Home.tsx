@@ -7,6 +7,7 @@ import { Line, yearTicks } from "../components/Charts";
 import { ArtistGrid, Movements, Readings, YearStory } from "../components/Insights";
 import { Rhythm } from "../components/Rhythm";
 import { Section } from "../components/Section";
+import { RetroIcon } from "../components/RetroIcon";
 import { Tracks } from "../components/Tracks";
 import type { InsightsFile, StatsFile } from "../data/types";
 import { n, pct } from "../utils/format";
@@ -21,7 +22,7 @@ function WeekPreview({ data }: { data: InsightsFile }) {
   return (
     <div className="week-preview">
       <div className="week-preview-heading">
-        <div><span className="eyebrow">mis horarios</span><h3>mi semana</h3></div>
+        <div><span className="eyebrow">mis horarios</span><h3 className="heading-with-icon"><RetroIcon kind="calendar" />mi semana</h3></div>
         <span>promedio histórico</span>
       </div>
       <div className="week-preview-chart" role="img" aria-label="distribución histórica por día de la semana">
@@ -90,11 +91,11 @@ export function Home({ stats, insights, recent, explore }: {
       )}
 
       {explore && (explore.rarities.off_genre.length > 0 || explore.rarities.one_day.length > 0) && (
-        <Section id="rarezas" title="los que no tienen nada que ver">
+        <Section id="rarezas" title="los que no tienen nada que ver" icon={<RetroIcon />}>
           <div className="odd-ones">
             {explore.rarities.off_genre.length > 0 && (
               <div>
-                <p className="explore-sub">fuera de lo que suelo escuchar</p>
+                <p className="explore-sub">cosas que escucho a veces</p>
                 <ol>{explore.rarities.off_genre.map((a) => <li key={a.name}><strong>{a.name}</strong><small>{a.style ?? a.family} · <span className="count-value">{n(a.plays)}<small className="count-unit">e</small></span></small></li>)}</ol>
               </div>
             )}
@@ -109,20 +110,20 @@ export function Home({ stats, insights, recent, explore }: {
       )}
 
       {stats.top_albums && stats.top_albums.length > 0 && (
-        <Section id="discos" title="los discos de siempre">
+        <Section id="discos" title="los discos de siempre" icon={<RetroIcon kind="disc" />}>
           <Albums albums={stats.top_albums} />
         </Section>
       )}
 
       {insights && (
-        <Section id="lecturas" title="cosas que encontré">
+        <Section id="lecturas" title="cosas que encontré" icon={<RetroIcon />}>
           <Readings data={insights} />
         </Section>
       )}
 
       <div className="home-split">
         <div>
-          <Section id="canciones" title="en repeat">
+          <Section id="canciones" title="en repeat" icon={<RetroIcon kind="disc" />}>
             <Tracks tracks={stats.top_tracks} />
           </Section>
         </div>
@@ -130,31 +131,31 @@ export function Home({ stats, insights, recent, explore }: {
       </div>
 
       {insights && insights.artists.length > 0 && (
-        <Section id="artistas" title="artistas" aside={<Link href="/artistas" className="hover:text-ink">ver todos ↗</Link>}>
+        <Section id="artistas" title="artistas" icon={<RetroIcon />} aside={<Link href="/artistas" className="hover:text-ink">ver todos ↗</Link>}>
           <ArtistGrid artists={insights.artists} limit={10} />
         </Section>
       )}
 
       {insights && (
-        <Section id="anos" title="año por año">
+        <Section id="anos" title="año por año" icon={<RetroIcon kind="calendar" />}>
           <p className="section-intro">elegí un año para ver qué fue lo que más escuché.</p>
           <YearStory years={insights.years} linkFor={linkFor} />
         </Section>
       )}
 
       <details className="archive-deep-dive">
-        <summary><span>más del archivo</span><span>idas y vueltas, horas y meses <span aria-hidden="true">＋</span></span></summary>
+        <summary><span className="heading-with-icon"><RetroIcon />más del archivo</span><span>idas y vueltas, horas y meses <span aria-hidden="true">＋</span></span></summary>
         <div className="archive-deep-dive-body">
-          {insights && <section id="idas-y-vueltas" className="py-8"><h2>idas y vueltas</h2><Movements data={insights} linkFor={linkFor} /></section>}
+          {insights && <section id="idas-y-vueltas" className="py-8"><h2 className="heading-with-icon"><RetroIcon />idas y vueltas</h2><Movements data={insights} linkFor={linkFor} /></section>}
           <section id="tiempo" className="py-8">
-            <h2>en el tiempo</h2>
+            <h2 className="heading-with-icon"><RetroIcon kind="calendar" />en el tiempo</h2>
             {insights ? (
               <Line values={insights.monthly} ticks={yearTicks(insights.months, 1)} label="registros por mes, toda la historia" />
             ) : monthly && (
               <Line values={monthly.map((m) => m.scrobbles)} ticks={[]} label="registros por mes" />
             )}
           </section>
-          <section id="ritmo" className="py-8"><h2>día y hora</h2><Rhythm cells={stats.rhythm} /></section>
+          <section id="ritmo" className="py-8"><h2 className="heading-with-icon"><RetroIcon kind="calendar" />día y hora</h2><Rhythm cells={stats.rhythm} /></section>
         </div>
       </details>
 
