@@ -80,7 +80,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       try {
         // no song given: my most played one by this artist, from my own archive
         let song = title;
-        if (!song && slug) song = (await loadArtist(slug))?.top_tracks[0]?.title ?? "";
+        if (!song && slug) { const tops = (await loadArtist(slug))?.top_tracks ?? []; song = tops[Math.floor(Math.random() * tops.length)]?.title ?? ""; }
         if (current !== sequence.current) return;
         const query: Record<string, string> = song ? { artist, title: song } : { artist };
         const response = await fetch(`/api/preview?${new URLSearchParams(query)}`, { signal: AbortSignal.timeout(8000) });
