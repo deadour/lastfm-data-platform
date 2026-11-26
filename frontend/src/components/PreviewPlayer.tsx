@@ -54,47 +54,70 @@ const baseTitle = (t: string) => fold(t.replace(/\s[-–]\s.*$/, "").replace(/\s
 
 /** browser-side fallback: apple's search api allows cors. tries the argentine store, then the us one,
     and accepts the base title when the exact one isn't there */
-async function applePreview(artist: string, title: string) {
-  for (const country of ["AR", "US"]) {
-    const url = new URL("https://itunes.apple.com/search");
-    url.search = new URLSearchParams({ term: `${artist} ${title ? baseTitle(title) : ""}`.trim(), entity: "song", media: "music", limit: "50", country }).toString();
-    let body: { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] };
-    try {
-      const response = await fetchWithTimeout(url.href, 6000);
-      if (!response.ok) continue;
-      body = await response.json();
-    } catch { continue; }
-    const byArtist = (body.results ?? []).filter((r) => r.artistName && r.trackName && r.previewUrl &&
-      [r.artistName, r.artistName.split(",")[0], r.artistName.split(" & ")[0]].some((a) => fold(a) === fold(artist)));
-    const pick = !title ? shuffle(byArtist)[0]
-      : byArtist.find((r) => fold(r.trackName!) === fold(title))
-        ?? byArtist.find((r) => baseTitle(r.trackName!) === baseTitle(title))
-        ?? byArtist.find((r) => fold(r.trackName!).startsWith(baseTitle(title)));
-    if (pick) return { url: pick.previewUrl!, source_url: pick.trackViewUrl, provider: "apple", title: pick.trackName! };
-  }
-  return null;
+async function applePreview(artist: string, title: string, country: "AR" | "US"): Promise<Found | null> {
+  const url = new URL("https://itunes.apple.com/search");
+  url.search = new URLSearchParams({ term: `${artist} ${title ? baseTitle(title) : ""}`.trim(),
+    entity: "song", media: "music", limit: "50", country }).toString();
+  let body: { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] };
+  try {
+    const response = await fetchWithTimeout(url.href, 2700);
+    if (!response.ok) return null;
+    body = await response.json();
+  } catch { return null; }
+  const byArtist = (body.results ?? []).filter((r) => r.artistName && r.trackName && r.previewUrl &&
+    [r.artistName, r.artistName.split(",")[0], r.artistName.split(" & ")[0]].some((a) => fold(a) === fold(artist)));
+  const pick = !title ? shuffle(byArtist)[0]
+    : byArtist.find((r) => fold(r.trackName!) === fold(title))
+      ?? byArtist.find((r) => baseTitle(r.trackName!) === baseTitle(title))
+      ?? byArtist.find((r) => fold(r.trackName!).startsWith(baseTitle(title)));
+  return pick?.previewUrl ? { url: pick.previewUrl, source_url: pick.trackViewUrl,
+    provider: "apple", title: pick.trackName } : null;
 }
 
 type Found = { url: string; source_url?: string; provider?: string; title?: string };
+const previewCache = new Map<string, { result: Found | null; expires: number }>();
+const previewPending = new Map<string, Promise<Found | null>>();
 
-/** the site's function first, then apple straight from the browser */
+/** Query providers concurrently and return the first valid preview.
+ * Signed CDN links are only cached briefly; misses are cached for 20 seconds.
+ */
 async function findPreview(artist: string, title: string): Promise<Found | null> {
-  // apple first: its audio allows cors, so the visualizer can read the real sound
-  const apple = await applePreview(artist, title).catch(() => null);
-  if (apple) {
-    const url = new URL(apple.url);
-    if (ALLOWED(url)) return { ...apple, url: url.href };
-  }
-  try {
-    const query: Record<string, string> = title ? { artist, title } : { artist };
-    const response = await fetchWithTimeout(`/api/preview?${new URLSearchParams(query)}`, 6000);
-    if (response.ok) {
+  const key = `${fold(artist)}\0${baseTitle(title)}`;
+  const cached = previewCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.result;
+  const pending = previewPending.get(key);
+  if (pending) return pending;
+
+  const api = async (): Promise<Found | null> => {
+    try {
+      const query = new URLSearchParams(title ? { artist, title } : { artist });
+      const response = await fetchWithTimeout(`/api/preview?${query}`, 3300);
+      if (!response.ok) return null;
       const data = await response.json() as { preview?: Found | null };
       const url = data?.preview?.url ? new URL(data.preview.url) : null;
-      if (url && ALLOWED(url)) return { ...data.preview!, url: url.href };
-    }
-  } catch { /* nothing else to try */ }
-  return null;
+      return url && ALLOWED(url) ? data.preview! : null;
+    } catch { return null; }
+  };
+  const validApple = async (country: "AR" | "US"): Promise<Found | null> => {
+    const result = await applePreview(artist, title, country);
+    if (!result) return null;
+    try { return ALLOWED(new URL(result.url)) ? result : null; }
+    catch { return null; }
+  };
+  const required = (search: Promise<Found | null>) => search.then((result) => {
+    if (!result) throw new Error("No preview found");
+    return result;
+  });
+  const work = Promise.any([required(validApple("AR")), required(api()), required(validApple("US"))])
+    .catch(() => null)
+    .then((result) => {
+      previewCache.delete(key);
+      previewCache.set(key, { result, expires: Date.now() + (result ? 180_000 : 20_000) });
+      if (previewCache.size > 256) previewCache.delete(previewCache.keys().next().value!);
+      return result;
+    }).finally(() => previewPending.delete(key));
+  previewPending.set(key, work);
+  return work;
 }
 
 let lastSong = "";
@@ -166,10 +189,18 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     plan.active = null;
     setSelection({ artist: plan.request.artist, title: plan.request.title || "…", status: "loading" });
     while (plan.cursor < plan.candidates.length) {
-      const candidate = plan.candidates[plan.cursor++];
-      const found = await findPreview(candidate.artist, candidate.title).catch(() => null);
+      // Try the exact requested song first, then batches of three alternatives.
+      const size = plan.cursor === 0 && plan.candidates[0]?.reason === "requested" ? 1 : 3;
+      const batch = plan.candidates.slice(plan.cursor, plan.cursor + size);
+      plan.cursor += batch.length;
+      const first = await Promise.any(batch.map(async (candidate) => {
+        const found = await findPreview(candidate.artist, candidate.title);
+        if (!found || failedUrls.current.has(found.url)) throw new Error("No usable preview");
+        return { candidate, found };
+      })).catch(() => null);
       if (requestId !== sequence.current || plan !== previewPlan.current) return;
-      if (!found || failedUrls.current.has(found.url)) continue;
+      if (!first) continue;
+      const { candidate, found } = first;
 
       const target = preferredAudio();
       if (!target) return;
@@ -250,8 +281,13 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           queue.current = (album?.details?.tracks ?? []).map((track) => ({ artist, title: track.title }));
           queueScope.current = { slug: null, albumKey };
         } else if (!continuation && (slug || !song)) {
-          const mine = slug ?? await slugFor(artist);
-          const tops = mine ? (await loadArtist(mine))?.top_tracks.map((t) => t.title) ?? [] : [];
+          // The public top-1000 catalog is already loaded. Use it immediately
+          // instead of waiting for artist metadata before the first sound.
+          const loadedTracks = tracks.filter((track) => fold(track.artist) === fold(artist));
+          const mine = slug || (loadedTracks.length ? null : await slugFor(artist));
+          const tops = loadedTracks.length
+            ? loadedTracks.map((track) => track.title)
+            : mine ? (await loadArtist(mine))?.top_tracks.map((track) => track.title) ?? [] : [];
           if (current !== sequence.current) return;
           queue.current = tops.map((title) => ({ artist, title }));
           queueScope.current = { slug: mine, albumKey: null };
