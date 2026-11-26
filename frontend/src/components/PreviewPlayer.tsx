@@ -96,6 +96,33 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [playing, setPlaying] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const dock = useRef<HTMLElement>(null);
+  // Mobile browser toolbars and the keyboard resize the visible viewport
+  // independently of the layout viewport. Keep the dock on its bottom edge.
+  useEffect(() => {
+    if (!enabled || !dock.current) return;
+    const node = dock.current;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const belowVisibleViewport = Math.max(0, window.innerHeight - viewport.offsetTop - viewport.height);
+        node.style.setProperty("--wa-visible-bottom", `${Math.round(belowVisibleViewport)}px`);
+      });
+    };
+    update();
+    viewport.addEventListener("resize", update, { passive: true });
+    viewport.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [enabled]);
   const [requiresTap, setRequiresTap] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [autoNext, setAutoNext] = useState(true);
@@ -385,7 +412,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         setPlaying(false);
         setSelection({ ...selection, status: "error" });
       }} />)}
-    {enabled && createPortal(<aside className="winamp" aria-label={translate("reproductor de fragmentos")}>
+    {enabled && createPortal(<aside ref={dock} className="winamp" aria-label={translate("reproductor de fragmentos")}>
       <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("cerrar reproductor")} title={translate("cerrar reproductor")} onClick={mute}>×</button></div>
       <div className="wa-main">
         <div className="wa-display">
