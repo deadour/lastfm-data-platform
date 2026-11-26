@@ -151,7 +151,7 @@ function Unavailable({ months: history }: { months: MonthStat[] }) {
   return (
     <div className="recent-unavailable">
       <p>{translate("esta parte todavía no está publicada.")}</p>
-      {last && <p>{translate("lo último que tengo es ")}{monthYear(last.month)}: <strong className="tabular">{n(last.scrobbles)}</strong> e.</p>}
+      {last && <p>{translate("lo último que tengo es ")}{monthYear(last.month)}: <strong className="tabular"><Count value={last.scrobbles} /></strong>.</p>}
     </div>
   );
 }
