@@ -211,7 +211,7 @@ export function Home({ stats, insights, recent, explore }: {
             {explore.rarities.one_day.length > 0 && (
               <div>
                 <p className="explore-sub">{translate("los escuché un solo día")}</p>
-                <ol>{explore.rarities.one_day.map((a) => <li key={a.name} className="odd-row"><OddPhoto name={a.name} url={a.photo?.url} /><strong><button type="button" onClick={() => openArtist(a.name)}>{a.name}</button></strong><small>{n(a.plays)}{translate(" veces el ")}{a.date.split("-").reverse().join("/")}</small></li>)}</ol>
+                <ol>{explore.rarities.one_day.map((a) => <li key={a.name} className="odd-row"><OddPhoto name={a.name} url={a.photo?.url} /><strong><button type="button" onClick={() => openArtist(a.name)}>{a.name}</button></strong><small><Count value={a.plays} /> · {a.date.split("-").reverse().join("/")}</small></li>)}</ol>
               </div>
             )}
           </div>
