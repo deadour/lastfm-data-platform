@@ -30,10 +30,16 @@ export function App() {
   const nowPlaying = useNowPlaying();
 
   useEffect(() => {
-    void loadStats().then(setLoaded);
-    void loadInsights().then(setInsights);
-    void loadRecent().then(setRecent);
-    void loadExplore().then(setExplore);
+    void Promise.allSettled([
+      loadStats().then(setLoaded),
+      loadInsights().then(setInsights),
+      loadRecent().then(setRecent),
+      loadExplore().then(setExplore),
+    ]).then(() => {
+      // Initial anchors may be missing until React and the statistics finish loading.
+      const id = window.location.hash.slice(1);
+      if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+    });
   }, []);
 
   const stats = loaded?.stats ?? null;
