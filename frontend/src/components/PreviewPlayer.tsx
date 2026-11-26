@@ -28,11 +28,19 @@ const ALLOWED = (u: URL) => u.protocol === "https:" && !u.username && !u.passwor
 
 const fold = (v: string) => v.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
+// AbortSignal.timeout is missing on older mobile Safari versions.
+async function fetchWithTimeout(url: string, ms: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), ms);
+  try { return await fetch(url, { signal: controller.signal }); }
+  finally { window.clearTimeout(timer); }
+}
+
 /** browser-side fallback: apple's search api allows cors, and answers browsers when it ignores cloudflare */
 async function applePreview(artist: string, title: string) {
   const url = new URL("https://itunes.apple.com/search");
   url.search = new URLSearchParams({ term: `${artist} ${title}`.trim(), entity: "song", media: "music", limit: "25" }).toString();
-  const response = await fetch(url.href, { signal: AbortSignal.timeout(6000) });
+  const response = await fetchWithTimeout(url.href, 6000);
   if (!response.ok) return null;
   const body = await response.json() as { results?: { artistName?: string; trackName?: string; previewUrl?: string; trackViewUrl?: string }[] };
   const results = title ? (body.results ?? []) : shuffle(body.results ?? []);
@@ -57,7 +65,7 @@ async function findPreview(artist: string, title: string): Promise<Found | null>
   }
   try {
     const query: Record<string, string> = title ? { artist, title } : { artist };
-    const response = await fetch(`/api/preview?${new URLSearchParams(query)}`, { signal: AbortSignal.timeout(6000) });
+    const response = await fetchWithTimeout(`/api/preview?${new URLSearchParams(query)}`, 6000);
     if (response.ok) {
       const data = await response.json() as { preview?: Found | null };
       const url = data?.preview?.url ? new URL(data.preview.url) : null;
