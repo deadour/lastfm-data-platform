@@ -31,6 +31,7 @@ export function t(text: string): string {
     .replace(/^buscar (.*) en spotify$/, "search $1 on spotify")
     .replace(/^buscar (.*) en youtube$/, "search $1 on youtube")
     .replace(/^semana del /, "week of ")
+    .replace(/^los últimos (\d+) meses · $/, "the last $1 months · ")
     .replace(/^lo último que quedó registrado/, "last archived play")
     .replace(/^lo último, /, "last played, ")
     .replace(/^distribución por género: /, "genre distribution: ")

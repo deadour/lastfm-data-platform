@@ -451,7 +451,8 @@ html {
 .diverge-col span.down { top: 50%; background: #56B4E9; opacity: .75; }
 .diverge-col.running span { background: transparent !important; border: 1px dashed #b8afa3; opacity: 1; }
 .diverge-col:hover span, .diverge-col:focus-visible span { filter: brightness(1.25); }
-.diverge-axis { display: flex; justify-content: space-between; font-size: .72rem; color: var(--color-muted); margin-top: .5rem; }
+.diverge-axis { display: flex; gap: 3px; font-size: .72rem; color: var(--color-muted); margin-top: .5rem; }
+.diverge-axis span { flex: 1; min-width: 0; white-space: nowrap; overflow: visible; }
 
 .year-ranks-years { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: 1.4rem; }
 .year-ranks-years button { padding: .35rem .75rem; font: 700 .9rem var(--font-serif); color: var(--color-muted); border: 1px solid #2a2622; cursor: pointer; }
@@ -1105,35 +1106,15 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 .wa-right .wa-marquee span { animation: wa-scroll 16s steps(80) infinite !important; }
 @media (prefers-reduced-motion: reduce) { .wa-right .wa-marquee span { animation: wa-scroll 26s linear infinite !important; } }
 
-/* header: fully opaque, covers the status-bar area too, logo and actions on one row */
+/* header: fully opaque, logo and actions on one row. it stays position: fixed (the rule above):
+   sticky and viewport-fit=cover both broke the phone player on ios safari. */
 .archive-topbar, .archive-topbar.is-compact {
   background: #0b0c0a !important; backdrop-filter: none !important;
-  padding-top: calc(.6rem + env(safe-area-inset-top)) !important;
   flex-wrap: nowrap !important; align-items: center !important;
 }
-.archive-topbar-slot { min-height: calc(4rem + env(safe-area-inset-top)) !important; }
 .archive-header-logo { order: -1; flex: 0 0 auto; }
 .archive-header-actions { flex-wrap: nowrap !important; min-width: 0; }
 @media (max-width: 400px) { .archive-header-actions .archive-nav-link { font-size: .78rem; } }
-/* header: sticky like the phone player (ios safari mispaints fixed bars while its toolbar moves).
-   the slot is display: contents so the header sticks to the whole page, not to its own short wrapper. */
-.archive-topbar-slot { display: contents !important; }
-.archive-topbar, .archive-topbar.is-compact {
-  position: sticky !important; inset: 0 auto auto auto !important; z-index: 900 !important;
-  /* full-bleed background without widening the page: a huge shadow, clipped so it
-     extends left, right and up (over the status bar) but never down onto the content */
-  box-shadow: 0 0 0 100vmax #0b0c0a !important;
-  clip-path: inset(-100vmax -100vmax 0 -100vmax);
-}
-/* phone: no giant shadow (ios safari mispositions the sticky player next to it); the bar just
-   bleeds to the screen edges, which is safe here because phones have no scrollbar to overflow */
-@media (max-width: 640px) {
-  .archive-topbar, .archive-topbar.is-compact {
-    box-shadow: none !important; clip-path: none;
-    margin-left: calc(50% - 50vw) !important; margin-right: calc(50% - 50vw) !important;
-    padding-left: max(1rem, env(safe-area-inset-left)) !important; padding-right: max(1rem, env(safe-area-inset-right)) !important;
-  }
-}
 
 /* technical notes in "sobre este proyecto" */
 .tech { margin-top: 3.5rem; display: grid; gap: 1.2rem; }
@@ -1225,3 +1206,8 @@ section > header h2, .home-section h2 { font-weight: 700 !important; font-size: 
 .tech-lake small { font-size: .76rem; color: #9a958c; }
 .tech-lake li.bronze code { color: #c08552; } .tech-lake li.silver code { color: #c9c6c0; } .tech-lake li.gold code { color: #d9a83a; }
 @media (max-width: 640px) { .tech-lake li { grid-template-columns: 1fr; } }
+
+/* "ver más" under artists, albums and songs: opens the gold extras at the end of the page */
+.more-from-archive { display: inline-block; margin-top: 1.4rem; padding: .45rem .9rem; border: 1px solid var(--color-line); color: var(--color-muted); font-size: .8rem; cursor: pointer; background: transparent; }
+.more-from-archive:hover, .more-from-archive:focus-visible { color: var(--color-ink); border-color: var(--color-accent); }
+#mas-del-archivo { scroll-margin-top: 5rem; }

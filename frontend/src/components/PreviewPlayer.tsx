@@ -17,6 +17,8 @@ interface Context {
   /** title optional: without it, my most played song by that artist (or any playable one) */
   play: (artist: string, title?: string, slug?: string | null, albumKey?: string | null) => void;
   playQueue: (tracks: { artist: string; title: string }[]) => void;
+  /** a genre: one of these artists, falling back to the others */
+  playGenre: (artists: string[]) => void;
   selection: Selection | null;
   playing: boolean;
   enabled: boolean;
@@ -159,6 +161,9 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const queueScope = useRef<{ slug: string | null; albumKey: string | null }>({ slug: null, albumKey: null });
   const playedInQueue = useRef(new Set<string>());
   const customQueue = useRef(false);
+  // other artists of the genre being played, used only as fallbacks
+  const relatedArtists = useRef<string[]>([]);
+  const pendingRelated = useRef<string[]>([]);
   const playedAcrossQueues = useRef(new Set<string>());
   const [time, setTime] = useState({ current: 0, duration: 30 });
   const sequence = useRef(0);
@@ -200,6 +205,10 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     }
     const current = ++sequence.current;
     if (!continuation) customQueue.current = false;
+    // artists of the same genre, set by playGenre just before this call; any other play has none
+    const related = continuation ? relatedArtists.current : pendingRelated.current;
+    relatedArtists.current = related;
+    pendingRelated.current = [];
     // Mobile Safari can suspend Web Audio; use native HTMLAudioElement there.
     if (!touchAudio() && audio.current) wire(audio.current);
     if (!touchAudio()) void audioContext.current?.resume();
@@ -226,25 +235,29 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           queueScope.current = { slug: null, albumKey: null };
         }
         if (!song) {
-          const pool = queue.current.filter((track) => track.artist === artist && track.title !== lastSong);
-          const chosen = shuffled ? pool[Math.floor(Math.random() * pool.length)] : pool[0];
+          // any of the artist's 15 most played, skipping what sounded recently, so the same tap
+          // doesn't always open with the same hit
+          const pool = queue.current.filter((track) => track.artist === artist && track.title !== lastSong).slice(0, 15);
+          const fresh = pool.filter((track) => !playedAcrossQueues.current.has(`${fold(track.artist)}\0${fold(track.title)}`));
+          const from = fresh.length ? fresh : pool;
+          const chosen = from[Math.floor(Math.random() * from.length)];
           song = chosen?.title ?? queue.current[0]?.title ?? "";
         }
         if (!continuation) playedInQueue.current.clear();
         if (song) lastSong = song;
         if (current !== sequence.current) return;
-        // never leave it silent: the song, then anything by the artist, then something else I listen to a lot
+        // fallbacks stay in the same context, never a random song from elsewhere:
+        // an album or list → the rest of it; an artist → more of that artist; a genre → other artists of that genre
         const attempts: [string, string][] = [];
         if (song) attempts.push([artist, song]);
         if (albumKey || customQueue.current) {
           for (const track of queue.current) if (track.title !== song || track.artist !== artist) attempts.push([track.artist, track.title]);
-        } else attempts.push([artist, ""]);
-        // never go silent: after the requested ones, songs I play a lot and some of my top artists
-        const backup = shuffle([
-          ...tracks.slice(0, 40).map((t) => [t.artist, t.title] as [string, string]),
-          ...artists.slice(0, 30).map((x) => [x.name, ""] as [string, string]),
-        ]).filter(([w, t]) => !(w === artist && t === song)).slice(0, 8);
-        for (const [who, what] of [...attempts.slice(0, 6), ...backup]) {
+        } else {
+          for (const track of queue.current) if (track.artist === artist && track.title !== song) attempts.push([artist, track.title]);
+          attempts.push([artist, ""]);
+        }
+        const backup = shuffle(related.filter((name) => name !== artist)).slice(0, 8).map((name) => [name, ""] as [string, string]);
+        for (const [who, what] of [...attempts.slice(0, 10), ...backup]) {
           const found = await findPreview(who, what);
           if (current !== sequence.current) return;
           if (!found) continue;
@@ -254,9 +267,11 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           playedAcrossQueues.current.add(heard);
           if (playedAcrossQueues.current.size > 500) playedAcrossQueues.current.delete(playedAcrossQueues.current.values().next().value!);
           const exact = !title || (who === artist && what === title);
+          const note = who !== artist && !albumKey && !customQueue.current
+            ? translate("no encontré nada de ese artista; suena otro del mismo género")
+            : exact ? undefined : translate("no encontré ese fragmento; suena otra canción de esta selección");
           setSelection({ artist: who, title: what || found.title || "", status: "ready", url: found.url,
-            source: found.source_url, provider: found.provider,
-            note: exact ? undefined : translate("no encontré ese fragmento; suena otra canción de esta selección") });
+            source: found.source_url, provider: found.provider, note });
           const needsProxy = new URL(found.url).hostname.endsWith(".dzcdn.net");
           const target = preferredAudio();
           if (!target) return;
@@ -435,6 +450,14 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     const chosen = shuffled ? candidates[Math.floor(Math.random() * candidates.length)] ?? list[0] : list[(index + 1) % list.length];
     play(chosen.artist, chosen.title, queueScope.current.slug, queueScope.current.albumKey, true);
   };
+  /** a genre: one of its artists, and if nothing of them is found, another artist of the same genre */
+  const playGenre = (names: string[]) => {
+    const pool = shuffle(names.filter(Boolean));
+    if (!pool.length) return;
+    pendingRelated.current = pool.slice(1);
+    play(pool[0], "", null, null);
+  };
+
   const playQueue = (tracks: { artist: string; title: string }[]) => {
     if (!tracks.length) return;
     let fresh = tracks.filter((track) => !playedAcrossQueues.current.has(`${fold(track.artist)}\0${fold(track.title)}`));
@@ -464,7 +487,7 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const progress = time.duration ? Math.min(1, time.current / time.duration) : 0;
   const isSilence = (el: HTMLAudioElement) => el.src.endsWith(SILENCE);
   const display = selection ?? { artist: "e", title: translate("elegí un tema"), status: "idle" };
-  const contextValue = useMemo<Context>(() => ({ play, playQueue, selection, playing, enabled, random: () => void random(),
+  const contextValue = useMemo<Context>(() => ({ play, playQueue, playGenre, selection, playing, enabled, random: () => void random(),
     albumKeyFor: (artist: string, title: string) => albums.find((a) => fold(a.artist) === fold(artist) && fold(a.title) === fold(title))?.key ?? null }),
     [selection, playing, enabled, volume, shuffled, tracks, albums, artists]);
 

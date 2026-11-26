@@ -56,7 +56,7 @@ export function GenreTreemap({ families, artists, onPick }: {
   families: FamilyShare[];
   artists: Record<string, { name: string; plays: number }[]>;
   /** Play music from this genre without navigating away. */
-  onPick?: (artist: string) => void;
+  onPick?: (artists: string[]) => void;
 }) {
   const main = families.slice(0, 7);
   const rest = families.slice(7).reduce((s, f) => s + f.share, 0);
@@ -72,8 +72,8 @@ export function GenreTreemap({ families, artists, onPick }: {
         {boxes.map((b) => (
           <g key={b.item.family} className="genre-box-hit" onMouseEnter={() => setHover(b.item.family)} onFocus={() => setHover(b.item.family)} tabIndex={0}
             role="button" aria-label={translate(`escuchar algo de ${b.item.family}`)}
-            onClick={() => { const list = artists[b.item.family] ?? Object.values(artists).flat(); const pick = list[Math.floor(Math.random() * list.length)]?.name; if (pick && onPick) onPick(pick); }}
-            onKeyDown={(ev) => { const list = artists[b.item.family] ?? Object.values(artists).flat(); const top = list[Math.floor(Math.random() * list.length)]?.name; if ((ev.key === "Enter" || ev.key === " ") && top && onPick) { ev.preventDefault(); onPick(top); } }}>
+            onClick={() => { const list = artists[b.item.family] ?? Object.values(artists).flat(); if (list.length && onPick) onPick(list.map((a) => a.name)); }}
+            onKeyDown={(ev) => { const list = artists[b.item.family] ?? Object.values(artists).flat(); if ((ev.key === "Enter" || ev.key === " ") && list.length && onPick) { ev.preventDefault(); onPick(list.map((a) => a.name)); } }}>
             <rect x={b.x + 1.5} y={b.y + 1.5} width={Math.max(0, b.w - 3)} height={Math.max(0, b.h - 3)}
               fill={familyColor(b.item.family)} fillOpacity={focus === b.item.family ? 0.95 : 0.7} className="genre-box" />
             {b.w > 70 && b.h > 34 && (
@@ -147,7 +147,7 @@ export function MonthsVsAverage({ months, monthly, show = 24, onPick }: { months
       <div className="time-chart-readout" aria-live="polite">
         {shown ? (
           <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))}{translate(" contra mi promedio")}</span></>
-        ) : <span>{translate("mi promedio mensual es de ")}<span className="count-value">{n(Math.round(avg))}<small className="count-unit">e</small></span></span>}
+        ) : <span>{translate(`los últimos ${recent.length} meses · `)}{translate("mi promedio mensual es de ")}<span className="count-value">{n(Math.round(avg))}<small className="count-unit">e</small></span></span>}
       </div>
       <div className="diverge-bars" role="img" aria-label={`diferencia de cada mes contra el promedio de ${n(Math.round(avg))}e`}>
         {recent.map((m, i) => {
@@ -161,7 +161,9 @@ export function MonthsVsAverage({ months, monthly, show = 24, onPick }: { months
           );
         })}
       </div>
-      <div className="diverge-axis"><span>{monthYear(recent[0]?.month ?? "")}</span><span>{translate("promedio")}</span><span>{monthYear(recent[recent.length - 1]?.month ?? "")}</span></div>
+      <div className="diverge-axis" aria-hidden="true">
+        {recent.map((m, i) => <span key={m.month}>{i === 0 || m.month.endsWith("-01") ? `’${m.month.slice(2, 4)}` : ""}</span>)}
+      </div>
     </figure>
   );
 }

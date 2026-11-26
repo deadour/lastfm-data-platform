@@ -82,7 +82,7 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
       <section className="grid gap-12 border-t border-line py-12 md:grid-cols-2">
         <div>
           <h2 className="mb-8 font-serif text-2xl text-ink">{translate("por año")}</h2>
-          <Bars values={page.years.map((y) => y.scrobbles)} labels={page.years.map((y) => String(y.year).slice(2))} label={translate("e por año")} showValues />
+          <Bars values={page.years.map((y) => y.scrobbles)} labels={page.years.map((y) => `’${String(y.year).slice(2)}`)} label={translate("e por año")} showValues />
         </div>
         <div>
           <h2 className="mb-8 font-serif text-2xl text-ink">{translate("a qué hora")}</h2>

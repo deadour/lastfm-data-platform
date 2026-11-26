@@ -15,6 +15,9 @@ from typing import Any
 import pandas as pd
 
 
+GENRE_POOL_SIZE = 40
+GENRE_POOL_MIN_PLAYS = 5
+
 _EMOJI = re.compile("[🀀-🫿☀-➿]")
 
 
@@ -114,11 +117,16 @@ def genres_overview(events: pd.DataFrame, genres) -> dict[str, Any]:
                for y, g in events.groupby("local_year")]
     plays = events["artist_name"].value_counts()
     primary = {a: genres.primary(a) for a in plays.index}
+    # a wide pool per genre: the site shows the first five and plays from all of them, so a genre
+    # doesn't loop over the same handful. one-off listens and youtube video titles stay out.
     top_by_family: dict[str, list[dict[str, Any]]] = {}
     for artist, count in plays.items():
         family = primary[artist]
-        if family and len(top_by_family.setdefault(family, [])) < 6:
-            top_by_family[family].append({"name": artist, "plays": int(count)})
+        pool = top_by_family.setdefault(family, []) if family else None
+        # the first six always make it (small genres keep their names); past that, only real repeats
+        if (pool is not None and looks_like_artist(artist) and len(pool) < GENRE_POOL_SIZE
+                and (len(pool) < 6 or count >= GENRE_POOL_MIN_PLAYS)):
+            pool.append({"name": artist, "plays": int(count)})
     styles: dict[str, int] = {}
     for artist, count in plays.items():
         style = genres.style(artist)

@@ -31,7 +31,7 @@ export function Bars({ values, labels, dim = [], height = 140, label, showValues
       </div>
       <div className="mt-2 flex gap-[3px]">
         {labels.map((l, i) => (
-          <span key={i} className="tabular min-w-0 flex-1 truncate text-center text-[10px] text-muted">{l}</span>
+          <span key={i} className="tabular min-w-0 flex-1 overflow-visible whitespace-nowrap text-center text-[10px] text-muted">{l}</span>
         ))}
       </div>
     </figure>
