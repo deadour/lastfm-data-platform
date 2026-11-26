@@ -76,7 +76,7 @@ export function App() {
   } : null;
 
   return (
-    <PreviewProvider artists={insights?.artists} albums={stats?.top_albums} tracks={stats?.top_tracks}><div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
+    <PreviewProvider artists={insights?.artists} albums={stats?.top_albums} tracks={stats?.top_tracks} genres={explore?.genres?.artists_by_family ?? {}}><div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
       <div className="e-backdrop" aria-hidden="true" />
       <div className="archive-topbar-slot">
         <header className={`archive-topbar ${compactHeader ? "is-compact" : ""}`}>

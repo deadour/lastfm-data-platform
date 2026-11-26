@@ -2,9 +2,9 @@ import { t as translate } from "../i18n";
 import { createPortal } from "react-dom";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { loadArtist } from "../data/insights";
-import { spotifyUrl, youtubeUrl } from "../utils/listen";
 import { ambientBeat } from "../utils/beat";
 import type { AlbumStat, TrackStat } from "../data/types";
+import { previewCandidates, type GenreArtists, type PreviewCandidate } from "../utils/previewFallbacks";
 
 // one persistent <audio> behind a fixed dock with our own controls.
 // sound starts only after a tap. mobile browsers may require a second tap once
@@ -29,6 +29,13 @@ interface Context {
 const PreviewContext = createContext<Context | null>(null);
 
 const SILENCE = "/silence.wav";
+interface PreviewPlan {
+  request: { artist: string; title: string };
+  candidates: PreviewCandidate[];
+  cursor: number;
+  active: { url: string; provider?: string } | null;
+}
+
 const ALLOWED = (u: URL) => u.protocol === "https:" && !u.username && !u.password && !u.port &&
   (u.hostname.endsWith(".dzcdn.net") || u.hostname === "audio-ssl.itunes.apple.com" || u.hostname.endsWith(".mzstatic.com"));
 
@@ -106,7 +113,7 @@ const shuffle = <T,>(list: T[]) => [...list].sort(() => Math.random() - .5);
 
 const clock = (s: number) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
 
-export function PreviewProvider({ children, artists = [], albums = [], tracks = [] }: { children: ReactNode; artists?: { name: string; slug: string }[]; albums?: AlbumStat[]; tracks?: TrackStat[] }) {
+export function PreviewProvider({ children, artists = [], albums = [], tracks = [], genres = {} }: { children: ReactNode; artists?: { name: string; slug: string }[]; albums?: AlbumStat[]; tracks?: TrackStat[]; genres?: GenreArtists }) {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [playing, setPlaying] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -124,6 +131,8 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
   const playedAcrossQueues = useRef(new Set<string>());
   const [time, setTime] = useState({ current: 0, duration: 30 });
   const sequence = useRef(0);
+  const previewPlan = useRef<PreviewPlan | null>(null);
+  const failedUrls = useRef(new Set<string>());
   const audio = useRef<HTMLAudioElement>(null);
   // Keep non-CORS providers outside the Web Audio graph to avoid silent playback.
   const plainAudio = useRef<HTMLAudioElement>(null);
@@ -151,6 +160,63 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
     } else el.pause();
   };
 
+  const advancePreview = async (requestId: number): Promise<void> => {
+    const plan = previewPlan.current;
+    if (!plan || requestId !== sequence.current) return;
+    plan.active = null;
+    setSelection({ artist: plan.request.artist, title: plan.request.title || "…", status: "loading" });
+    while (plan.cursor < plan.candidates.length) {
+      const candidate = plan.candidates[plan.cursor++];
+      const found = await findPreview(candidate.artist, candidate.title).catch(() => null);
+      if (requestId !== sequence.current || plan !== previewPlan.current) return;
+      if (!found || failedUrls.current.has(found.url)) continue;
+
+      const target = preferredAudio();
+      if (!target) return;
+      audio.current?.pause();
+      plainAudio.current?.pause();
+      activeAudio.current = target;
+      target.volume = volume;
+      delete target.dataset.directRetry;
+      plan.active = { url: found.url, provider: found.provider };
+      const actualTitle = found.title || candidate.title;
+      const note = candidate.reason === "requested" ? undefined
+        : candidate.reason === "artist" || candidate.reason === "queue"
+          ? translate("no encontré el tema; suena otro del mismo artista")
+          : candidate.reason === "genre"
+            ? translate("no encontré el tema; suena algo de la misma onda")
+            : translate("no encontré algo de ese estilo; suena otra de mi biblioteca");
+      setSelection({ artist: candidate.artist, title: actualTitle, status: "ready",
+        url: found.url, source: found.source_url, provider: found.provider, note });
+      const needsProxy = new URL(found.url).hostname.endsWith(".dzcdn.net");
+      target.src = needsProxy ? `/api/audio?${new URLSearchParams({ url: found.url })}` : found.url;
+      void target.play().then(() => {
+        if (requestId === sequence.current) setRequiresTap(false);
+      }).catch((error: unknown) => {
+        if (requestId !== sequence.current || plan !== previewPlan.current) return;
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          // Mobile Safari requires a fresh tap after an asynchronous lookup.
+          setRequiresTap(true);
+          return;
+        }
+        // A URL can exist but fail to decode or load: continue to the next candidate.
+        failPreview(found.url);
+      });
+      return;
+    }
+    activeAudio.current?.pause();
+    setPlaying(false);
+    setSelection({ artist: plan.request.artist, title: plan.request.title || "…", status: "unavailable" });
+  };
+
+  const failPreview = (url: string) => {
+    const plan = previewPlan.current;
+    if (!plan?.active || plan.active.url !== url || failedUrls.current.has(url)) return;
+    failedUrls.current.add(url);
+    setPlaying(false);
+    void advancePreview(sequence.current);
+  };
+
   const play = (artist: string, title = "", slug: string | null = null, albumKey: string | null = null, continuation = false) => {
     const el = preferredAudio();
     if (!el) return;
@@ -161,6 +227,8 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
       return;
     }
     const current = ++sequence.current;
+    previewPlan.current = null;
+    failedUrls.current.clear();
     if (!continuation) customQueue.current = false;
     // artists of the same genre, set by playGenre just before this call; any other play has none
     const related = continuation ? relatedArtists.current : pendingRelated.current;
@@ -205,53 +273,30 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
         if (!continuation) playedInQueue.current.clear();
         if (song) lastSong = song;
         if (current !== sequence.current) return;
-        // fallbacks stay in the same context, never a random song from elsewhere:
-        // an album or list → the rest of it; an artist → more of that artist; a genre → other artists of that genre
-        const attempts: [string, string][] = [];
-        if (song) attempts.push([artist, song]);
-        if (albumKey || customQueue.current) {
-          for (const track of queue.current) if (track.title !== song || track.artist !== artist) attempts.push([track.artist, track.title]);
-        } else {
-          for (const track of queue.current) if (track.artist === artist && track.title !== song) attempts.push([artist, track.title]);
-          attempts.push([artist, ""]);
-        }
-        const backup = shuffle(related.filter((name) => name !== artist)).slice(0, 8).map((name) => [name, ""] as [string, string]);
-        for (const [who, what] of [...attempts.slice(0, 10), ...backup]) {
-          const found = await findPreview(who, what);
-          if (current !== sequence.current) return;
-          if (!found) continue;
-          playedInQueue.current.add(`${who}\0${what || found.title || ""}`);
-          const heard = `${fold(who)}\0${fold(what || found.title || "")}`;
-          playedAcrossQueues.current.delete(heard);
-          playedAcrossQueues.current.add(heard);
-          if (playedAcrossQueues.current.size > 500) playedAcrossQueues.current.delete(playedAcrossQueues.current.values().next().value!);
-          const exact = !title || (who === artist && what === title);
-          const note = who !== artist && !albumKey && !customQueue.current
-            ? translate("no encontré nada de ese artista; suena otro del mismo género")
-            : exact ? undefined : translate("no encontré ese fragmento; suena otra canción de esta selección");
-          setSelection({ artist: who, title: what || found.title || "", status: "ready", url: found.url,
-            source: found.source_url, provider: found.provider, note });
-          const needsProxy = new URL(found.url).hostname.endsWith(".dzcdn.net");
-          const target = preferredAudio();
-          if (!target) return;
-          audio.current?.pause();
-          plainAudio.current?.pause();
-          activeAudio.current = target;
-          target.volume = volume;
-          delete target.dataset.directRetry;
-          target.src = needsProxy ? `/api/audio?${new URLSearchParams({ url: found.url })}` : found.url;
-          void target.play().then(() => setRequiresTap(false)).catch(() => {
-            setPlaying(false);
-            // iOS may block play() after async preview lookup.
-            // The URL is ready, so the next direct tap on ▶ can start it.
-            setRequiresTap(true);
-          });
-          return;
-        }
-        el.pause();
-        setSelection({ artist, title: song || "…", status: "unavailable" });
+        // Search the chosen context first, then the artist's real genre, then the wider archive.
+        previewPlan.current = {
+          request: { artist, title: song || title },
+          candidates: previewCandidates(artist, song, queue.current,
+            tracks.map((track) => ({ artist: track.artist, title: track.title })),
+            genres, related, Boolean(albumKey || customQueue.current)),
+          cursor: 0,
+          active: null,
+        };
+        failedUrls.current.clear();
+        void advancePreview(current);
       } catch {
-        if (current === sequence.current) setSelection({ artist, title: title || "…", status: "error" });
+        if (current === sequence.current) {
+          // Failed metadata lookups should not stop us trying the artist and genre catalog.
+          previewPlan.current = {
+            request: { artist, title },
+            candidates: previewCandidates(artist, title, [],
+              tracks.map((track) => ({ artist: track.artist, title: track.title })),
+              genres, related),
+            cursor: 0, active: null,
+          };
+          failedUrls.current.clear();
+          void advancePreview(current);
+        }
       }
     })();
   };
@@ -432,6 +477,8 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
 
   const mute = () => {
     sequence.current++;
+    previewPlan.current = null;
+    failedUrls.current.clear();
     audio.current?.pause();
     plainAudio.current?.pause();
     activeAudio.current = null;
@@ -459,17 +506,19 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
       onTimeUpdate={(e) => { if (e.currentTarget === activeAudio.current && !isSilence(e.currentTarget)) setTime({ current: e.currentTarget.currentTime, duration: e.currentTarget.duration || 30 }); }}
       onError={(e) => {
         const el = e.currentTarget;
-        if (el !== activeAudio.current || !ready || !selection) return;
-        // A direct audio element does not need CORS. If the proxy failed,
-        // use the already validated public Deezer URL as a native fallback.
-        if (el === plainAudio.current && selection.provider === "deezer" && selection.url && !el.dataset.directRetry) {
+        const active = previewPlan.current?.active;
+        if (el !== activeAudio.current || !active || isSilence(el)) return;
+        // A Deezer proxy failure might still play directly in the native element.
+        if (el === plainAudio.current && active.provider === "deezer" && !el.dataset.directRetry) {
           el.dataset.directRetry = "true";
-          el.src = selection.url;
-          void el.play().then(() => setRequiresTap(false)).catch(() => setRequiresTap(true));
+          el.src = active.url;
+          void el.play().catch((error: unknown) => {
+            if (error instanceof DOMException && error.name === "NotAllowedError") setRequiresTap(true);
+            else failPreview(active.url);
+          });
           return;
         }
-        setPlaying(false);
-        setSelection({ ...selection, status: "error" });
+        failPreview(active.url);
       }} />)}
     {enabled && createPortal(<aside className="winamp" aria-label={translate("reproductor de fragmentos")}>
       <div className="wa-titlebar"><span>winamp</span><button type="button" className="wa-x" aria-label={translate("cerrar reproductor")} title={translate("cerrar reproductor")} onClick={mute}>×</button></div>
@@ -489,10 +538,10 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
             <div className="wa-meta">
               {display.status === "idle" && translate("elegí una canción o tocá shuffle")}
               {selection?.status === "loading" && translate("buscando…")}
-              {selection?.status === "unavailable" && <>{translate("sin fragmento · ")}<a href={spotifyUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">spotify</a> · <a href={youtubeUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">youtube</a></>}
+              {selection?.status === "unavailable" && <>{translate("no hay audio disponible ahora")} · <button type="button" onClick={() => play(selection.artist, selection.title)}>{translate("reintentar")}</button></>}
               {ready && requiresTap && translate("tocá ▶ para escuchar")}
               {ready && !requiresTap && selection?.note}
-              {selection?.status === "error" && <>{translate("no se pudo reproducir el fragmento")} · <a href={spotifyUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">spotify</a> · <a href={youtubeUrl(selection.artist, selection.title)} target="_blank" rel="noreferrer">youtube</a></>}
+              {selection?.status === "error" && <>{translate("no hay audio disponible ahora")} · <button type="button" onClick={() => play(selection.artist, selection.title)}>{translate("reintentar")}</button></>}
             </div>
           </div>
         </div>
