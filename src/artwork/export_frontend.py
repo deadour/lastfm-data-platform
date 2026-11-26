@@ -144,7 +144,7 @@ def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 
                         for r in artists.head(top).itertuples()],
         "top_tracks": [{"title": r.track_name, "artist": r.artist_name, "scrobbles": _int(r.total_scrobbles),
                         "image": (album_cover(track_album.get((r.artist_name, r.track_name), "")) or {}).get("url")}
-                       for r in tracks.head(max(top, 100)).itertuples()],
+                       for r in tracks.head(max(top, 500)).itertuples()],  # 500: the random player's pool
         "top_albums": [{"key": r.album_key, "title": r.album_name, "artist": r.artist_name,
                         "year": release.get(r.album_key),
                         "scrobbles": _int(r.scrobbles), "image": (album_cover(r.album_key) or {}).get("url"),

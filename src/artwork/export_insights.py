@@ -34,6 +34,10 @@ SCHEMA_VERSION = 1
 SESSION_GAP = pd.Timedelta("30min")
 
 
+# songs per artist: the page lists the first 12, the player picks from all of them
+ARTIST_TRACKS = 50
+
+
 def slug(name: str) -> str:
     text = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
     text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
@@ -208,7 +212,7 @@ def artist_page(name: str, group: pd.DataFrame, rank: int, total: int, lookup, m
         "years": [{"year": int(y), "scrobbles": int(c)} for y, c in per_year.items()],
         "months": [int(per_month.get(m, 0)) for m in months],
         "hours": [int(v) for v in hours],
-        "top_tracks": [{"title": t, "plays": int(c)} for t, c in tracks.head(12).items()],
+        "top_tracks": [{"title": t, "plays": int(c)} for t, c in tracks.head(ARTIST_TRACKS).items()],
         "top_albums": [{"title": a, "plays": int(c), "cover": lookup(name, a)} for a, c in albums.head(8).items()],
     }
 

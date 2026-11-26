@@ -94,7 +94,7 @@ export function Artist({ slug, insights }: { slug: string; insights: InsightsFil
         <div>
           <h2 className="mb-6 font-serif text-2xl text-ink">{translate("temas")}</h2>
           <ol className="divide-y divide-line">
-            {page.top_tracks.map((t, i) => (
+            {page.top_tracks.slice(0, 12).map((t, i) => (
               <li key={`${t.title}-${i}`} className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-3 py-2.5">
                 <span className="tabular text-xs text-muted">{String(i + 1).padStart(2, "0")}</span>
                 <PlayableTitle artist={page.name} title={t.title} slug={page.slug} className="text-ink" />

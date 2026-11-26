@@ -234,10 +234,12 @@ export function PreviewProvider({ children, artists = [], albums = [], tracks = 
           queue.current = tracks.map((track) => ({ artist: track.artist, title: track.title }));
           queueScope.current = { slug: null, albumKey: null };
         }
-        if (!song) {
-          // any of the artist's 15 most played, skipping what sounded recently, so the same tap
+        // one in four artist plays goes to the artist's catalog instead of my archive: songs I may never have heard
+        const discover = !song && !albumKey && !customQueue.current && Math.random() < 0.25;
+        if (!song && !discover) {
+          // any of the artist's 50 most played, skipping what sounded recently, so the same tap
           // doesn't always open with the same hit
-          const pool = queue.current.filter((track) => track.artist === artist && track.title !== lastSong).slice(0, 15);
+          const pool = queue.current.filter((track) => track.artist === artist && track.title !== lastSong);
           const fresh = pool.filter((track) => !playedAcrossQueues.current.has(`${fold(track.artist)}\0${fold(track.title)}`));
           const from = fresh.length ? fresh : pool;
           const chosen = from[Math.floor(Math.random() * from.length)];
