@@ -4,9 +4,9 @@ WORKFLOW = Path(".github/workflows/daily-pipeline.yml").read_text(encoding="utf-
 ACTIVE = [line for line in WORKFLOW.splitlines() if not line.lstrip().startswith("#")]
 
 
-def test_single_daily_schedule_and_manual_dispatch():
+def test_daily_schedule_with_recovery_and_manual_dispatch():
     crons = [line.split("#")[0].strip() for line in ACTIVE if line.strip().startswith("- cron:")]
-    assert crons == ['- cron: "17 3 * * *"']  # exactly once a day, 00:17 in argentina
+    assert crons == ['- cron: "17 3 * * *"', '- cron: "47 5 * * *"']  # main run and recovery, Argentina time
     assert "workflow_dispatch:" in WORKFLOW
 
 

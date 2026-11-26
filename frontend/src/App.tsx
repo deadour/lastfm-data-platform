@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { Sources } from "./components/Icons";
+import { useEffect, useRef, useState } from "react";
 import { NowPlayingHero } from "./components/NowPlayingHero";
-import { PreviewProvider } from "./components/PreviewPlayer";
+import { PreviewProvider, RandomPlay } from "./components/PreviewPlayer";
 import { loadInsights } from "./data/insights";
 import { loadStats, type Loaded } from "./data/load";
 import { loadRecent, type RecentState } from "./data/recent";
@@ -10,20 +9,43 @@ import type { InsightsFile, NowPlaying } from "./data/types";
 import { About } from "./pages/About";
 import { Artist } from "./pages/Artist";
 import { Artists } from "./pages/Artists";
+import { AlbumsPage } from "./pages/Albums";
+import { Album } from "./pages/Album";
+import { Songs } from "./pages/Songs";
+import { Loading } from "./components/Loading";
+import { MastheadCollage } from "./components/MastheadCollage";
+import { t as translate, setLanguage, useLanguage } from "./i18n";
 import { Home } from "./pages/Home";
 import { shortDate } from "./utils/format";
 import { Link, navigate, restoreHome, useRoute } from "./utils/router";
 import { useNowPlaying } from "./utils/useNowPlaying";
 import { scrollToHashWhenSettled } from "./utils/hashScroll";
 
-const nav = [
-  ["últimamente", "/#ultimamente"],
-  ["discos", "/#discos"],
-  ["artistas", "/artistas"],
-] as const;
-
 export function App() {
+  const language = useLanguage();
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
   const route = useRoute();
+  const masthead = useRef<HTMLDivElement>(null);
+  const [pastTitle, setPastTitle] = useState(false);
+  const compactHeader = route.page !== "home" || pastTitle;
+  useEffect(() => {
+    const title = masthead.current;
+    if (route.page !== "home" || !title) return;
+    const update = () => setPastTitle(title.getBoundingClientRect().bottom <= 0);
+    update();
+    const observer = new IntersectionObserver(update);
+    observer.observe(title);
+    return () => observer.disconnect();
+  }, [route.page]);
+  useEffect(() => {
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => document.documentElement.style.setProperty("--scroll", String(Math.round(window.scrollY))));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+  }, []);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [insights, setInsights] = useState<InsightsFile | null>(null);
   const [recent, setRecent] = useState<RecentState>({ status: "loading" });
@@ -54,31 +76,38 @@ export function App() {
   } : null;
 
   return (
-    <PreviewProvider><div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
-      <header className="archive-topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-6">
-        {route.page !== "home" && <Link href="/" className="archive-nav-link text-xs">inicio</Link>}
-        <nav aria-label="secciones" className="flex flex-wrap gap-x-5 gap-y-2 text-xs md:gap-x-7">
-          {nav.map(([label, href]) => (
-            <Link key={href} href={href} className="archive-nav-link">{label}</Link>
-          ))}
-        </nav>
-      </header>
+    <PreviewProvider artists={insights?.artists} albums={stats?.top_albums} tracks={stats?.top_tracks}><div className="archive-shell mx-auto max-w-[1320px] px-5 md:px-10 lg:px-16">
+      <div className="e-backdrop" aria-hidden="true" />
+      <div className="archive-topbar-slot">
+        <header className={`archive-topbar ${compactHeader ? "is-compact" : ""}`}>
+          {compactHeader && <Link href="/" className="archive-header-logo" aria-label={translate("e · inicio")}>e</Link>}
+          <nav aria-label={translate("secciones")} className="archive-header-actions">
+            <RandomPlay />
+            <Link href="/#about" className="archive-nav-link">{translate("sobre este proyecto")}</Link>
+            <span className="language-switch" role="group" aria-label={translate("idioma")}>
+              <button type="button" lang="es" aria-pressed={language === "es"} onClick={() => setLanguage("es")}>es</button>
+              <span aria-hidden="true">/</span>
+              <button type="button" lang="en" aria-pressed={language === "en"} onClick={() => setLanguage("en")}>en</button>
+            </span>
+          </nav>
+        </header>
+      </div>
 
       <main>
         {route.page === "home" && (
           <>
             <section className="archive-masthead" aria-labelledby="archive-title">
               <div className="archive-masthead-row">
-                <div><h1 id="archive-title" className="archive-main-title">e</h1><p className="archive-subtitle">lo que <span className="e-green">e</span>scucho</p></div>
+                <div className="masthead-editorial"><MastheadCollage stats={stats} insights={insights} /><div ref={masthead} className="masthead-lettering"><h1 id="archive-title" className="archive-main-title">e</h1><p className="archive-subtitle">{translate("lo que escucho")}</p></div></div>
                 <img className="archive-masthead-photo" src="/img/diego.jpg" width={720} height={621}
-                  alt="diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo" />
+                  alt={translate("diego maradona sentado en el piso con auriculares, rodeado de discos de vinilo")} />
               </div>
             </section>
             {live ? <NowPlayingHero data={live} /> : fallbackTrack && <NowPlayingHero data={fallbackTrack} fallback />}
-            {!loaded && <p role="status" className="py-24 text-sm text-muted">cargando…</p>}
+            {!loaded && <Loading />}
             {loaded && !stats && (
               <section className="archive-empty">
-                <h2>todavía no hay datos publicados.</h2>
+                <h2>{translate("todavía no hay datos publicados.")}</h2>
               </section>
             )}
             {stats && <Home stats={stats} insights={insights} recent={recent} explore={explore} />}
@@ -86,25 +115,27 @@ export function App() {
           </>
         )}
         {route.page !== "home" && (
-          <button type="button" className="back-home" onClick={() => { navigate("/"); restoreHome(); }}>← volver al inicio</button>
+          <button type="button" className="back-home" onClick={() => { navigate("/"); restoreHome(); }}>{translate("← volver al inicio")}</button>
         )}
         {route.page === "artists" && <Artists insights={insights} />}
+        {route.page === "songs" && <Songs stats={stats} />}
+        {route.page === "albums" && <AlbumsPage stats={stats} />}
+        {route.page === "album" && <Album album={stats?.top_albums?.find((album) => album.key === route.key)} insights={insights} />}
         {route.page === "artist" && <Artist slug={route.slug} insights={insights} />}
       </main>
 
       <footer className="archive-footer">
-        <div className="footer-project">
-          {stats && <span>actualizado {shortDate(stats.data_as_of ?? stats.generated_at)}</span>}
-        </div>
-        <nav className="footer-links" aria-label="enlaces del proyecto">
-          <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer">código en github ↗</a>
-          <span className="footer-sources"><Sources /></span>
+        <nav aria-label={translate("catálogo musical")} className="footer-catalog">
+          <Link href="/artistas">{translate("artistas")}</Link><Link href="/discos">{translate("discos")}</Link><Link href="/canciones">{translate("canciones")}</Link>
         </nav>
-        <a href="https://eduramirez.dev" className="archive-portfolio">
-          <span>otros proyectos</span>
-          <strong>eduramirez.dev ↗</strong>
-        </a>
-        <Link href="/#ultimamente" className="footer-return">ver qué escucho</Link>
+        <div className="footer-project">
+          {stats && <span>{translate("actualizado ")}{shortDate(stats.data_as_of ?? stats.generated_at)}</span>}
+          <a href="https://github.com/deadour/lastfm-data-platform" target="_blank" rel="noreferrer" className="footer-github" aria-label={translate("código en github")}>
+            <img src="/icons/github.svg" width={22} height={22} alt="" />
+          </a>
+        </div>
+        <button type="button" className="footer-return" onClick={() => { navigate("/"); requestAnimationFrame(() => document.getElementById("ultimamente")?.scrollIntoView({ behavior: "smooth" })); }}>{translate(" ↑ ver qué escucho ")}</button>
+        <a href="https://eduramirez.dev" className="archive-portfolio"><strong>eduramirez.dev ↗</strong></a>
       </footer>
     </div></PreviewProvider>
   );

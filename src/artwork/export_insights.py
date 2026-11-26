@@ -216,7 +216,7 @@ def artist_page(name: str, group: pd.DataFrame, rank: int, total: int, lookup, m
 def build_insights(silver_path: Path, catalog: pd.DataFrame, partial_years: set[int],
                    timezone_config: Path = Path("config/timezone_periods.json"),
                    analytics_config: Path = Path("config/analytics.json"),
-                   artist_pages: int = 60, photos=None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+                   artist_pages: int = 300, photos=None, extra_artists: set[str] | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     photos = photos or (lambda name: None)
     events = load_events(silver_path, timezone_config)
     tracked_from = pd.Timestamp(json.loads(analytics_config.read_text(encoding="utf-8"))["consistent_tracking_from"], tz="UTC")
@@ -229,7 +229,10 @@ def build_insights(silver_path: Path, catalog: pd.DataFrame, partial_years: set[
     pages, index = {}, []
     by_artist = dict(tuple(events.groupby("artist_name", sort=False)))
     used: set[str] = set()
-    for rank, (name, plays) in enumerate(ranking.head(artist_pages).items(), start=1):
+    selected = set(ranking.head(artist_pages).index) | (extra_artists or set())
+    for rank, (name, plays) in enumerate(ranking.items(), start=1):
+        if name not in selected:
+            continue
         page = artist_page(name, by_artist[name], rank, total, lookup, months, photos(name))
         while page["slug"] in used:
             page["slug"] = f"{page['slug']}-{rank}"

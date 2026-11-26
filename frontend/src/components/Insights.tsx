@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import { useState } from "react";
 import type { ArtistLink, InsightsFile, YearInsight } from "../data/types";
 import { days, longDate, monthYear, n, pct } from "../utils/format";
@@ -9,9 +10,9 @@ import { PreviewButton } from "./PreviewPlayer";
 function Reading({ first }: { first: InsightsFile["first_ever"] }) {
   return (
     <article className="reading-card">
-      <div className="reading-card-top"><span>el primer registro</span></div>
+      <div className="reading-card-top"><span>{translate("el primer registro")}</span></div>
       <div className="reading-record">
-        <Cover seed={first.album ?? first.title} image={first.cover?.url} label={`portada de ${first.album ?? first.title}`} compact />
+        <Cover seed={first.album ?? first.title} image={first.cover?.url} label={translate(`portada de ${first.album ?? first.title}`)} album={first.album ? { artist: first.artist, title: first.album } : undefined} compact />
         <div><strong>{first.title}</strong><p>{first.artist} · {longDate(first.date)}</p><PreviewButton artist={first.artist} title={first.title} /></div>
       </div>
     </article>
@@ -27,11 +28,11 @@ export function Readings({ data }: { data: InsightsFile }) {
       </div>
       <div className="reading-hours">
         <div className="reading-hours-header">
-          <span>mi horario</span>
+          <span>{translate("mi horario")}</span>
           <strong>{String(habits.peak_hour).padStart(2, "0")}:00</strong>
         </div>
-        <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label="distribución histórica según la hora local" />
-        <p>por hora · todo el historial</p>
+        <HourBars values={habits.hours.map((h) => Math.round(h * 10000))} label={translate("distribución histórica según la hora local")} />
+        <p>{translate("por hora · todo el historial")}</p>
       </div>
     </div>
   );
@@ -44,35 +45,35 @@ function YearRow({ year, linkFor }: { year: YearInsight; linkFor: (artist: strin
       <div>
         <span className="font-serif text-4xl text-ink">{year.year}</span>
         <span className="tabular mt-2 block text-sm text-muted"><span className="count-value">{n(year.scrobbles)}<small className="count-unit">e</small></span></span>
-        {year.partial && <span className="mt-1 block text-xs text-muted/70">año incompleto</span>}
+        {year.partial && <span className="mt-1 block text-xs text-muted/70">{translate("año incompleto")}</span>}
       </div>
       <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-xs text-muted">artista del año</dt>
+          <dt className="text-xs text-muted">{translate("artista del año")}</dt>
           <dd className="music-name mt-1 text-lg text-ink">
             {top ? <Link href={top} className="hover:underline hover:decoration-white/30 hover:underline-offset-4">{year.top_artist}</Link> : year.top_artist}
           </dd>
-          <dd className="text-muted">{pct(year.top_artist_share)} del total</dd>
+          <dd className="text-muted">{pct(year.top_artist_share)}{translate(" del total")}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">canción del año</dt>
+          <dt className="text-xs text-muted">{translate("canción del año")}</dt>
           <dd className="mt-1 text-ink">{year.top_track.title}</dd>
-          <dd className="text-muted">de {year.top_track.artist}, {n(year.top_track.plays)} veces</dd>
+          <dd className="text-muted">{translate("de ")}{year.top_track.artist}, {n(year.top_track.plays)}{translate(" veces")}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">descubrimiento</dt>
+          <dt className="text-xs text-muted">{translate("descubrimiento")}</dt>
           <dd className="mt-1 text-ink">{year.discovery?.artist ?? "—"}</dd>
-          <dd className="text-muted">entre {n(year.new_artists)} artistas nuevos</dd>
+          <dd className="text-muted">{translate("entre ")}{n(year.new_artists)}{translate(" artistas nuevos")}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">disco del año</dt>
+          <dt className="text-xs text-muted">{translate("disco del año")}</dt>
           <dd className="mt-1 text-ink">{year.top_album?.title ?? "—"}</dd>
-          {year.top_album && <dd className="text-muted">de {year.top_album.artist}</dd>}
+          {year.top_album && <dd className="text-muted">{translate("de ")}{year.top_album.artist}</dd>}
         </div>
       </dl>
       {year.top_album ? (
         <div className="group hidden md:block">
-          <Cover seed={year.top_album.title} image={year.top_album.cover?.url} label={`portada de ${year.top_album.title}`} compact />
+          <Cover seed={year.top_album.title} image={year.top_album.cover?.url} label={translate(`portada de ${year.top_album.title}`)} album={{ artist: year.top_album.artist, title: year.top_album.title }} compact />
         </div>
       ) : <div className="hidden md:block" />}
     </li>
@@ -88,7 +89,7 @@ export function YearStory({ years, linkFor }: { years: YearInsight[]; linkFor: (
 
   return (
     <div className="year-explorer">
-      <div className="year-selector" role="group" aria-label="elegir año">
+      <div className="year-selector" role="group" aria-label={translate("elegir año")}>
         {ordered.map((year) => (
           <button
             key={year.year}
@@ -113,9 +114,9 @@ export function Movements({ data, linkFor }: { data: InsightsFile; linkFor: (art
     return href ? <Link href={href} className="hover:underline hover:underline-offset-4">{artist}</Link> : artist;
   };
   const columns = [
-    { title: "volvieron · desde 2020", rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: "lo volví a escuchar en " + monthYear(c.returned) + ", después de " + days(c.gap_days) })) },
-    { title: "fueron una época", rows: data.phases.map((p) => ({ key: p.artist, name: p.artist, detail: pct(p.share) + " de sus registros fueron en " + p.year })) },
-    { title: "siempre ahí", rows: data.constants.map((c) => ({ key: c.artist, name: c.artist, detail: c.years + " años en mis registros · " + n(c.plays) + "e" })) },
+    { title: translate("volvieron"), rows: data.comebacks.map((c) => ({ key: c.artist, name: c.artist, detail: translate("lo volví a escuchar en ") + monthYear(c.returned) + translate(", después de ") + days(c.gap_days) })) },
+    { title: translate("fueron una época"), rows: data.phases.map((p) => ({ key: p.artist, name: p.artist, detail: pct(p.share) + translate(" de sus registros fueron en ") + p.year })) },
+    { title: translate("siempre ahí"), rows: data.constants.map((c) => ({ key: c.artist, name: c.artist, detail: c.years + translate(" años en mis registros · ") + n(c.plays) + "e" })) },
   ].filter((c) => c.rows.length);
 
   return (
@@ -130,7 +131,7 @@ export function Movements({ data, linkFor }: { data: InsightsFile; linkFor: (art
           </ol>
           {column.rows.length > 3 && (
             <details className="movement-more">
-              <summary>ver {column.rows.length - 3} más ＋</summary>
+              <summary>{translate("ver ")}{column.rows.length - 3}{translate(" más ＋")}</summary>
               <ol className="movement-list">
                 {column.rows.slice(3).map((row) => (
                   <li key={row.key}><span>{name(row.name)}</span><small>{row.detail}</small></li>

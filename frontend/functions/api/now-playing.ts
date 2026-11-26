@@ -87,15 +87,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
   let response: Response;
   try {
     const upstream = await fetch(url, { signal: AbortSignal.timeout(4000), headers: { "user-agent": "fm.eduramirez.dev" } });
-    if (!upstream.ok) {
+    const body = await upstream.json() as { error?: unknown };
+    if (!upstream.ok || typeof body?.error === "number") {
       // last.fm explains failures with a numeric code (10 bad key, 6 unknown user, 29 rate limit).
       // only that number is kept: the url and message can carry the key.
-      const body = (await upstream.json().catch(() => null)) as { error?: unknown } | null;
       const code = typeof body?.error === "number" ? body.error : null;
       response = json({ playing: false, track: null, played_at: null, source: "lastfm", error: "unavailable",
         upstream_status: upstream.status, lastfm_error: code }, 503, ERROR_TTL_SECONDS);
     } else {
-      response = json(shape(await upstream.json()), 200, TTL_SECONDS);
+      response = json(shape(body), 200, TTL_SECONDS);
     }
   } catch {
     // never echo the upstream url or error: it contains the api key.

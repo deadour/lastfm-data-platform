@@ -18,7 +18,7 @@ import pyarrow.parquet as pq
 from src.artwork import artist_photos, enrich
 from src.artwork.clients import Deezer
 from src.artwork.export_frontend import build, write
-from src.artwork.export_explore import build_explore
+from src.artwork.export_explore import build_explore, gold_extras
 from src.artwork.export_insights import build_insights, load_events, top_artist_names, write_all
 from src.artwork.export_recent import build_recent
 from src.artwork.release_years import release_years
@@ -148,16 +148,33 @@ def run_export(storage, work: Path, out: Path, *, artwork_limit: int = 100,
     genres = cloud_genres.Genres(genre_catalog, taxonomy_path=root / "config/tag_taxonomy.json")
 
     catalog = enrich.read_catalog(catalog_dir)
+    recent = build_recent(silver_path, catalog, gold_meta.get("generated_at"), now=now)
+    recent_albums = {album["key"] for period in recent["periods"].values() for album in period["top_albums"]}
     # release years for the top albums: ~20 lookups, only for resolved covers
     if True:  # noqa: SIM108
         top_keys = enrich.albums_from_silver(pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid"]))["album_key"].head(top)
         ua = json.loads((root / "config/enrichment.json").read_text(encoding="utf-8"))["musicbrainz_user_agent"]
-        years = (release_years_fn or (lambda c, k: release_years(c, k, ua)))(catalog, list(top_keys))
-    document = build(gold, silver_path, catalog, top, years)
-    insights, pages = build_insights(silver_path, catalog, {y["year"] for y in document["years"] if y["partial"]},
-                                     photos=lambda name: artist_photos.photo(photos, name))
-    recent = build_recent(silver_path, catalog, document["data_as_of"], now=now)
+        years = (release_years_fn or (lambda c, k: release_years(c, k, ua)))(catalog, list(dict.fromkeys([*top_keys, *sorted(recent_albums)])))
+    document = build(gold, silver_path, catalog, top, years, extra_album_keys=recent_albums)
+    for period in recent["periods"].values():
+        for album in period["top_albums"]:
+            album["year"] = years.get(album["key"])
     explore = build_explore(load_events(silver_path, root / "config/timezone_periods.json"), genres)
+    extra_artists = {artist["name"] for period in recent["periods"].values() for artist in period["top_artists"]}
+    extra_artists.update(artist["artist"] for period in recent["periods"].values() for artist in period["top_albums"])
+    extra_artists.update(track["artist"] for period in recent["periods"].values() for track in period["top_tracks"])
+    extra_artists.update(artist["name"] for year in explore["year_ranks"] for artist in year["top_artists"])
+    insights, pages = build_insights(silver_path, catalog, {y["year"] for y in document["years"] if y["partial"]},
+                                     photos=lambda name: artist_photos.photo(photos, name), extra_artists=extra_artists)
+    explore["gold"] = gold_extras(gold)
+    # photos for the odd ones out too, not only my top 60
+    odd = [x["name"] for x in explore["rarities"]["off_genre"] + explore["rarities"]["one_day"]]
+    if refresh_artwork and odd:
+        found = storage.read_bytes(artist_photos.CATALOG_BLOB)
+        if artist_photos.refresh(photos, odd, deezer or Deezer(json.loads((root / "config/enrichment.json").read_text(encoding="utf-8"))["musicbrainz_user_agent"])):
+            storage.write_bytes_conditional(artist_photos.CATALOG_BLOB, artist_photos.dump(photos), etag=found[1] if found else None)
+    for x in explore["rarities"]["off_genre"] + explore["rarities"]["one_day"]:
+        x["photo"] = artist_photos.photo(photos, x["name"])
     write(document, out)
     write_all(insights, pages, out.parent)
     write(recent, out.parent / "recent.json")

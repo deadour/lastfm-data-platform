@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import { Link } from "../utils/router";
 
 interface Item { name: string; href: string | null }
@@ -16,7 +17,7 @@ export function Marquee({ items }: { items: Item[] }) {
     </span>
   ));
   return (
-    <div className="marquee border-b border-line py-5" aria-label="los artistas que más escuché">
+    <div className="marquee border-b border-line py-5" aria-label={translate("los artistas que más escuché")}>
       <div className="marquee-track">{row(0)}{row(1)}</div>
     </div>
   );

@@ -7,6 +7,12 @@ const fixture = () => ({ schema_version: 1, generated_at: "2026-11-25T12:00:00Z"
   rarities: { one_day: [], off_genre: [] }, genres: null });
 
 describe("exploration contract", () => {
+  it("accepts weekday song queues and rejects duplicate weekdays or invalid play counts", () => {
+    const weekdays = Array.from({ length: 7 }, (_, weekday) => ({ weekday, tracks: [{ artist: "a", title: "t", plays: 2 }] }));
+    expect(isExploreFile({ ...fixture(), weekday_tracks: weekdays })).toBe(true);
+    expect(isExploreFile({ ...fixture(), weekday_tracks: weekdays.map((row) => ({ ...row, weekday: 0 })) })).toBe(false);
+    expect(isExploreFile({ ...fixture(), weekday_tracks: weekdays.map((row) => ({ ...row, tracks: [{ artist: "a", title: "t", plays: -1 }] })) })).toBe(false);
+  });
   it("accepts the export shape without genre coverage", () => expect(isExploreFile(fixture())).toBe(true));
   it.each([
     { calendar: { start: "2026-11-25", end: "2026-11-25", counts: [], max: 0 } },

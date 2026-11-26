@@ -22,6 +22,26 @@ npm test           # vitest: loader, formatting, now-playing function
 npm run build      # typecheck + production build into dist/
 ```
 
+Vite forwards `/api/*` to the existing `https://fm.eduramirez.dev` Pages
+Functions. Live listening and preview lookups therefore work locally without
+copying production secrets. An upstream Last.fm outage still makes live
+listening unavailable; the page then shows the labelled last archived scrobble.
+
+The export prepares 300 artist pages, 500 albums and 100 songs. The footer links
+to `/artistas`, `/discos` and `/canciones`; album results load in groups of 60.
+These catalogs regenerate with every successful automated frontend export.
+
+The interface defaults to Spanish. The lowercase `es / en` switch changes copy,
+dates and number formats; `?lang=en` opens the English version and survives
+internal navigation. Track and artist names remain unchanged.
+
+The player appears after the first playback request, then stays visible across
+routes. Shuffle and automatic advance start enabled, within the selected album,
+artist or catalog. Album links open a page with listening counts, songs and years.
+The masthead collage uses existing catalog photos and covers, moves in two
+opposite strips and loads a new image offscreen as each card leaves. It keeps
+16 cards mounted. Reduced motion halves the speed and stops decorative floating.
+
 Without valid Gold `public/data/stats.json`, the site shows its editorial
 unpublished state. Production never substitutes fictional artists or now-playing
 data. `src/data/mock.ts` is a test fixture, not imported by the application.

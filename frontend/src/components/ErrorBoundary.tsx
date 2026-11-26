@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import { Component, type ReactNode } from "react";
 
 interface State {
@@ -21,7 +22,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     return (
       <div className="mx-auto max-w-xl px-5 pt-[20vh]">
         <h1 className="mb-3 font-serif text-4xl text-ink">fm</h1>
-        <p className="text-sm text-muted">algo falló al mostrar la página. probá recargar en un rato.</p>
+        <p className="text-sm text-muted">{translate("algo falló al mostrar la página. probá recargar en un rato.")}</p>
       </div>
     );
   }

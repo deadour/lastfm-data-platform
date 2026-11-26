@@ -166,6 +166,16 @@ def year_tops(events: pd.DataFrame, genres=None) -> dict[int, dict[str, Any]]:
     return out
 
 
+def weekday_tracks(events: pd.DataFrame, limit: int = 100) -> list[dict[str, Any]]:
+    """Most played tracks for each historical local weekday; Monday is zero."""
+    counts = (events.groupby(["local_weekday", "artist_name", "track_name"]).size().rename("plays").reset_index()
+              .sort_values(["plays", "artist_name", "track_name"], ascending=[False, True, True], kind="stable"))
+    return [{"weekday": day, "tracks": [
+        {"artist": row.artist_name, "title": row.track_name, "plays": int(row.plays)}
+        for row in counts[counts.local_weekday == day].head(limit).itertuples()
+    ]} for day in range(7)]
+
+
 def build_explore(events: pd.DataFrame, genres=None) -> dict[str, Any]:
     """explore.json v1: deeper reads kept out of insights.json v1 on purpose."""
     from datetime import datetime, timezone
@@ -173,7 +183,45 @@ def build_explore(events: pd.DataFrame, genres=None) -> dict[str, Any]:
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "calendar": calendar(events),
+        "weekday_tracks": weekday_tracks(events),
         "year_ranks": [{"year": y, **extra} for y, extra in sorted(year_tops(events, genres).items())],
         "rarities": rarities(events, genres),
         "genres": genres_overview(events, genres) if genres is not None else None,
+    }
+
+
+def gold_extras(gold_root) -> dict[str, Any]:
+    """Reads straight from the committed gold marts (no recomputation)."""
+    from pathlib import Path
+    root = Path(gold_root)
+    artists = pd.read_parquet(root / "artist_stats/artist_stats.parquet")
+    tracks = pd.read_parquet(root / "track_stats/track_stats.parquet")
+    streaks = pd.read_parquet(root / "listening_patterns/streaks.parquet")
+    monthly = pd.read_parquet(root / "listening_monthly/listening_monthly.parquet")
+    daily = pd.read_parquet(root / "listening_daily/listening_daily.parquet", columns=["date", "scrobble_count"])
+
+    per_artist = artists.groupby("artist_name").agg(
+        plays=("total_scrobbles", "first"), days=("active_days", "sum"), years=("active_years", "first"),
+        top10=("years_in_top_10", "first"), first=("first_seen", "first"), last=("last_seen", "first")).reset_index()
+    per_artist["span"] = (pd.to_datetime(per_artist["last"], utc=True) - pd.to_datetime(per_artist["first"], utc=True)).dt.days
+    loyal = per_artist.sort_values(["top10", "plays"], ascending=[False, False]).head(10)
+    most_days = per_artist.sort_values(["days", "plays"], ascending=[False, False]).head(10)
+    tr = tracks.sort_values(["active_days", "total_scrobbles"], ascending=[False, False]).head(10)
+    st = streaks.sort_values(["days", "start_date"], ascending=[False, True]).head(5)
+    m = monthly.sort_values("scrobble_count", ascending=False).iloc[0]
+    d = daily[daily["scrobble_count"] > 0]
+    mean = lambda x: _r(x.mean(), 1) if len(x) else None  # noqa: E731
+    weekday = pd.to_datetime(d["date"]).dt.weekday
+    return {
+        "loyal": [{"name": r.artist_name, "years_in_top_10": int(r.top10), "plays": int(r.plays)} for r in loyal.itertuples()],
+        "most_days": [{"name": r.artist_name, "days": int(r.days), "plays": int(r.plays)} for r in most_days.itertuples()],
+        "evergreen_tracks": [{"title": r.track_name, "artist": r.artist_name, "days": int(r.active_days),
+                              "years": int(r.active_years), "plays": int(r.total_scrobbles)} for r in tr.itertuples()],
+        "streaks": [{"days": int(r.days), "start": _day(r.start_date), "end": _day(r.end_date)} for r in st.itertuples()],
+        "best_month": {"month": str(m.year_month), "plays": int(m.scrobble_count)},
+        "avg_per_active_day": mean(d["scrobble_count"]),
+        "weekend_vs_weekday": {"weekend": mean(d[weekday >= 5]["scrobble_count"]),
+                               "weekday": mean(d[weekday < 5]["scrobble_count"])},
+        "artists_total": int(per_artist.shape[0]),
+        "one_play_artists": int((per_artist["plays"] == 1).sum()),
     }

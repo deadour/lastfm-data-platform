@@ -62,7 +62,7 @@ def period(events: pd.DataFrame, start: date, end_exclusive: date, complete: boo
         "unique_tracks": int(window[["artist_name", "track_name"]].drop_duplicates().shape[0]),
         "unique_albums": int(albums[["artist_name", "album_name"]].drop_duplicates().shape[0]),
         "top_artists": [{"name": a, "scrobbles": c} for a, c in _ranked(window.groupby("artist_name").size())] if len(window) else [],
-        "top_albums": [{"artist": a, "title": t, "scrobbles": c, "cover": lookup(a, t)}
+        "top_albums": [{"key": album_key(a, t), "artist": a, "title": t, "scrobbles": c, "cover": lookup(a, t)}
                        for (a, t), c in _ranked(albums.groupby(["artist_name", "album_name"]).size())] if len(albums) else [],
         "top_tracks": [{"artist": a, "title": t, "scrobbles": c}
                        for (a, t), c in _ranked(window.groupby(["artist_name", "track_name"]).size())] if len(window) else [],

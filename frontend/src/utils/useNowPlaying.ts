@@ -16,9 +16,12 @@ export function useNowPlaying(): NowPlaying | null {
       controller = new AbortController();
       try {
         const response = await fetch("/api/now-playing", { signal: controller.signal });
-        if (response.ok) setState((await response.json()) as NowPlaying);
+        if (!response.ok) { setState(null); return; }
+        const body = await response.json() as NowPlaying;
+        setState(body.source === "lastfm" && typeof body.playing === "boolean" ? body : null);
       } catch {
-        // keep the last value; the next tick retries
+        // Let the archive fallback take over; don't leave an old song "playing".
+        if (!controller?.signal.aborted) setState(null);
       }
     };
 

@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import { useEffect, useState } from "react";
 import { AzureIcon, CloudflareIcon, GithubActionsIcon, LastfmIcon, MedalIcon, SpotifyIcon, YoutubeIcon } from "./Icons";
 
@@ -83,7 +84,7 @@ export function Pipeline() {
   const reduced = useReducedMotion();
   return (
     <svg viewBox="0 0 1135 375" className="pipeline w-full min-w-[780px]" role="img"
-      aria-label="spotify y youtube registran en last.fm; last.fm alimenta bronze, silver y gold en un data lake privado; de gold sale un json público que publica esta web. aparte, una función consulta last.fm para mostrar qué suena ahora.">
+      aria-label={translate("spotify y youtube registran en last.fm; last.fm alimenta bronze, silver y gold en un data lake privado; de gold sale un json público que publica esta web. aparte, una función consulta last.fm para mostrar qué suena ahora.")}>
       <defs>
         <marker id="pipe-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
           <path d="M0,0 L8,4 L0,8" fill="none" stroke="currentColor" className="text-white/45" />
@@ -94,10 +95,10 @@ export function Pipeline() {
         </radialGradient>
       </defs>
 
-      <rect x="385" y="66" width="580" height="132" rx="4" fill="none" stroke="currentColor" strokeDasharray="3 6" className="text-white/18" />
+      <rect x="385" y="66" width="580" height="132" rx="8" fill="#073b65" fillOpacity="0.65" stroke="#38a8ed" strokeOpacity="0.65" />
       <g transform="translate(400, 74)"><AzureIcon size={16} /></g>
-      <text x="422" y="88" fontSize="12" className="fill-current text-muted">azure data lake · privado</text>
-      <text x="20" y="34" fontSize="12" className="fill-current text-muted">github actions · todos los días a las 00:17</text>
+      <text x="422" y="88" fontSize="12" fill="#9ad7ff">{translate("azure · lago de datos privado")}</text>
+      <text x="20" y="34" fontSize="12" className="fill-current text-muted">{translate("github actions · 00:17 · recuperación 02:47 · hora argentina")}</text>
       <line x1="20" y1="44" x2="1115" y2="44" stroke="currentColor" className="text-white/10" />
 
       {edges.map(([a, b], i) => {
@@ -132,8 +133,8 @@ export function Pipeline() {
                 <icon.Icon size={20} />
               </g>
             )}
-            <text x={textX} y={n.sub ? n.y + 28 : n.y + h / 2 + 6} textAnchor={anchor} fontSize="17" fontFamily="var(--font-serif)" className="fill-current text-ink">{n.label}</text>
-            {n.sub && <text x={textX} y={n.y + 47} textAnchor={anchor} fontSize="11.5" className="fill-current text-muted">{n.sub}</text>}
+            <text x={textX} y={n.sub ? n.y + 28 : n.y + h / 2 + 6} textAnchor={anchor} fontSize={icon && n.label.length > 9 ? 14 : 17} textLength={icon && n.label.length > 9 ? W - 50 : undefined} lengthAdjust="spacingAndGlyphs" fontFamily="var(--font-serif)" className="fill-current text-ink">{translate(n.label)}</text>
+            {n.sub && <text x={textX} y={n.y + 47} textAnchor={anchor} fontSize="11.5" className="fill-current text-muted">{translate(n.sub)}</text>}
           </g>
         );
       })}
@@ -169,8 +170,8 @@ export function DailyRun() {
           <li key={title} className="relative pl-6 md:pl-0 md:pt-7">
             <span aria-hidden className={`absolute left-0 top-1 h-[11px] w-[11px] rounded-full border transition-colors duration-500 md:top-0 ${i === active && !reduced ? "border-[#e7b48c] bg-[#e7b48c]" : on ? "border-white/60 bg-white/60" : "border-white/25 bg-[#0e0d0c]"}`} />
             <span className="tabular block text-xs text-muted">{time}</span>
-            <span className={`mt-1 block text-sm transition-colors duration-500 ${on ? "text-ink" : "text-muted"}`}>{title}</span>
-            <span className="mt-1 block text-xs leading-relaxed text-muted">{text}</span>
+            <span className={`mt-1 block text-sm transition-colors duration-500 ${on ? "text-ink" : "text-muted"}`}>{translate(title)}</span>
+            <span className="mt-1 block text-xs leading-relaxed text-muted">{translate(text)}</span>
           </li>
         );
       })}

@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import { n } from "../utils/format";
 
 // medallion architecture as three tiers: raw records settle into bronze, get
@@ -20,13 +21,14 @@ const tiers = [
 
 export function Medallion({ scrobbles, artists, years, fluid = false }: Props) {
   const counts: Record<string, string> = {
-    bronze: scrobbles ? `${scrobbles} registros en lastfm` : "registros en lastfm",
-    silver: scrobbles ? `${n(scrobbles)} filas` : "parquet",
-    gold: artists && years ? `${n(artists)} artistas · ${years} años` : "agregados",
+    bronze: scrobbles ? translate(`${scrobbles} registros en lastfm`) : translate("registros en lastfm"),
+    silver: scrobbles ? `${n(scrobbles)} ${translate("filas")}` : "parquet",
+    gold: artists && years ? translate(`${n(artists)} artistas · ${years} años`) : translate("agregados"),
   };
   return (
     <svg viewBox="0 0 760 340" className={`w-full ${fluid ? "" : "min-w-[560px]"}`} role="img"
-      aria-label="arquitectura medallion: bronze guarda los registros originales, silver los limpia, gold genera las estadísticas">
+      aria-label={translate("arquitectura medallion: bronze guarda los registros originales, silver los limpia, gold genera las estadísticas")}>
+      <rect x="20" y="4" width="720" height="330" rx="10" fill="#073b65" fillOpacity="0.4" stroke="#38a8ed" strokeOpacity="0.25" />
       {tiers.map((t, i) => {
         // a pyramid: gold is the narrowest tier, less data and more meaning
         const width = 420 - (2 - i) * 84;
@@ -36,9 +38,9 @@ export function Medallion({ scrobbles, artists, years, fluid = false }: Props) {
             <rect x={left} y={t.y} width={width} height="76" rx="4" fill={t.color} fillOpacity="0.1" stroke={t.color} strokeOpacity="0.65" />
             <circle cx={left + 26} cy={t.y + 38} r="9" fill={t.color} fillOpacity="0.85" />
             <text x={left + 46} y={t.y + 34} fontSize="20" fontFamily="var(--font-serif)" fontWeight="700" fill={t.color}>{t.title}</text>
-            <text x={left + 46} y={t.y + 56} fontSize="12.5" className="fill-current text-ink/80">{t.what}</text>
+            <text x={left + 46} y={t.y + 56} fontSize="12.5" className="fill-current text-ink/80">{translate(t.what)}</text>
             <text x={500} y={t.y + 34} fontSize="12.5" className="fill-current text-ink">{counts[t.key]}</text>
-            <text x={500} y={t.y + 54} fontSize="11.5" className="fill-current text-muted">{t.detail}</text>
+            <text x={500} y={t.y + 54} fontSize="11.5" className="fill-current text-muted">{translate(t.detail)}</text>
             <line x1={left + width + 8} y1={t.y + 38} x2="488" y2={t.y + 38} stroke="currentColor" strokeDasharray="2 4" className="text-white/20" />
           </g>
         );

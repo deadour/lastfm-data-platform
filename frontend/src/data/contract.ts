@@ -46,9 +46,13 @@ export function isStatsFile(value: unknown): value is StatsFile {
       !list(value.months, (r) => object(r) && keys(r, ["month", "scrobbles"]) && text(r.month) && /^\d{4}-(0[1-9]|1[0-2])$/.test(r.month) && count(r.scrobbles)) ||
       !list(value.top_artists, (r) => object(r) && keys(r, ["name", "scrobbles", "image"]) && text(r.name) && count(r.scrobbles) && image(r.image)) ||
       !list(value.top_tracks, (r) => object(r) && keys(r, ["title", "artist", "scrobbles", "image"]) && text(r.title) && text(r.artist) && count(r.scrobbles) && image(r.image)) ||
-      (value.top_albums !== undefined && !list(value.top_albums, (r) => object(r) && keys(r, ["key", "title", "artist", "year", "scrobbles", "image", "cover"]) &&
+      (value.top_albums !== undefined && !list(value.top_albums, (r) => object(r) && keys(r, ["key", "title", "artist", "year", "scrobbles", "image", "cover", "details"]) &&
         (r.year === undefined || r.year === null || count(r.year)) &&
-        text(r.key) && text(r.title) && text(r.artist) && count(r.scrobbles) && image(r.image) && cover(r.cover)))) return false;
+        text(r.key) && text(r.title) && text(r.artist) && count(r.scrobbles) && image(r.image) && cover(r.cover) &&
+        (r.details === undefined || r.details === null || (object(r.details) && keys(r.details, ["first", "last", "unique_tracks", "tracks", "years"]) &&
+          date(r.details.first) && date(r.details.last) && count(r.details.unique_tracks) &&
+          list(r.details.tracks, (track) => object(track) && keys(track, ["title", "scrobbles"]) && text(track.title) && count(track.scrobbles)) &&
+          list(r.details.years, (year) => object(year) && keys(year, ["year", "scrobbles"]) && count(year.year) && count(year.scrobbles))))))) return false;
   if (!Array.isArray(value.rhythm) || value.rhythm.length !== 168) return false;
   const cells = new Set<string>();
   for (const r of value.rhythm) {

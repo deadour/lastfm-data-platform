@@ -10,7 +10,7 @@ export interface RecentCover {
 }
 
 export interface RecentArtist { name: string; scrobbles: number }
-export interface RecentAlbum { artist: string; title: string; scrobbles: number; cover: RecentCover | null }
+export interface RecentAlbum { key?: string; year?: number | null; artist: string; title: string; scrobbles: number; cover: RecentCover | null }
 export interface RecentTrack { artist: string; title: string; scrobbles: number }
 
 export interface Period {
@@ -84,7 +84,9 @@ function isPeriod(v: unknown): v is Period {
     Array.isArray(v.top_artists) && v.top_artists.length <= 5 &&
     v.top_artists.every((a) => object(a) && real(a.name) && count(a.scrobbles)) &&
     Array.isArray(v.top_albums) && v.top_albums.length <= 5 &&
-    v.top_albums.every((a) => object(a) && real(a.artist) && real(a.title) && count(a.scrobbles) && cover(a.cover)) &&
+    v.top_albums.every((a) => object(a) && real(a.artist) && real(a.title) && count(a.scrobbles) && cover(a.cover) &&
+      (a.key === undefined || (typeof a.key === "string" && /^[a-f0-9]{24}$/.test(a.key))) &&
+      (a.year === undefined || a.year === null || count(a.year))) &&
     Array.isArray(v.top_tracks) && v.top_tracks.length <= 5 &&
     v.top_tracks.every((t) => object(t) && real(t.artist) && real(t.title) && count(t.scrobbles));
 }

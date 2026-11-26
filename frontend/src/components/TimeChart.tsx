@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import { Count } from "./Count";
 import { useEffect, useId, useRef, useState } from "react";
 import { n } from "../utils/format";
@@ -82,18 +83,18 @@ export function TimeChart({ points, kind, label, height = 190, onPick }: Props) 
       <div className="time-chart-readout" aria-live="polite">
         {shown ? (
           <>
-            <strong>{shown.value === null ? "sin registro" : <Count value={shown.value} />}</strong>
-            <span>{shown.title}{!shown.complete && shown.value !== null ? " · en curso" : ""}</span>
-            {shown.track && <span className="time-chart-track">▶ {shown.track.title} · {shown.track.artist}</span>}
+            <strong>{shown.value === null ? translate("sin registro") : <Count value={shown.value} />}</strong>
+            <span>{shown.title}{!shown.complete && shown.value !== null ? translate(" · en curso") : ""}</span>
+            {shown.track && <span className="time-chart-track">▶ {shown.track.title ? `${shown.track.title} · ${shown.track.artist}` : `algo de ${shown.track.artist}`}</span>}
           </>
         ) : (
-          <span>{onPick ? "tocá una barra o un punto y suena lo que más escuché ahí" : "tocá o pasá por encima para ver cada valor"}</span>
+          <span>{onPick ? translate("tocá una barra o un punto y suena lo que más escuché ahí") : translate("tocá o pasá por encima para ver cada valor")}</span>
         )}
       </div>
       <svg viewBox={`0 0 ${W} ${height}`} className="h-auto w-full" role="img" aria-labelledby={`${id}-desc`}
         onMouseLeave={() => setActive(null)}>
         <desc id={`${id}-desc`}>
-          {label}: {points.map((p) => `${p.title} ${p.value === null ? "sin registro" : n(p.value)}`).join(", ")}
+          {label}: {points.map((p) => `${p.title} ${p.value === null ? translate("sin registro") : n(p.value)}`).join(", ")}
         </desc>
         {ticks.map((t) => (
           <g key={t}>
@@ -127,7 +128,7 @@ export function TimeChart({ points, kind, label, height = 190, onPick }: Props) 
         {points.map((p, i) => (
           <rect key={`h-${p.key}`} x={kind === "bars" ? barX(i) : x(i) - slot / 2} y={PAD.top} width={slot} height={innerH + PAD.bottom}
             fill="transparent" tabIndex={0} role="button"
-            aria-label={`${p.title}: ${p.value === null ? "sin registro" : n(p.value) + " e"}`}
+            aria-label={`${p.title}: ${p.value === null ? translate("sin registro") : n(p.value) + " e"}`}
             onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)}
             onClick={() => { setActive(i); if (p.track && onPick) onPick(p); }}
             onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && p.track && onPick) { e.preventDefault(); onPick(p); } }}

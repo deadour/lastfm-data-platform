@@ -1,7 +1,8 @@
+import { t as translate } from "../i18n";
 import { Count } from "./Count";
 import { useMemo, useState } from "react";
 import type { ExploreFile, FamilyShare } from "../data/explore";
-import { monthYear, n, pct } from "../utils/format";
+import { monthYear, n, pct, shortMonth, shortWeekday } from "../utils/format";
 
 // okabe-ito: readable on dark backgrounds and for colour-blind eyes.
 // colour always comes with a text label, never alone.
@@ -54,12 +55,12 @@ function squarify(items: FamilyShare[], x: number, y: number, w: number, h: numb
 export function GenreTreemap({ families, artists, onPick }: {
   families: FamilyShare[];
   artists: Record<string, { name: string; plays: number }[]>;
-  /** tap a genre: open my most played artist of it */
+  /** Play music from this genre without navigating away. */
   onPick?: (artist: string) => void;
 }) {
   const main = families.slice(0, 7);
   const rest = families.slice(7).reduce((s, f) => s + f.share, 0);
-  const items = rest > 0 ? [...main, { family: "otros", share: rest }] : main;
+  const items = rest > 0 ? [...main, { family: translate("otros"), share: rest }] : main;
   const [hover, setHover] = useState<string | null>(null);
   const W = 800, H = 380;
   const boxes = squarify(items, 0, 0, W, H);
@@ -67,12 +68,12 @@ export function GenreTreemap({ families, artists, onPick }: {
   return (
     <div className="genre-map">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img"
-        aria-label={`distribución por género: ${items.map((i) => `${i.family} ${pct(i.share)}`).join(", ")}`}>
+        aria-label={translate(`distribución por género: ${items.map((i) => `${i.family} ${pct(i.share)}`).join(", ")}`)}>
         {boxes.map((b) => (
           <g key={b.item.family} className="genre-box-hit" onMouseEnter={() => setHover(b.item.family)} onFocus={() => setHover(b.item.family)} tabIndex={0}
-            role="button" aria-label={`escuchar algo de ${b.item.family}`}
-            onClick={() => { const list = artists[b.item.family] ?? []; const pick = list[Math.floor(Math.random() * list.length)]?.name; if (pick && onPick) onPick(pick); }}
-            onKeyDown={(ev) => { const list = artists[b.item.family] ?? []; const top = list[Math.floor(Math.random() * list.length)]?.name; if ((ev.key === "Enter" || ev.key === " ") && top && onPick) { ev.preventDefault(); onPick(top); } }}>
+            role="button" aria-label={translate(`escuchar algo de ${b.item.family}`)}
+            onClick={() => { const list = artists[b.item.family] ?? Object.values(artists).flat(); const pick = list[Math.floor(Math.random() * list.length)]?.name; if (pick && onPick) onPick(pick); }}
+            onKeyDown={(ev) => { const list = artists[b.item.family] ?? Object.values(artists).flat(); const top = list[Math.floor(Math.random() * list.length)]?.name; if ((ev.key === "Enter" || ev.key === " ") && top && onPick) { ev.preventDefault(); onPick(top); } }}>
             <rect x={b.x + 1.5} y={b.y + 1.5} width={Math.max(0, b.w - 3)} height={Math.max(0, b.h - 3)}
               fill={familyColor(b.item.family)} fillOpacity={focus === b.item.family ? 0.95 : 0.7} className="genre-box" />
             {b.w > 70 && b.h > 34 && (
@@ -87,7 +88,7 @@ export function GenreTreemap({ families, artists, onPick }: {
       <div className="genre-map-detail" aria-live="polite">
         <span className="genre-chip" style={{ background: familyColor(focus ?? "") }} aria-hidden />
         <strong>{focus}</strong>
-        <span>{(artists[focus ?? ""] ?? []).slice(0, 5).map((a) => a.name).join(" · ") || "varios"}</span>
+        <span>{(artists[focus ?? ""] ?? []).slice(0, 5).map((a) => a.name).join(" · ") || translate("varios")}</span>
       </div>
     </div>
   );
@@ -108,7 +109,7 @@ export function GenreLines({ byYear }: { byYear: { year: number; families: Famil
   const series = top.map((family) => ({ family, values: byYear.map((yr) => yr.families.find((f) => f.family === family)?.share ?? 0) }));
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img"
-      aria-label={`peso de cada género por año: ${series.map((s) => s.family).join(", ")}`}>
+      aria-label={translate(`peso de cada género por año: ${series.map((s) => s.family).join(", ")}`)}>
       {[0, yMax / 2, yMax].map((t) => (
         <g key={t}>
           <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} className="time-chart-grid" />
@@ -130,7 +131,7 @@ export function GenreLines({ byYear }: { byYear: { year: number; families: Famil
 /* ---------- months against my average (divergent) ---------- */
 
 /** tracked months only: 2016 and from 2020; 2017–2019 were not recorded, so they don't pull the average down */
-export function MonthsVsAverage({ months, monthly, show = 24 }: { months: string[]; monthly: number[]; show?: number }) {
+export function MonthsVsAverage({ months, monthly, show = 24, onPick }: { months: string[]; monthly: number[]; show?: number; onPick?: (month: string) => void }) {
   const tracked = months.map((m, i) => ({ month: m, value: monthly[i] })).filter(({ month }) => {
     const year = Number(month.slice(0, 4));
     return year === 2016 || year >= 2020;
@@ -145,8 +146,8 @@ export function MonthsVsAverage({ months, monthly, show = 24 }: { months: string
     <figure className="diverge">
       <div className="time-chart-readout" aria-live="polite">
         {shown ? (
-          <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))} contra mi promedio</span></>
-        ) : <span>mi promedio mensual es de <span className="count-value">{n(Math.round(avg))}<small className="count-unit">e</small></span></span>}
+          <><strong>{n(shown.value)}</strong><span>{monthYear(shown.month)} · {shown.value >= avg ? "+" : "−"}{n(Math.round(Math.abs(shown.value - avg)))}{translate(" contra mi promedio")}</span></>
+        ) : <span>{translate("mi promedio mensual es de ")}<span className="count-value">{n(Math.round(avg))}<small className="count-unit">e</small></span></span>}
       </div>
       <div className="diverge-bars" role="img" aria-label={`diferencia de cada mes contra el promedio de ${n(Math.round(avg))}e`}>
         {recent.map((m, i) => {
@@ -154,26 +155,26 @@ export function MonthsVsAverage({ months, monthly, show = 24 }: { months: string
           const running = i === recent.length - 1;
           return (
             <button key={m.month} className={`diverge-col ${running ? "running" : ""}`} onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)}
-              onClick={() => setActive(i)} aria-label={`${monthYear(m.month)}: ${n(m.value)}e`}>
+              onClick={() => { setActive(i); onPick?.(m.month); }} aria-label={`${monthYear(m.month)}: ${n(m.value)}e`}>
               <span className={dev >= 0 ? "up" : "down"} style={{ height: `${(Math.abs(dev) / maxDev) * 50}%` }} />
             </button>
           );
         })}
       </div>
-      <div className="diverge-axis"><span>{monthYear(recent[0]?.month ?? "")}</span><span>promedio</span><span>{monthYear(recent[recent.length - 1]?.month ?? "")}</span></div>
+      <div className="diverge-axis"><span>{monthYear(recent[0]?.month ?? "")}</span><span>{translate("promedio")}</span><span>{monthYear(recent[recent.length - 1]?.month ?? "")}</span></div>
     </figure>
   );
 }
 
 /* ---------- top artists per year: dot plot ---------- */
 
-export function YearRanks({ ranks }: { ranks: ExploreFile["year_ranks"] }) {
+export function YearRanks({ ranks, onPick }: { ranks: ExploreFile["year_ranks"]; onPick?: (artist: string) => void }) {
   const [year, setYear] = useState(ranks[ranks.length - 1]?.year);
   const current = ranks.find((r) => r.year === year);
   const max = Math.max(1, ...(current?.top_artists.map((a) => a.plays) ?? [1]));
   return (
     <div className="year-ranks">
-      <div className="year-ranks-years" role="tablist" aria-label="año">
+      <div className="year-ranks-years" role="tablist" aria-label={translate("año")}>
         {ranks.map((r) => (
           <button key={r.year} role="tab" aria-selected={r.year === year} className={r.year === year ? "on" : ""} onClick={() => setYear(r.year)}>{r.year}</button>
         ))}
@@ -182,7 +183,7 @@ export function YearRanks({ ranks }: { ranks: ExploreFile["year_ranks"] }) {
       <ol className="dot-plot">
         {current?.top_artists.map((a, i) => (
           <li key={a.name}>
-            <span className="dot-plot-name"><span className="tabular">{i + 1}</span>{a.name}</span>
+            <span className="dot-plot-name"><span className="tabular">{i + 1}</span>{onPick ? <button type="button" className="text-left hover:underline" onClick={() => onPick(a.name)}>{a.name}</button> : a.name}</span>
             <span className="dot-plot-track" aria-hidden>
               <span className="dot-plot-stem" style={{ width: `${(a.plays / max) * 100}%` }} />
               <span className="dot-plot-dot" style={{ left: `${(a.plays / max) * 100}%` }} />
@@ -191,7 +192,6 @@ export function YearRanks({ ranks }: { ranks: ExploreFile["year_ranks"] }) {
           </li>
         ))}
       </ol>
-      {current?.top_family && <p className="year-ranks-note">ese año pesó más el {current.top_family}.</p>}
     </div>
   );
 }
@@ -199,7 +199,6 @@ export function YearRanks({ ranks }: { ranks: ExploreFile["year_ranks"] }) {
 /* ---------- the last year, day by day ---------- */
 
 const weekdayNames = ["lun", "", "mié", "", "vie", "", "dom"];
-const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 export function CalendarHeatmap({ calendar }: { calendar: ExploreFile["calendar"] }) {
   const cells = useMemo(() => {
@@ -219,20 +218,20 @@ export function CalendarHeatmap({ calendar }: { calendar: ExploreFile["calendar"
   return (
     <figure className="calendar">
       <svg viewBox={`0 0 ${L + cols * (S + G)} ${T + 7 * (S + G)}`} className="h-auto w-full" role="img"
-        aria-label={`registros por día, del ${calendar.start} al ${calendar.end}`}>
-        {months.map((c) => <text key={c.col} x={L + c.col * (S + G)} y={11} className="time-chart-axis">{monthNames[c.date.getUTCMonth()]}</text>)}
-        {weekdayNames.map((d, i) => d && <text key={d} x={0} y={T + i * (S + G) + 10} className="time-chart-axis">{d}</text>)}
+        aria-label={translate(`registros por día, del ${calendar.start} al ${calendar.end}`)}>
+        {months.map((c) => <text key={c.col} x={L + c.col * (S + G)} y={11} className="time-chart-axis">{shortMonth(c.date.getUTCMonth())}</text>)}
+        {weekdayNames.map((d, i) => d && <text key={d} x={0} y={T + i * (S + G) + 10} className="time-chart-axis">{shortWeekday((i + 1) % 7)}</text>)}
         {cells.map((c) => (
           <rect key={c.date.toISOString()} x={L + c.col * (S + G)} y={T + c.row * (S + G)} width={S} height={S} rx="2"
             className={c.count === 0 ? "cal-empty" : "cal-day"} style={{ opacity: c.count === 0 ? 1 : level(c.count) }}>
-            <title>{`${c.date.getUTCDate()} ${monthNames[c.date.getUTCMonth()]}: ${c.count}e`}</title>
+            <title>{`${c.date.getUTCDate()} ${shortMonth(c.date.getUTCMonth())}: ${c.count}e`}</title>
           </rect>
         ))}
       </svg>
       <figcaption className="calendar-legend">
-        <span>menos</span>
+        <span>{translate("menos")}</span>
         {[0, 0.25, 0.5, 0.75, 1].map((v) => <span key={v} className={v === 0 ? "cal-swatch empty" : "cal-swatch"} style={{ opacity: v === 0 ? 1 : Math.max(0.12, Math.sqrt(v)) }} />)}
-        <span>más</span>
+        <span>{translate("más")}</span>
       </figcaption>
     </figure>
   );

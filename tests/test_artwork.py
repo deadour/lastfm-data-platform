@@ -266,6 +266,11 @@ def test_frontend_export_matches_statsfile_contract_and_stays_private(tmp_path):
     assert document["top_albums"][0]["cover"]["attribution"] == "deezer"
     assert document["top_tracks"][0]["image"] == "https://cdn-images.dzcdn.net/x.jpg"  # via its album
     assert document["totals"]["scrobbles"] == 2
+    details = document["top_albums"][0]["details"]
+    assert details["unique_tracks"] == 2
+    assert sum(track["scrobbles"] for track in details["tracks"]) == 2
+    assert details["years"] == [{"year": 2023, "scrobbles": 2}]
+    assert details["first"] <= details["last"]
 
     text = json.dumps(document)
     assert "fictional-user" not in text and "blob.core.windows.net" not in text and str(tmp_path) not in text

@@ -74,7 +74,7 @@ def _partial(year: int, era: str, first: pd.Timestamp, last: pd.Timestamp) -> bo
 
 
 def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 20,
-          release_years: dict[str, int] | None = None) -> dict[str, Any]:
+          release_years: dict[str, int] | None = None, extra_album_keys: set[str] | None = None) -> dict[str, Any]:
     """Document matching frontend/src/data/types.ts ``StatsFile`` (schema_version 1)."""
     meta = json.loads((gold_root / "_metadata.json").read_text(encoding="utf-8"))
     yearly = pd.read_parquet(gold_root / "listening_yearly/listening_yearly.parquet").sort_values("year")
@@ -87,9 +87,26 @@ def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 
               .sort_values(["total_scrobbles", "artist_name", "track_name"], ascending=[False, True, True]))
     patterns = pd.read_parquet(gold_root / "listening_patterns/listening_patterns.parquet")
     streaks = pd.read_parquet(gold_root / "listening_patterns/streaks.parquet")
-    plays = pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid", "track_name"])
+    plays = pd.read_parquet(silver_path, columns=["artist_name", "album_name", "album_mbid", "track_name", "scrobbled_at"])
     albums = albums_from_silver(plays)
+    selected_albums = pd.concat([albums.head(max(top, 500)), albums[albums.album_key.isin(extra_album_keys or set())]]).drop_duplicates("album_key")
     release = release_years or {}
+    from src.analytics.historical_time import add_historical_local_time
+    album_events = plays[plays["album_name"].fillna("").str.strip() != ""].copy()
+    album_events["album_key"] = [album_key(a, b) for a, b in zip(album_events.artist_name, album_events.album_name)]
+    selected_keys = set(selected_albums["album_key"])
+    album_events = add_historical_local_time(album_events[album_events.album_key.isin(selected_keys)],
+        Path(__file__).resolve().parents[2] / "config/timezone_periods.json")
+    details = {}
+    for key, group in album_events.groupby("album_key"):
+        counts = group.groupby("track_name").size().sort_values(ascending=False)
+        yearly_counts = group.groupby("local_year").size()
+        details[key] = {
+            "first": _date(group["scrobbled_at_local"].min()), "last": _date(group["scrobbled_at_local"].max()),
+            "unique_tracks": len(counts),
+            "tracks": [{"title": title, "scrobbles": int(count)} for title, count in counts.head(50).items()],
+            "years": [{"year": int(year), "scrobbles": int(count)} for year, count in yearly_counts.items()],
+        }
     covers = catalog.set_index("album_key") if len(catalog) else pd.DataFrame(columns=catalog.columns)
 
     def album_cover(key: str) -> dict[str, Any] | None:
@@ -127,11 +144,11 @@ def build(gold_root: Path, silver_path: Path, catalog: pd.DataFrame, top: int = 
                         for r in artists.head(top).itertuples()],
         "top_tracks": [{"title": r.track_name, "artist": r.artist_name, "scrobbles": _int(r.total_scrobbles),
                         "image": (album_cover(track_album.get((r.artist_name, r.track_name), "")) or {}).get("url")}
-                       for r in tracks.head(top).itertuples()],
+                       for r in tracks.head(max(top, 100)).itertuples()],
         "top_albums": [{"key": r.album_key, "title": r.album_name, "artist": r.artist_name,
                         "year": release.get(r.album_key),
                         "scrobbles": _int(r.scrobbles), "image": (album_cover(r.album_key) or {}).get("url"),
-                        "cover": album_cover(r.album_key)} for r in albums.head(top).itertuples()],
+                        "cover": album_cover(r.album_key), "details": details.get(r.album_key)} for r in selected_albums.itertuples()],
         "rhythm": [{"weekday": day, "hour": hour, "share": round(float(cells.get((day, hour), 0)) / total, 5)}
                    for day in range(7) for hour in range(24)],
         "longest_streak": None if longest.empty else {"days": _int(longest.iloc[0]["days"]),

@@ -44,7 +44,7 @@ export interface TrackStat {
 
 export interface AlbumStat {
   key: string;
-  /** year I played it the most */
+  /** release year, when confirmed by the metadata provider */
   year?: number | null;
   title: string;
   artist: string;
@@ -52,6 +52,11 @@ export interface AlbumStat {
   image?: string | null;
   /** null until the album is resolved in the artwork catalog */
   cover: Cover | null;
+  details?: {
+    first: string; last: string; unique_tracks: number;
+    tracks: { title: string; scrobbles: number }[];
+    years: { year: number; scrobbles: number }[];
+  } | null;
 }
 
 export interface RhythmCell {

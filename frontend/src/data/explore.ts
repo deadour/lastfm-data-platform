@@ -6,11 +6,23 @@ export interface FamilyShare { family: string; share: number }
 export interface ExploreFile {
   schema_version: 1;
   generated_at: string;
+  weekday_tracks?: { weekday: number; tracks: { artist: string; title: string; plays: number }[] }[];
   calendar: { start: string; end: string; counts: number[]; max: number };
   year_ranks: { year: number; top_artists: { name: string; plays: number }[]; top_family?: string | null }[];
   rarities: {
-    one_day: { name: string; plays: number; date: string }[];
-    off_genre: { name: string; plays: number; family: string; style: string | null; family_share: number }[];
+    one_day: { name: string; plays: number; date: string; photo?: { url: string } | null }[];
+    off_genre: { name: string; plays: number; family: string; style: string | null; family_share: number; photo?: { url: string } | null }[];
+  };
+  gold?: {
+    loyal: { name: string; years_in_top_10: number; plays: number }[];
+    most_days: { name: string; days: number; plays: number }[];
+    evergreen_tracks: { title: string; artist: string; days: number; years: number; plays: number }[];
+    streaks: { days: number; start: string; end: string }[];
+    best_month: { month: string; plays: number };
+    avg_per_active_day: number | null;
+    weekend_vs_weekday: { weekend: number | null; weekday: number | null };
+    artists_total: number;
+    one_play_artists: number;
   };
   genres: {
     /** share of plays whose artist has genre tags */
@@ -34,6 +46,10 @@ const families = (v: unknown) => rows(v, (r) => text(r.family) && share(r.share)
 export function isExploreFile(v: unknown): v is ExploreFile {
   if (!object(v) || v.schema_version !== 1 || !text(v.generated_at) || !Number.isFinite(Date.parse(v.generated_at)) || !object(v.calendar) || !object(v.rarities)) return false;
   const cal = v.calendar;
+  if (v.weekday_tracks !== undefined && (!Array.isArray(v.weekday_tracks) || v.weekday_tracks.length !== 7 ||
+      !rows(v.weekday_tracks, (r) => count(r.weekday) && r.weekday < 7 && Array.isArray(r.tracks) && r.tracks.length <= 100 &&
+        rows(r.tracks, (track) => text(track.artist) && text(track.title) && count(track.plays))) ||
+      new Set((v.weekday_tracks as { weekday: number }[]).map((row) => row.weekday)).size !== 7)) return false;
   if (!date(cal.start) || !date(cal.end) || cal.start > cal.end || !count(cal.max) || !Array.isArray(cal.counts) || !cal.counts.length || !cal.counts.every(count)) return false;
   if (cal.counts.length !== (Date.parse(cal.end) - Date.parse(cal.start)) / 86400000 + 1 || cal.max !== Math.max(...cal.counts)) return false;
   if (!rows(v.year_ranks, (r) => count(r.year) && artists(r.top_artists) && (r.top_family === undefined || r.top_family === null || text(r.top_family)))) return false;

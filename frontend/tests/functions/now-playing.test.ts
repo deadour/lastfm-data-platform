@@ -75,6 +75,14 @@ describe("shape", () => {
 });
 
 describe("onRequestGet", () => {
+  it("treats an API error inside HTTP 200 as unavailable rather than an empty history", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: 8, message: SECRET }))));
+    const response = await call();
+    expect(response.status).toBe(503);
+    const body = await response.text();
+    expect(JSON.parse(body)).toMatchObject({ lastfm_error: 8, upstream_status: 200 });
+    expect(body).not.toContain(SECRET);
+  });
   it("serves from cache within the ttl and never leaks the key", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(lastfm(playing))));
     vi.stubGlobal("fetch", fetchMock);
