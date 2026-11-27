@@ -98,7 +98,7 @@ export function Pipeline() {
       <rect x="385" y="66" width="580" height="132" rx="8" fill="#073b65" fillOpacity="0.65" stroke="#38a8ed" strokeOpacity="0.65" />
       <g transform="translate(400, 74)"><AzureIcon size={16} /></g>
       <text x="422" y="88" fontSize="12" fill="#9ad7ff">{translate("azure · lago de datos privado")}</text>
-      <text x="20" y="34" fontSize="12" className="fill-current text-muted">{translate("github actions · 00:17 · recuperación 02:47 · hora argentina")}</text>
+      <text x="20" y="34" fontSize="12" className="fill-current text-muted">{translate("github actions · cada 6 h · recuperación 02:47 · hora argentina")}</text>
       <line x1="20" y1="44" x2="1115" y2="44" stroke="currentColor" className="text-white/10" />
 
       {edges.map(([a, b], i) => {
@@ -143,7 +143,7 @@ export function Pipeline() {
 }
 
 const run = [
-  ["00:17", "arranca", "github actions levanta el job"],
+  ["cada 6 h", "arranca", "github actions levanta el job"],
   ["+1 min", "lee el checkpoint", "y toma un candado para correr solo"],
   ["+2 min", "baja lo nuevo", "de last.fm, desde el último registro"],
   ["+3 min", "capas silver y gold", "se rearman y se suben con hash"],

@@ -1,6 +1,7 @@
 # Daily Last.fm pipeline on a GitHub-hosted runner; ADLS Gen2 is the only persistent store.
 # Azure access uses OIDC (workload identity federation) -- no client secret, key or SAS.
-# Runs at 00:17 Argentina with a recovery attempt at 02:47; GitHub schedules are best effort.
+# Runs every 6 hours (00:17, 06:17, 12:17, 18:17 Argentina) plus a recovery attempt at 02:47;
+# GitHub schedules are best effort, so several slots per day keep "hoy" fresh if one is dropped.
 name: daily-pipeline
 
 on:
@@ -11,8 +12,8 @@ on:
         required: true
         default: "25"
   schedule:
-    - cron: "17 3 * * *"   # 00:17 in argentina (03:17 utc): yesterday is complete; off the hour to dodge github's queue
-    - cron: "47 5 * * *"   # 02:47 Argentina: recover a missed trigger or a temporary Last.fm outage
+    - cron: "17 3,9,15,21 * * *"   # 00:17, 06:17, 12:17, 18:17 Argentina (utc hours 3,9,15,21); off the hour to dodge github's queue
+    - cron: "47 5 * * *"           # 02:47 Argentina: recover a missed trigger or a temporary Last.fm outage
 
 permissions:
   contents: read
